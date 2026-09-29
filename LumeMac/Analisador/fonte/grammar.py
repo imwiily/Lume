@@ -8,7 +8,7 @@ formalizar a voz de personagens. Nenhuma regra usa nomes ou frases de obras.
 from dataclasses import asdict
 import re
 
-from .analysis import SPEECH, finding
+from .analysis import finding, verbo_de_fala
 from .lexicon import FINITE, NONVERB, flags
 from .segments import classify
 
@@ -171,7 +171,11 @@ def crase(block, doc, emit):
 
 def homophones(block, doc, emit):
     text = block.text
-    for match in re.finditer(r"(?:^|(?<=[—–.!?…]\s)|(?<=[—–]))\s*\b(Porque)\b(?=[^.!?…]*\?)", text):
+    # Pergunta de confirmação no fim (“…, hein?”, “…, né?”) não torna a explicação uma pergunta direta.
+    etiqueta = re.compile(r",\s*(?:hein|né|viu|sabe|entende|entendeu|certo|ok|tá|não é|não)\s*\?", re.I)
+    for match in re.finditer(r"(?:^|(?<=[—–.!?…]\s)|(?<=[—–]))\s*\b(Porque)\b([^.!?…]*\?)", text):
+        if etiqueta.search(match[2]):
+            continue
         emit("homofonos", "Por que / porque", match.start(1), match.end(1), "probable_error", .9,
              "Em pergunta direta, usa-se ‘por que’ (separado); ‘porque’ junto introduz explicação ou causa.",
              "Por que")
@@ -229,6 +233,7 @@ def homophones(block, doc, emit):
         # ainda é pergunta direta. Depois de uma oração (“saiu porque…?”) é causa.
         # O léxico confirma verbos que o modelo não marca no início da frase (“É porque…”).
         if (token.text == "porque" and "?" in doc.text[token.idx:token.sent.end_char]
+                and not etiqueta.search(doc.text[token.idx:token.sent.end_char])
                 and not any(verbal(t) for t in doc[token.sent.start:token.i])):
             emit("homofonos", "Por que / porque", token.idx, token.idx + len(token.text), "probable_error", .85,
                  "Em pergunta direta, usa-se ‘por que’ (separado); ‘porque’ junto introduz explicação ou causa.",
@@ -357,7 +362,7 @@ def regency(block, doc, emit):
         # verbos sem objeto (“chegou ela”) têm o pronome como sujeito posposto.
         if (nxt.lower_ in {"ele", "ela", "eles", "elas"} and nxt.dep_ == "obj" and nxt.head == token
                 and token.pos_ == "VERB" and "Fin" in token.morph.get("VerbForm")
-                and token.lemma_.casefold() not in SPEECH | INTRANSITIVE
+                and not verbo_de_fala(token) and token.lemma_.casefold() not in INTRANSITIVE
                 and not block.text[:token.idx].rstrip().endswith(("—", "–"))):
             clitic = {"ele": "o", "ela": "a", "eles": "os", "elas": "as"}[nxt.lower_]
             emit("regencia", "Pronome reto como objeto", token.idx, nxt.idx + len(nxt.text), "editorial_attention", .7,

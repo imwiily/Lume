@@ -7,6 +7,7 @@ Trechos de papéis diferentes nunca são concatenados.
 from dataclasses import asdict
 import re
 from .analysis import finding
+from .lexicon import FINITE, NONVERB, flags
 from .segments import classify, spans
 
 RULES = {
@@ -46,7 +47,7 @@ RULES = {
 NAME = r"[A-ZÀ-ÖØ-Þ][a-zà-öø-ÿ\u0300-\u036f]+"
 VOCATIVE = re.compile(r"(?:^|[.!?][ \t]+)[ \t]*(?P<name>" + NAME +
                      r"(?:[ \t]+" + NAME + r"){0,2})(?=[ \t]+(?:vocês?\b|tu\b|não[ \t]+(?:faça|façam|diga|digam|vá|vão|venha|venham|toque|toquem|entre|entrem|saia|saiam|olhe|olhem)\b))")
-INTRODUCERS = set("hoje amanhã ontem agora atualmente talvez assim então aqui ali lá depois antes sempre nunca ainda quando enquanto como onde aonde donde porque pois porém contudo entretanto portanto logo caso se embora somente apenas até sim não bem ora ei olá oi quem qual quais quanto quanta quantos quantas que".split())
+INTRODUCERS = set("mas e ou nem porém pois contudo todavia aliás senão hoje amanhã ontem agora atualmente talvez assim então aqui ali lá depois antes sempre nunca ainda quando enquanto como onde aonde donde porque pois porém contudo entretanto portanto logo caso se embora somente apenas até sim não bem ora ei olá oi quem qual quais quanto quanta quantos quantas que".split())
 # Resposta ou cumprimento seguido de chamamento: “Não senhora.”, “Bom dia Clara!”.
 # O vocativo é pronome de tratamento, parentesco ou nome, antes de pontuação.
 ADDRESS = re.compile(r"(?:^|(?<=[—–.!?…])\s*|(?<=[—–]))\s*(?P<lead>Sim|Não|Obrigad[oa]|Olá|Oi|Bom dia|Boa tarde|Boa noite|Adeus|Tchau)"
@@ -58,7 +59,12 @@ ADDRESS = re.compile(r"(?:^|(?<=[—–.!?…])\s*|(?<=[—–]))\s*(?P<lead>Sim
 def vocatives(block, start, text):
     for match in VOCATIVE.finditer(text):
         name = match['name']
-        if name.casefold().split()[0] in INTRODUCERS:
+        primeira = name.split()[0]
+        if primeira.casefold() in INTRODUCERS:
+            continue
+        # “Achei você”: uma forma que o léxico só conhece como verbo não é chamamento.
+        valor = flags(primeira)
+        if valor & FINITE and not valor & NONVERB:
             continue
         yield vocative_item(block, start + match.start('name'), start + match.end('name'), name + ",",
                             "O nome inicial parece chamar o interlocutor, antes de um pronome de tratamento ou de uma proibição. Se for vocativo, separe-o por vírgula; confira se não é o sujeito da frase.")

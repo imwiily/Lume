@@ -9,6 +9,31 @@ from .lexicon import finite, indicative_tense
 
 SPEECH = set("dizer informar perguntar responder murmurar gritar sussurrar comentar retrucar afirmar falar exclamar replicar declarar indagar confessar explicar acrescentar argumentar insistir ordenar pedir protestar avisar pensar refletir ponderar admitir lembrar concluir continuar completar interromper balbuciar resmungar cochichar implorar vociferar anunciar observar sugerir repetir garantir negar confirmar questionar reclamar ironizar brincar saudar chamar ler recitar citar ditar cantar declamar".split())
 
+# Terminações verbais comuns; com o radical de um verbo de elocução, reconhecem a forma
+# mesmo quando o modelo pequeno erra o lema (“perguntei” → “perguntei”, “respondemos” → “respond”).
+TERMINACOES = re.compile(r"(?:o|a|as|amos|ais|am|ei|aste|ou|astes|aram|ava|avas|ávamos|avam|e|es|emos|em|i|este|eu|"
+                         r"estes|eram|ia|ias|íamos|iam|iu|imos|iram|ará|arão|erá|erão|irá|irão|ando|endo|indo)(?:-\w+)?")
+
+
+def verbo_de_fala(token):
+    """Verbo de elocução ou pensamento, pelo lema ou pelo radical + terminação verbal."""
+    return token.lemma_.casefold() in SPEECH or forma_de_fala(token.lower_)
+
+
+IRREGULARES_DE_FALA = {"disse", "disseram", "diz", "dizem", "dizia", "diziam", "dirá", "pediu", "pediram", "pede", "pedia"}
+
+
+def forma_de_fala(forma):
+    """Mesmo critério, só pela forma escrita (sem análise sintática)."""
+    forma = forma.casefold()
+    if forma in IRREGULARES_DE_FALA:
+        return True
+    for verbo in SPEECH:
+        radical = verbo[:-2]
+        if len(radical) >= 3 and forma.startswith(radical) and TERMINACOES.fullmatch(forma[len(radical):]):
+            return True
+    return False
+
 
 @dataclass
 class Finding:
@@ -140,7 +165,7 @@ def analyze(blocks: list[Block], nlp, tense="auto", protect_italics=True, min_wo
             start = position+1+match.end()
             remaining = [t for t in doc if t.idx >= start and not t.is_space]
             first_verb = next((t for t in remaining[:18] if finite(t)), None)
-            if first_verb is not None and first_verb.lemma_.lower() not in SPEECH:
+            if first_verb is not None and not verbo_de_fala(first_verb):
                 results.append(finding(block, "Pontuação de diálogo", "Verificar",
                     position, first_verb.idx+len(first_verb.text),
                     "Após as aspas há uma vírgula, mas o primeiro verbo finito identificado não está na lista de elocução/pensamento. Confira se o trecho é uma ação independente ou uma construção válida no contexto."))

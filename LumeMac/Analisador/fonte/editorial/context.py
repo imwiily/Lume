@@ -4,7 +4,7 @@ Janelas não atravessam capítulos/cortes explícitos. Evidências anteriores
 sustentam referências; parágrafos seguintes só ajudam a revisão humana.
 """
 import re
-from ..analysis import SPEECH
+from ..analysis import verbo_de_fala
 from ..lexicon import model_finite
 from ..segments import classify, spans
 from .common import alert, evidence
@@ -75,12 +75,12 @@ def analyze(blocks, nlp, settings, *, docs=None):
                 first = next((t for t in parsed if any(c.isalpha() for c in t.text)), None)
                 if verb is None or first is None:
                     continue
-                if verb.lemma_.casefold() not in SPEECH and (first.text[0].islower() or
+                if not verbo_de_fala(verb) and (first.text[0].islower() or
                         not block.text[:start-1].rstrip().endswith(('.', '!', '?', '…'))):
                     emit('dialogo_contextual', 'Ação narrativa após fala', start + first.idx,
                          start + verb.idx + len(verb.text),
                          'O primeiro verbo finito após o travessão descreve uma ação, sem verbo de elocução reconhecido. Confira se a fala deve ser encerrada e a ação iniciada com maiúscula. A lista de elocução é limitada.')
-                elif verb.lemma_.casefold() in SPEECH and end < len(block.text) and block.text[end] in '—–':
+                elif verbo_de_fala(verb) and end < len(block.text) and block.text[end] in '—–':
                     continuation = block.text[end + 1:].lstrip()
                     if (continuation and continuation[0].isupper()
                             and not fragment.rstrip().endswith(('.', '!', '?', '…', ':'))):

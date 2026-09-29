@@ -107,6 +107,9 @@ def legitimate_present(token):
         return True
     if token.lemma_.casefold() in STATIVE:
         return True
+    # “O que quer que fosse”: locução indefinida, não um verbo no presente da narração.
+    if token.lower_ == "quer" and re.search(r"\bque\s*$", prefix, re.I) and re.match(r"quer\s+que\b", tail, re.I):
+        return True
     if token.lemma_.casefold() == "poder" and any(
             c.dep_ == "xcomp" and c.lemma_.casefold() in {"confirmar", "afirmar", "garantir", "dizer", "atestar"}
             for c in token.children):

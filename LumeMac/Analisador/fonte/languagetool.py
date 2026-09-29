@@ -22,13 +22,22 @@ from urllib.parse import urlencode
 from urllib.request import Request, ProxyHandler, HTTPRedirectHandler, build_opener
 from urllib.error import URLError
 
-from .analysis import finding
+from .analysis import finding, forma_de_fala
 from .settings import validate
 
 SERVER_JAR = "languagetool-server.jar"
 IGNORED_ISSUES = {"style", "register", "locale-violation"}
 IGNORED_CATEGORIES = {"STYLE", "REDUNDANCY", "COLLOQUIALISMS", "REGIONALISMS", "FORMAL"}
 SENTENCE_END = set(".!?…\"“”«»—–")
+# Sugestões de estilo sobre a pontuação de falas (“Olá.” → “Olá!”, vírgula de despedida).
+IGNORED_RULES = {"INTERJECTIONS_PUNTUATION", "REGARDS_COMMA"}
+# Onomatopeias e interjeições expressivas: letras repetidas, caixa-alta ou formas como “Humm”, “Hm”.
+EXPRESSIVA = re.compile(r"(\w)\1\1|^(?:h+u*m+|h+a+m+|a+h+[mn]*|a+h+a+|h+[mn]+|hã+|u+é|u+h+|o+h+|a+i+)$", re.I)
+
+
+def expressiva(palavra):
+    """Letras repetidas (“Haaaa”), interjeição (“Humm”, “Hm”) ou onomatopeia em caixa-alta (“SHING”)."""
+    return bool(EXPRESSIVA.search(palavra)) or (len(palavra) >= 3 and palavra.isalpha() and palavra.isupper())
 
 
 class NoRedirect(HTTPRedirectHandler):
@@ -96,6 +105,23 @@ def check(blocks, port=8081, protect_italics=True, settings=None, avancar=None):
             if not excerpt.strip():
                 continue
             spelling = rule.get("issueType") == "misspelling" or rule.get("category", {}).get("id") == "TYPOS"
+            if rule.get("id") in IGNORED_RULES:
+                continue
+            antes, depois = text[:start].rstrip(), text[end:]
+            palavra = excerpt.strip(" ,.;:!?…")
+            # Espaço depois de reticências (“…Mais”) é escolha de estilo da fala.
+            if rule.get("id") == "SENTENCE_WHITESPACE" and antes.endswith(("…", "...")):
+                continue
+            # Nome próprio depois de vírgula ou dois-pontos (vocativo, enumeração) mantém a maiúscula.
+            if rule.get("id") == "UPPERCASE_AFTER_COMMA" and palavra.split()[-1].casefold() in names:
+                continue
+            # Onomatopeias, interjeições e palavras cortadas na fala (“proí…”) não são erros de grafia.
+            sozinha = re.fullmatch(r"[—–\s]*\w+[!?]+[\s.…]*", text) is not None  # “Fwoosh!” num parágrafo
+            if spelling and (expressiva(palavra) or sozinha or depois.startswith(("…", "...", "-", "—"))):
+                continue
+            # “— … — respondeu a doutora”: sujeito posposto ao verbo de fala, sem crase.
+            if rule.get("id") == "CRASE_CONFUSION" and forma_de_fala(excerpt.split()[0]):
+                continue
             # Inciso após travessão (“— Vamos? — perguntou ela.”) não é início de frase.
             if rule.get("id") == "UPPERCASE_SENTENCE_START" and text[:start].rstrip().endswith(("—", "–")):
                 continue

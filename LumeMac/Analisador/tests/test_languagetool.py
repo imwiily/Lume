@@ -181,3 +181,91 @@ class ProgressoTests(unittest.TestCase):
         self.assertEqual(andamento[-1], (30, 30, "parágrafos"))
         self.assertEqual([d for d, *_ in andamento], sorted(d for d, *_ in andamento))
         self.assertTrue(all(e["state"] == "running" for e in eventos if "done" in e))
+
+
+class FiltrosManuscritoTests(unittest.TestCase):
+    """Filtros genéricos para alarmes vistos num manuscrito real."""
+
+    def test_proper_name_after_comma_is_not_lowercased(self):
+        texto = "— Tenha cuidado, Lívia!"
+        outro = "Depois, Lívia saiu."
+        resultados, _ = check([Block(1, texto), Block(2, outro)],
+                              {texto: [match(texto, "Lívia", "UPPERCASE_AFTER_COMMA", "typographical", "CASING", ["lívia"])]})
+        self.assertEqual(resultados, [])
+
+    def test_onomatopoeia_interjections_and_cut_words_are_not_spelling_errors(self):
+        casos = ["— Humm, está bem.", "— Hm? O que foi?", "Fwoosh!", "BOOOOM!", "— Haaaa! Toma!", "— Isso é proí…"]
+        palavras = ["Humm", "Hm", "Fwoosh", "BOOOOM", "Haaaa", "proí"]
+        respostas = {t: [match(t, w, "MORFOLOGIK_RULE_PT_BR", "misspelling", "TYPOS")] for t, w in zip(casos, palavras)}
+        resultados, _ = check([Block(i + 1, t) for i, t in enumerate(casos)], respostas)
+        self.assertEqual(resultados, [])
+        # Erro comum continua apontado.
+        texto = "Ele forçei a porta."
+        resultados, _ = check([Block(1, texto)], {texto: [match(texto, "forçei", "MORFOLOGIK_RULE_PT_BR", "misspelling", "TYPOS")]})
+        self.assertEqual(len(resultados), 1)
+
+    def test_inverted_subject_after_speech_verb_needs_no_crase(self):
+        texto = "— Não vi nada — respondeu a vizinha."
+        resultados, _ = check([Block(1, texto)], {texto: [match(texto, "respondeu a", "CRASE_CONFUSION", "grammar", "CONFUSED_WORDS")]})
+        self.assertEqual(resultados, [])
+
+    def test_style_suggestions_on_dialogue_punctuation_are_ignored(self):
+        texto = "— Até amanhã. — …Mais ou menos."
+        respostas = {texto: [match(texto, "amanhã.", "INTERJECTIONS_PUNTUATION", "grammar", "PUNCTUATION"),
+                             match(texto, "Mais", "SENTENCE_WHITESPACE", "whitespace", "TYPOGRAPHY")]}
+        self.assertEqual(check([Block(1, texto)], respostas)[0], [])
+
+
+class FiltrosSegundoRelatorioTests(unittest.TestCase):
+    """Falsos positivos marcados pelo autor em relatórios reais (29/09/2026), generalizados."""
+
+    def test_repeated_capitalized_unknown_word_is_a_name(self):
+        textos = ["“Taluma.”", "Taluma estreitou os olhos."]
+        respostas = {t: [match(t, "Taluma", "MORFOLOGIK_RULE_PT_BR", "misspelling", "TYPOS")] for t in textos}
+        self.assertEqual(check([Block(1, textos[0]), Block(2, textos[1])], respostas)[0], [])
+        # Uma única ocorrência, ou a mesma forma também em minúscula, continua apontada.
+        texto = "Ontme ele saiu cedo."
+        self.assertEqual(len(check([Block(1, texto)], {texto: [match(texto, "Ontme", "MORFOLOGIK_RULE_PT_BR", "misspelling", "TYPOS")]})[0]), 1)
+        textos = ["Trmbém saiu.", "Trmbém voltou.", "Ele trmbém ficou."]
+        respostas = {t: [match(t, t.split()[0] if t[0] == "T" else "trmbém", "MORFOLOGIK_RULE_PT_BR", "misspelling", "TYPOS")] for t in textos}
+        self.assertEqual(len(check([Block(i + 1, t) for i, t in enumerate(textos)], respostas)[0]), 3)
+
+    def test_capital_after_colon_is_kept(self):
+        texto = "— Primeira apresentação: Lara, da turma do fundo, e depois Tomé."
+        respostas = {texto: [match(texto, ": Lara", "UPPERCASE_AFTER_COMMA", "typographical", "CASING", [": lara"])]}
+        self.assertEqual(check([Block(1, texto)], respostas)[0], [])
+        texto = "Ele chegou, Depois saiu."
+        respostas = {texto: [match(texto, ", Depois", "UPPERCASE_AFTER_COMMA", "typographical", "CASING", [", depois"])]}
+        self.assertEqual(len(check([Block(1, texto)], respostas)[0]), 1)
+
+    def test_participle_after_todos_is_not_a_noun(self):
+        for texto, trecho in [("— Quero todos sentados antes do sinal.", "todos sentados"),
+                              ("Queria todas sentadas antes do sinal.", "todas sentadas")]:
+            with self.subTest(texto=texto):
+                respostas = {texto: [match(texto, trecho, "TODOS_FOLLOWED_BY_NOUN_PLURAL")]}
+                self.assertEqual(check([Block(1, texto)], respostas)[0], [])
+        texto = "Todos alunos saíram cedo."
+        respostas = {texto: [match(texto, "Todos alunos", "TODOS_FOLLOWED_BY_NOUN_PLURAL")]}
+        self.assertEqual(len(check([Block(1, texto)], respostas)[0]), 1)
+
+    def test_verb_before_gerund_is_not_a_paronym(self):
+        texto = "A chuva continua caindo sobre o telhado."
+        respostas = {texto: [match(texto, "continua", "LP_PARONYMS", replacements=["contínua"])]}
+        self.assertEqual(check([Block(1, texto)], respostas)[0], [])
+        texto = "Foi uma vigília continua."
+        respostas = {texto: [match(texto, "continua", "LP_PARONYMS", replacements=["contínua"])]}
+        self.assertEqual(len(check([Block(1, texto)], respostas)[0]), 1)
+
+    def test_onomatopoeia_reduplication_is_not_a_repeated_word(self):
+        texto = "— Au au, quieto aí, ninguém vai te machucar."
+        respostas = {texto: [match(texto, "Au au", "PORTUGUESE_WORD_REPEAT_RULE", "duplication", "TYPOS")]}
+        self.assertEqual(check([Block(1, texto)], respostas)[0], [])
+        texto = "Ele saiu saiu de casa."
+        respostas = {texto: [match(texto, "saiu saiu", "PORTUGUESE_WORD_REPEAT_RULE", "duplication", "TYPOS")]}
+        self.assertEqual(len(check([Block(1, texto)], respostas)[0]), 1)
+
+    def test_agora_sim_needs_no_commas(self):
+        for texto in ["— Agora sim, a festa começou.", "Agora sim eu entendi o recado."]:
+            with self.subTest(texto=texto):
+                respostas = {texto: [match(texto, "Agora sim", "VERB_COMMA_CONJUNCTION", "grammar", "PUNCTUATION")]}
+                self.assertEqual(check([Block(1, texto)], respostas)[0], [])
