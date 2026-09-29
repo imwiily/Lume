@@ -39,7 +39,7 @@ final class ReviewStore: ObservableObject {
     @Published var search = ""
     @Published var tense = "passado"
     @Published var includeItalics = false
-    @Published var useLanguageTool = false
+    @Published var useLanguageTool = true
     @Published var isBusy = false
     @Published var canCancel = false
     @Published var jobLabel = ""
@@ -297,8 +297,8 @@ final class ReviewStore: ObservableObject {
                 guard let python = pythonURL else { return }
                 executable = python
                 if let engine = embeddedEngine,
-                   engine.version.compare("0.6.0", options: .numeric) == .orderedAscending {
-                    throw FonteError.message("A revisão modular exige FONTE 0.6.0 ou posterior. Restaure o motor embutido desta versão do Lume ou instale a atualização do motor.")
+                   engine.version.compare("0.8.1", options: .numeric) == .orderedAscending {
+                    throw FonteError.message("A revisão modular exige FONTE 0.8.1 ou posterior. Restaure o motor embutido desta versão do Lume ou instale a atualização do motor.")
                 }
                 saveSearchSettings()
                 let config = try supportDirectory("Configuracoes").appendingPathComponent(jobID + ".json")

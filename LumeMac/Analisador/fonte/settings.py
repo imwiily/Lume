@@ -8,8 +8,15 @@ RULES = ['tempo_verbal', 'estrutura', 'pontuacao_dialogo', 'palavra_consecutiva'
          'adiamento_amanha', 'referente_proximidade', 'pronome_apos_corte']
 LEGACY_RULES = RULES[:]
 NEW_RULES = ['construcao_invalida', 'pontuacao_duplicada', 'espacamento', 'virgula_que_nao',
-             'que_tonico_interrogativo', 'coerencia_temporal', 'acentuacao_contextual']
+             'que_tonico_interrogativo', 'coerencia_temporal', 'acentuacao_contextual',
+             'vocativo', 'capitalizacao_contextual', 'dialogo_contextual',
+             'referente_contextual', 'gerundismo', 'memoria_narrativa',
+             'conflito_habilidade', 'conflito_objeto', 'conflito_cronologia', 'coerencia_generica']
 RULES += NEW_RULES
+# Classes gramaticais com apoio sintático (fonte/grammar.py). Ligadas por padrão,
+# como as anteriores; ‘desativar todas’ de configurações antigas continua valendo.
+GRAMMAR_RULES = ['crase', 'homofonos', 'concordancia', 'regencia', 'virgula_sujeito_verbo']
+RULES += GRAMMAR_RULES
 SCOPES = ['narracao', 'dialogo', 'pensamento']
 DEFAULT = {
     'schema_version': 1,

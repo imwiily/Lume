@@ -1,0 +1,177 @@
+{
+  "schema_version": 1,
+  "conjunto": "validacao",
+  "descricao": "Textos sintéticos reservados. Não usar para criar ou ajustar regras; medir somente depois de concluir uma mudança e registrar o resultado sem retocar regras em seguida.",
+  "textos": [
+    {
+      "id": "val-detetive",
+      "tempo": "passado",
+      "paragrafos": [
+        "Capítulo 1",
+        "O detetive Raul Mendes chegou à delegacia pouco antes das oito, como fazia todas as manhãs.",
+        "Sobre a mesa dele havia um envelope pardo, sem remetente, que alguém deixara durante a madrugada.",
+        "Dentro do envelope estava uma fotografia antiga e um bilhete escrito à mão: “Ela não morreu no incêndio.”",
+        "Raul reconheceu a mulher da fotografia imediatamente. Era Lúcia Prado, a professora que desaparecera a quinze anos, depois que a escola da cidade pegou fogo.",
+        "Na época, o caso foi encerrado as pressas. A polícia concluiu que a professora tinha morrido no incêndio, embora o corpo nunca tenha sido encontrado.",
+        "Raul tinha só vinte e dois anos quando o incêndio aconteceu. Agora, com trinta e sete, ele era o investigador mais experiente da cidade.",
+        "Ele guardou a fotografia no bolso do casaco e foi falar com o delegado.",
+        "— Doutor, preciso reabrir o caso da professora Lúcia — disse Raul, entrando na sala sem bater.",
+        "O delegado Sampaio ergueu os olhos do jornal, visivelmente irritado.",
+        "— Esse caso está encerrado a muito tempo, Mendes. Não tem nada para reabrir.",
+        "— Recebi isso hoje de manhã — insistiu Raul, colocando o bilhete sobre a mesa.",
+        "Sampaio leu o bilhete em silêncio. Por um instante, Raul teve a impressão de que as mãos dele tremiam.",
+        "— Isso é brincadeira de mau gosto — disse o delegado, por fim. — Esqueça essa história.",
+        "Raul saiu da sala sem responder. Ele sabia que o delegado estava escondendo alguma coisa, e estava disposto à descobrir o quê.",
+        "Capítulo 2",
+        "Naquela tarde, Raul foi até o antigo prédio da escola. As paredes ainda estava pretas de fuligem, e o mato tinha tomado conta do pátio.",
+        "Ele caminhou pelos corredores vazios com uma lanterna na mão. O cheiro de queimado parecia impregnado em tudo.",
+        "Na sala dos professores, encontrou um armário de metal que tinha sobrevivido ao fogo. A porta estava emperrada, mas ele conseguiu abri-la com um pé de cabra.",
+        "Dentro do armário, haviam dezenas de cadernos, todos com o nome de Lúcia na capa.",
+        "Raul folheou o primeiro caderno e ficou paralizado. A última página tinha sido escrita dois dias depois do incêndio.",
+        "Ele comparou a letra do bilhete com a letra do caderno. Eram idênticas.",
+        "Raul, que na época do incêndio tinha apenas doze anos, lembrava-se bem da fumaça cobrindo o céu da cidade.",
+        "Ele saiu da escola quando o sol já estava se pondo. No carro, ligou para a única pessoa em quem ainda confiava.",
+        "— Beatriz, preciso da sua ajuda. Acho que a Lúcia está viva — disse ele.",
+        "Do outro lado da linha, houve um longo silêncio.",
+        "Quando Raul chegou em casa, já passava da meia-noite. Ele se deitou, mas não conseguiu dormir."
+      ],
+      "erros": [
+        {"p": 5, "trecho": "a quinze anos", "categoria": "homofonos", "camada": "linguistica"},
+        {"p": 6, "trecho": "as pressas", "categoria": "crase", "camada": "linguistica"},
+        {"p": 11, "trecho": "a muito tempo", "categoria": "homofonos", "camada": "linguistica"},
+        {"p": 15, "trecho": "à descobrir", "categoria": "crase", "camada": "linguistica"},
+        {"p": 17, "trecho": "paredes ainda estava", "categoria": "concordancia_verbal", "camada": "linguistica"},
+        {"p": 20, "trecho": "haviam", "categoria": "verbo_impessoal", "camada": "linguistica"},
+        {"p": 21, "trecho": "paralizado", "categoria": "ortografia", "camada": "linguistica"},
+        {"p": 27, "trecho": "chegou em", "categoria": "regencia", "camada": "linguistica"},
+        {"p": 23, "trecho": "tinha apenas doze anos", "categoria": "contradicao", "camada": "narrativa", "nota": "vinte e dois anos na época do incêndio (parágrafo 7)"}
+      ],
+      "aceitaveis": [
+        {"p": 4, "trecho": "estava uma fotografia", "nota": "concordância com o núcleo mais próximo do sujeito posposto"},
+        {"p": 11, "trecho": "Não tem nada", "nota": "fala coloquial"},
+        {"p": 13, "trecho": "as mãos dele", "nota": "ambiguidade possível de referente"}
+      ]
+    },
+    {
+      "id": "val-padaria",
+      "tempo": "presente",
+      "paragrafos": [
+        "Capítulo Um",
+        "Moro sozinha num apartamento pequeno no centro da cidade. Da janela da sala, vejo o rio e a ponte velha.",
+        "Todas as manhãs, desço até a padaria da esquina e compro pão para o café.",
+        "Hoje, porém, a padaria esta fechada. Um cartaz na porta avisa que o dono faleceu durante a noite.",
+        "Fico parada na calçada por alguns minutos, sem saber o que fazer. Seu Jorge me atendia desde que eu era criança.",
+        "Volto para casa e ligo para minha irmã. Ela atende no terceiro toque.",
+        "— Você soube do seu Jorge? — pergunto.",
+        "— Soube. Que tristeza, né? Ele tava tão bem semana passada — responde Paula.",
+        "Conversamos por quase uma hora. Quando desligo, percebi que estou atrasada para o trabalho.",
+        "Pego o ônibus lotado e chego no escritório às nove e meia. Minha chefe já está na minha mesa, com os braços cruzados.",
+        "— Nós precisamos conversar — ela diz, sem sorrir.",
+        "Na sala de reuniões, ela me explica que a empresa vai fazer cortes e que meu setor sera extinto.",
+        "Ela diz tudo isso com muita calma, como se estivesse falando do tempo. Eu escuto em silêncio, olhando para as minhas mãos.",
+        "Quando saio da sala, meus colegas evitam olhar para mim. Eles já sabiam, é claro. Todos sempre sabem antes.",
+        "Esvazio minha gaveta numa caixa de papelão e deixo o prédio antes do almoço. Na rua , o sol está forte e as calçadas estão cheias de gente.",
+        "Caminho até a ponte velha e me debruço sobre o parapeito. Lá embaixo, o rio corre devagar, indiferente a tudo.",
+        "Penso no seu Jorge, na padaria fechada, na caixa de papelão debaixo do meu braço. Penso que talvez seja hora de mudar de cidade.",
+        "Capítulo Dois",
+        "Na manhã seguinte, desço até a padaria da esquina. Seu Jorge está atrás do balcão, como sempre, e me cumprimenta com um sorriso.",
+        "Minha irmã mais nova, Paula, chega para almoçar comigo no domingo. Ela é cinco anos mais velha do que eu, mas sempre me trata como se eu fosse a caçula.",
+        "Conto para ela sobre o emprego e ela escuta tudo sem me interromper. Depois diz que eu devia aproveitar para fazer a viagem que sempre adiei.",
+        "— Você tem umas economias, não tem? Então vai! — ela insiste.",
+        "Passo a noite inteira pensando nisso. Quando o dia amanhece, já tomei minha decisão."
+      ],
+      "erros": [
+        {"p": 4, "trecho": "esta", "categoria": "acentuacao", "camada": "linguistica"},
+        {"p": 9, "trecho": "percebi", "categoria": "tempo_verbal", "camada": "linguistica"},
+        {"p": 10, "trecho": "chego no", "categoria": "regencia", "camada": "linguistica"},
+        {"p": 12, "trecho": "sera", "categoria": "acentuacao", "camada": "linguistica"},
+        {"p": 15, "trecho": "rua ,", "categoria": "pontuacao_mecanica", "camada": "linguistica"},
+        {"p": 19, "trecho": "Seu Jorge está atrás do balcão", "categoria": "contradicao", "camada": "narrativa", "nota": "o dono da padaria faleceu (parágrafo 4)"},
+        {"p": 20, "trecho": "cinco anos mais velha", "categoria": "contradicao", "camada": "narrativa", "nota": "a irmã é chamada de mais nova na mesma frase"}
+      ],
+      "aceitaveis": [
+        {"p": 8, "trecho": "tava", "nota": "fala coloquial"},
+        {"p": 8, "trecho": "né", "nota": "fala coloquial"},
+        {"p": 22, "trecho": "Então vai", "nota": "fala coloquial"},
+        {"p": 5, "trecho": "atendia", "nota": "passado legítimo em narração no presente"},
+        {"p": 14, "trecho": "sabiam", "nota": "passado legítimo em narração no presente"},
+        {"p": 21, "trecho": "adiei", "nota": "passado legítimo em narração no presente"},
+        {"p": 23, "trecho": "tomei", "nota": "passado legítimo em narração no presente"},
+        {"p": 4, "trecho": "faleceu", "nota": "passado legítimo em narração no presente"},
+        {"p": 21, "trecho": "devia", "nota": "uso modal corrente"}
+      ]
+    },
+    {
+      "id": "val-princesa",
+      "tempo": "passado",
+      "paragrafos": [
+        "Capítulo 1",
+        "A princesa Aurélia nasceu numa noite de tempestade, no ano em que o grande cometa cruzou o céu do reino.",
+        "Desde pequena, ela demonstrou um talento raro para a magia da água. Conseguia fazer chover em dias de sol e acalmar as ondas do mar com um gesto.",
+        "O rei, seu pai, temia esse poder. Por isso, proibiu que ela estudasse com os magos da corte e mandou queimar todos os livros de feitiçaria do castelo.",
+        "Aurélia cresceu sozinha e passava as tardes na biblioteca abandonada, que ninguém mais visitava.",
+        "Lá, ela descobriu um livro que tinha escapado do fogo. As páginas eram amareladas e a capa, de couro vermelho, estava gasta pelo tempo.",
+        "O livro ensinava a controlar os ventos e as marés. A princesa estudava-o escondida todas as noites, a luz de uma vela.",
+        "Quando completou dezesseis anos, ela já era mais poderosa do que qualquer mago do reino. Mas ninguem sabia disso, nem mesmo sua ama.",
+        "Certo dia, um mensageiro chegou ao castelo com notícias terríveis: o exército do reino vizinho marchava em direção a capital.",
+        "O rei reuniu seus generais no salão principal. Eles discutiram durante horas, mas nenhum deles conseguiam encontrar uma solução.",
+        "Aurélia ouviu tudo escondida atrás de uma cortina. Ela sabia que podia ajudar, porém tinha medo da reação do pai.",
+        "Naquela noite, ela abriu o livro de capa azul e procurou um feitiço capaz de deter o exército inimigo.",
+        "Encontrou um encantamento antigo, que invocava uma tempestade sobre os campos de batalha.",
+        "Na manhã seguinte, ela subiu sozinha até a torre mais alta do castelo e esperou os invasores aparecerem no horizonte.",
+        "Quando os primeiros soldados surgiram, Aurélia ergueu os braços e começa a recitar as palavras do feitiço.",
+        "O céu escureceu de repente. Nuvens negras cobriram o sol, e um vento violento varreu os campos.",
+        "Os soldados inimigos, assustados, largaram as armas e fugiram em debandada.",
+        "Capítulo 2",
+        "Quando o rei soube o que tinha acontecido, mandou chamar a a filha imediatamente.",
+        "— Foi você? — perguntou ele, com a voz trêmula.",
+        "— Fui eu, meu pai — respondeu Aurélia, de cabeça erguida.",
+        "O rei ficou em silêncio por um longo tempo. Depois, se aproximou da filha e a abraçou pela primeira vez em muitos anos.",
+        "— Me perdoa, minha filha. Eu estava errado — disse ele.",
+        "A partir daquele dia, Aurélia passou à estudar magia com os melhores mestres do reino.",
+        "Anos depois, quando o velho rei morreu, ela foi coroada rainha. E o reino nunca mais foi invadido."
+      ],
+      "erros": [
+        {"p": 7, "trecho": "a luz", "categoria": "crase", "camada": "linguistica"},
+        {"p": 8, "trecho": "ninguem", "categoria": "acentuacao", "camada": "linguistica"},
+        {"p": 9, "trecho": "a capital", "categoria": "crase", "camada": "linguistica"},
+        {"p": 10, "trecho": "nenhum deles conseguiam", "categoria": "concordancia_verbal", "camada": "linguistica"},
+        {"p": 15, "trecho": "começa", "categoria": "tempo_verbal", "camada": "linguistica"},
+        {"p": 19, "trecho": "a a", "categoria": "repeticao", "camada": "linguistica"},
+        {"p": 24, "trecho": "à estudar", "categoria": "crase", "camada": "linguistica"},
+        {"p": 12, "trecho": "capa azul", "categoria": "contradicao", "camada": "narrativa", "nota": "capa de couro vermelho no parágrafo 6"}
+      ],
+      "aceitaveis": [
+        {"p": 22, "trecho": "se aproximou", "nota": "próclise corrente no português brasileiro"},
+        {"p": 23, "trecho": "Me perdoa", "nota": "fala coloquial"},
+        {"p": 25, "trecho": "E o reino", "nota": "início com conjunção é recurso estilístico"}
+      ]
+    },
+    {
+      "id": "val-controle-trem",
+      "tempo": "passado",
+      "controle": true,
+      "paragrafos": [
+        "Capítulo 1",
+        "O trem partiu às sete em ponto. Na janela, Helena observava os campos cobertos de geada, ainda escuros àquela hora.",
+        "Fazia muitos anos que ela não voltava à cidade onde nascera. Desde a morte da avó, não houvera motivo para a viagem.",
+        "— A senhora vai até o fim da linha? — perguntou o cobrador, conferindo o bilhete.",
+        "— Vou, sim. Desço na última estação — respondeu Helena.",
+        "O cobrador agradeceu e seguiu pelo corredor. Helena voltou a olhar pela janela, à espera de reconhecer alguma paisagem.",
+        "Às dez horas, o trem parou numa estação pequena. Algumas pessoas desceram, outras subiram carregando malas e sacolas.",
+        "Uma menina sentou-se no banco em frente e ficou olhando para Helena com curiosidade.",
+        "— Por que a senhora está triste? — perguntou a menina, de repente.",
+        "Helena sorriu, surpresa com a pergunta. Não sabia bem por quê, mas sentiu vontade de responder com sinceridade.",
+        "— Porque estou voltando para um lugar onde não tem mais ninguém me esperando — disse.",
+        "A menina pensou um pouco e depois tirou uma bala do bolso. — Toma. Minha mãe diz que doce ajuda.",
+        "Helena aceitou a bala e agradeceu. Pela primeira vez em muito tempo, sentiu-se menos sozinha.",
+        "Quando o trem chegou à última estação, a menina já tinha descido havia horas. Mas Helena guardou o papel da bala na bolsa, como uma lembrança."
+      ],
+      "erros": [],
+      "aceitaveis": [
+        {"p": 11, "trecho": "não tem mais ninguém", "nota": "fala coloquial"},
+        {"p": 12, "trecho": "Toma", "nota": "fala coloquial"}
+      ]
+    }
+  ]
+}

@@ -31,10 +31,22 @@ def freeze_command(work):
     return command
 
 
+def languagetool_source(explicit):
+    """Corretor gramatical preparado por Scripts/preparar_languagetool.py."""
+    source = (explicit or ROOT / 'Analisador/.languagetool').resolve()
+    if not (source / 'languagetool-server.jar').is_file() or not (source / 'jre/bin/java').is_file():
+        raise SystemExit('Corretor gramatical embutido ausente em ' + str(source) +
+                         '. Execute Scripts/preparar_languagetool.py ou use --sem-languagetool.')
+    return source
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--languagetool', type=Path, help='Pasta preparada do corretor (padrão: Analisador/.languagetool)')
+    parser.add_argument('--sem-languagetool', action='store_true', help='Monta o motor sem o corretor gramatical embutido')
     args = parser.parse_args()
+    grammar = None if args.sem_languagetool else languagetool_source(args.languagetool)
     if sys.platform != 'darwin' or platform.machine() != 'arm64':
         raise SystemExit('Monte com Python nativo arm64 no Mac Apple Silicon. Não use um ambiente Intel/Rosetta.')
     output = args.output.resolve()
@@ -58,6 +70,9 @@ def main():
     package = output / ('fonte-' + health['engine_version'] + '-' + uuid.uuid4().hex[:8] + '.lumemotor')
     package.mkdir()
     shutil.copytree(runtime, package / 'runtime', symlinks=True)
+    if grammar:
+        # Fica ao lado de runtime/: o motor congelado o procura em ../languagetool.
+        shutil.copytree(grammar, package / 'languagetool', symlinks=True)
     # Inclui inventário de dependências e respectivas licenças coletadas pelo PyInstaller.
     freeze = subprocess.check_output([sys.executable, '-m', 'pip', 'freeze'], text=True)
     (package / 'dependencias.txt').write_text(freeze)
@@ -73,6 +88,15 @@ def main():
     payload = json.loads((report / 'relatorio.json').read_text())
     assert payload['schema_version'] == 1 and payload['metadata']['versao_fonte'] == health['engine_version']
     assert len(payload['findings']) > 0
+    if grammar:
+        # O executável relocado inicia o corretor embutido com o Java do pacote.
+        checked = work / 'relatorio-corretor'
+        subprocess.run([str(package / 'runtime/lume-engine'), 'revisar', str(ROOT / 'Exemplo/Manuscrito-exemplo.docx'),
+                        '--saida', str(checked), '--tempo', 'passado', '--languagetool'],
+                       cwd=work, env=environment, check=True, timeout=300)
+        payload = json.loads((checked / 'relatorio.json').read_text())
+        assert payload['metadata']['languagetool_origem'] == 'embutido', 'Corretor embutido não foi usado'
+        assert any(f['source'].startswith('LanguageTool') for f in payload['findings']), 'Corretor embutido sem resultados'
     subprocess.run(['/usr/bin/ditto', '-c', '-k', '--sequesterRsrc', '--keepParent', str(package), str(package) + '.zip'], check=True)
     (output / 'engine-path.txt').write_text(str(package))
     print('Motor portátil validado: ' + str(package), flush=True)

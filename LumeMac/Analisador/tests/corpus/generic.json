@@ -1,0 +1,103 @@
+[
+  {
+    "id": "GEN-AGE-001",
+    "text": [
+      "João tinha 32 anos.",
+      "Alguns dias depois, João comemorou seu aniversário de 29 anos."
+    ],
+    "category": "age_conflict",
+    "severity": "possible_inconsistency"
+  },
+  {
+    "id": "GEN-OBJECT-001",
+    "text": [
+      "Ana deixou a chave sobre a mesa.",
+      "Sem voltar até a mesa, Ana tirou a chave do bolso."
+    ],
+    "category": "object_continuity",
+    "severity": "possible_inconsistency"
+  },
+  {
+    "id": "GEN-KNOW-001",
+    "text": [
+      "Carlos soube do acidente na terça-feira.",
+      "Na segunda-feira, Carlos contou a Pedro sobre o acidente."
+    ],
+    "category": "premature_knowledge",
+    "severity": "possible_inconsistency"
+  },
+  {
+    "id": "GEN-PRESENCE-001",
+    "text": [
+      "Helena entrou sozinha na sala.",
+      "Pedro respondeu de dentro da sala."
+    ],
+    "category": "scene_presence",
+    "severity": "author_query"
+  },
+  {
+    "id": "GEN-RELATION-001",
+    "text": [
+      "Paulo era filho único.",
+      "Sua irmã Marta chegou naquela tarde."
+    ],
+    "category": "relationship_conflict",
+    "severity": "possible_inconsistency"
+  },
+  {
+    "id": "GEN-STATE-001",
+    "text": [
+      "A carta foi destruída no fogo.",
+      "Mais tarde, Ana releu a mesma carta."
+    ],
+    "category": "object_state_conflict",
+    "severity": "possible_inconsistency"
+  },
+  {
+    "id": "GEN-DATE-001",
+    "text": [
+      "Hoje é sexta-feira.",
+      "No dia seguinte, domingo, Ana voltou."
+    ],
+    "category": "chronology_conflict",
+    "severity": "possible_inconsistency"
+  },
+  {
+    "id": "GEN-STATE-NEG-001",
+    "text": [
+      "A porta estava fechada.",
+      "Ana abriu a porta.",
+      "A porta estava aberta."
+    ],
+    "category": null,
+    "severity": null
+  },
+  {
+    "id": "GEN-KNOW-NEG-001",
+    "text": [
+      "Carlos soube do acidente na segunda-feira.",
+      "Na terça-feira, contou a Pedro."
+    ],
+    "category": null,
+    "severity": null
+  },
+  {
+    "id": "GEN-OBJECT-NEG-001",
+    "text": [
+      "Ana deixou a chave na mesa.",
+      "Voltou, pegou a chave e colocou no bolso.",
+      "Mais tarde, tirou a chave do bolso."
+    ],
+    "category": null,
+    "severity": null
+  },
+  {
+    "id": "GEN-AGE-NEG-001",
+    "text": [
+      "João tinha 32 anos.",
+      "Um ano depois, João completou 33."
+    ],
+    "category": null,
+    "severity": null
+  }
+]

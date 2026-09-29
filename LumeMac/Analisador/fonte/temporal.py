@@ -81,7 +81,49 @@ def explicit_shift(root):
     if any(t.lower_ in TIME_SHIFTS for t in tokens):
         return True
     text = " ".join(t.text for t in tokens)
-    return bool(re.search(r"\b(?:[12]\d{3}|pr[oó]xim[oa]|atualmente)\b", text, re.I))
+    return bool(re.search(r"\b(?:[12]\d{3}|pr[oó]xim[oa]|atualmente|neste (?:momento|instante)|no momento)\b", text, re.I))
+
+
+def legitimate_present(token):
+    """Evidências locais compartilhadas pelas duas verificações temporais.
+
+    Abstém-se diante de estados atuais plausíveis; não prova causalidade.
+    Não libera ações no presente só porque aparecem depois de um passado.
+    """
+    if form(token) != "present":
+        return False
+    root = predicate(token)
+    if explicit_shift(root):
+        return True
+    tail = token.doc.text[token.idx:token.sent.end_char]
+    prefix = token.doc.text[token.sent.start_char:token.idx]
+    if token.lower_ == "é" and re.search(r",\s*não\s*$", prefix) and re.fullmatch(r"é\s*\?\s*", tail):
+        return True
+    # “Há muito tempo, …”: tempo decorrido na voz do narrador, antes de
+    # qualquer verbo no passado. Depois de um passado, a norma pede ‘havia’.
+    if (token.lower_ == "há" and re.match(r"há\s+(?:muito|pouco|bastante|algum|alguns|algumas|\d+|[a-zà-ú]+)\s+"
+                                          r"(?:tempo|anos?|séculos?|décadas?|meses|dias|semanas|gerações)\b", tail, re.I)
+            and not any(form(t) in {"past", "ambiguous_past_present"} for t in token.sent if t.i < token.i)):
+        return True
+    if token.lemma_.casefold() in STATIVE:
+        return True
+    if token.lemma_.casefold() == "poder" and any(
+            c.dep_ == "xcomp" and c.lemma_.casefold() in {"confirmar", "afirmar", "garantir", "dizer", "atestar"}
+            for c in token.children):
+        return True
+    # Estado posterior expresso por cópula, sem converter progressivos como
+    # “está retirando” em estados. Exige um evento passado ligado na árvore.
+    if token.lemma_.casefold() == "estar" and token.dep_ == "cop":
+        groups = {}
+        for candidate in token.sent:
+            if form(candidate):
+                groups.setdefault(predicate(candidate).i, []).append(candidate)
+        anchor, path = nearest_anchor(root, groups, token.sent)
+        if anchor is not None and form(anchor) == "past" and "conj" in path:
+            return predicate(anchor).lemma_.casefold() in {
+                "sofrer", "quebrar", "ferir", "machucar", "adoecer", "cair", "morrer",
+                "nascer", "chegar", "perder", "ganhar", "terminar", "concluir", "aposentar"}
+    return False
 
 
 def bounded_interval(root):
@@ -125,13 +167,14 @@ def imperfect_suggestion(token):
     return match_case(proposal, token.text) if value & PAST and not value & (PRESENT | FUTURE) else None
 
 
-def temporal_alert(block, offset, anchor, target, subtype, reason, severity, confidence, suggestion=None):
-    start, end = offset + target.idx, offset + target.idx + len(target.text)
+def temporal_alert(block, offset, anchor, target, subtype, reason, severity, confidence, suggestion=None, end_token=None):
+    last = end_token if end_token is not None else target
+    start, end = offset + target.idx, offset + last.idx + len(last.text)
     result = asdict(finding(block, "Coerência temporal entre orações", "Verificar", start, end,
                             reason, "FONTE Morfossintático · " + subtype))
     result.update(rule="coerencia_temporal", category_code="temporal_consistency", relation=subtype,
                   severity=severity, confidence="média" if confidence >= .6 else "baixa",
-                  confidence_score=confidence, suggestion=suggestion,
+                  confidence_score=confidence, suggestion=suggestion, suggestion_kind="possible",
                   related=[evidence(block, offset + anchor.idx, offset + anchor.idx + len(anchor.text))],
                   temporal_evidence={"anchor": anchor.text, "anchor_form": form(anchor),
                                      "target": target.text, "target_form": form(target)})
@@ -151,7 +194,7 @@ def relations(block, offset, doc):
                 continue
             root = predicate(target)
             anchor, path = nearest_anchor(root, groups, sentence)
-            if anchor is None or explicit_shift(root):
+            if anchor is None or explicit_shift(root) or legitimate_present(target):
                 continue
             anchor_form = form(anchor)
             between = doc[min(anchor.i, target.i):max(anchor.i, target.i)].text
@@ -160,12 +203,23 @@ def relations(block, offset, doc):
             if (anchor_form == "conditional" and target_form == "future"
                     and any(dep in {"acl:relcl", "ccomp"} for dep in path)):
                 proposal = conditional_suggestion(target)
+                last = target
+                # Contrai somente a perífrase contígua e sintaticamente ligada.
+                # O intervalo precisa incluir “ser”, para não propor “seria ser”.
+                if target.lemma_ == "ir" and target.i + 1 < sentence.end:
+                    following = doc[target.i + 1]
+                    if following.lower_ == "ser" and predicate(following) == root:
+                        forms = {"irei": "seria", "irás": "serias", "irá": "seria",
+                                 "iremos": "seríamos", "ireis": "seríeis", "irão": "seriam"}
+                        contracted = forms.get(target.lower_)
+                        if contracted:
+                            proposal, last = match_case(contracted, target.text), following
                 reason = (f"‘{anchor.text}’ estabelece uma hipótese ou projeção no futuro do pretérito; "
                           f"‘{target.text}’, em oração dependente, está no futuro do presente. "
                           "Se as duas ações compartilham a mesma projeção temporal, confira a uniformidade. "
                           "Uma referência futura própria pode justificar a alternância.")
                 out.append(temporal_alert(block, offset, anchor, target, "conditional_future", reason,
-                                          "probable_error", .82, proposal))
+                                          "probable_error", .82, proposal, last))
                 continue
             markers = {child.lower_ for child in root.children if child.dep_ in {"mark", "advmod"}}
             simultaneous = "advcl" in path and "enquanto" in markers

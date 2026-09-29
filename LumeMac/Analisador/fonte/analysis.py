@@ -7,7 +7,7 @@ import re
 from .reader import Block
 from .lexicon import finite, indicative_tense
 
-SPEECH = set("dizer perguntar responder murmurar gritar sussurrar comentar retrucar afirmar falar exclamar replicar declarar indagar confessar explicar acrescentar argumentar insistir ordenar pedir protestar avisar pensar refletir ponderar admitir lembrar concluir continuar completar interromper balbuciar resmungar cochichar implorar vociferar anunciar observar sugerir repetir garantir negar confirmar questionar reclamar ironizar brincar saudar chamar".split())
+SPEECH = set("dizer informar perguntar responder murmurar gritar sussurrar comentar retrucar afirmar falar exclamar replicar declarar indagar confessar explicar acrescentar argumentar insistir ordenar pedir protestar avisar pensar refletir ponderar admitir lembrar concluir continuar completar interromper balbuciar resmungar cochichar implorar vociferar anunciar observar sugerir repetir garantir negar confirmar questionar reclamar ironizar brincar saudar chamar ler recitar citar ditar cantar declamar".split())
 
 
 @dataclass
@@ -113,6 +113,9 @@ def analyze(blocks: list[Block], nlp, tense="auto", protect_italics=True, min_wo
         for token in doc:
             observed = indicative_tense(token)
             if "tempo_verbal" in active and expected and observed and observed != expected:
+                from .temporal import legitimate_present
+                if expected == "passado" and legitimate_present(token):
+                    continue
                 results.append(finding(block, "Tempo verbal", "Verificar", token.idx,
                     token.idx+len(token.text),
                     f"O modelo e o léxico sustentam uma leitura no {observed}, em texto configurado/inferido como {expected}. Isso não confirma erro: pensamento, comentário do narrador, presente geral e mudanças deliberadas de plano temporal precisam ser avaliados no contexto."))

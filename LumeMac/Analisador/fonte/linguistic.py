@@ -10,6 +10,11 @@ from .analysis import finding
 from .segments import classify, spans
 
 RULES = {
+    "vocativo": [],
+    "capitalizacao_contextual": [
+        (r"(?<=[?!])[ \t]+(eu|tu|ele|ela|nós|vós|eles|elas|você|vocês)\b", "Inicial após pergunta ou exclamação", "probable_error", .85,
+         "Após a pergunta ou exclamação, o pronome parece iniciar uma nova frase. Confira se a continuação é independente antes de usar maiúscula.", None),
+    ],
     "construcao_invalida": [
         (r"\balém[ \t]+de[ \t]+disso\b", "Construção inválida", "confirmed_error", .99,
          "A locução é ‘além disso’. Há uma preposição ‘de’ excedente nesta construção.", "além disso"),
@@ -36,6 +41,41 @@ RULES = {
     ],
 }
 
+# Chamamento inicial + pronome de tratamento ou proibição curta. Não tenta
+# decidir casos ambíguos como “Helena saiu” nem usa nomes de uma obra.
+NAME = r"[A-ZÀ-ÖØ-Þ][a-zà-öø-ÿ\u0300-\u036f]+"
+VOCATIVE = re.compile(r"(?:^|[.!?][ \t]+)[ \t]*(?P<name>" + NAME +
+                     r"(?:[ \t]+" + NAME + r"){0,2})(?=[ \t]+(?:vocês?\b|tu\b|não[ \t]+(?:faça|façam|diga|digam|vá|vão|venha|venham|toque|toquem|entre|entrem|saia|saiam|olhe|olhem)\b))")
+INTRODUCERS = set("hoje amanhã ontem agora atualmente talvez assim então aqui ali lá depois antes sempre nunca ainda quando enquanto como onde aonde donde porque pois porém contudo entretanto portanto logo caso se embora somente apenas até sim não bem ora ei olá oi quem qual quais quanto quanta quantos quantas que".split())
+# Resposta ou cumprimento seguido de chamamento: “Não senhora.”, “Bom dia Clara!”.
+# O vocativo é pronome de tratamento, parentesco ou nome, antes de pontuação.
+ADDRESS = re.compile(r"(?:^|(?<=[—–.!?…])\s*|(?<=[—–]))\s*(?P<lead>Sim|Não|Obrigad[oa]|Olá|Oi|Bom dia|Boa tarde|Boa noite|Adeus|Tchau)"
+                     r"(?P<gap>[ \t]+)(?P<name>senhor(?:a|es|as)?|moç[oa]|mãe|pai|vovó|vovô|doutor(?:a)?|professor(?:a)?|"
+                     r"chefe|mestre|madame|querid[oa]|amor|filh[oa]|(?:dona|seu)[ \t]+" + NAME + r"|" + NAME + r")"
+                     r"(?=[ \t]*(?:[.!?…,—–]|$))")
+
+
+def vocatives(block, start, text):
+    for match in VOCATIVE.finditer(text):
+        name = match['name']
+        if name.casefold().split()[0] in INTRODUCERS:
+            continue
+        yield vocative_item(block, start + match.start('name'), start + match.end('name'), name + ",",
+                            "O nome inicial parece chamar o interlocutor, antes de um pronome de tratamento ou de uma proibição. Se for vocativo, separe-o por vírgula; confira se não é o sujeito da frase.")
+    for match in ADDRESS.finditer(text):
+        yield vocative_item(block, start + match.start('lead'), start + match.end('name'),
+                            match['lead'] + ", " + match['name'],
+                            "Depois de resposta ou cumprimento, o chamamento ao interlocutor é vocativo e se separa por vírgula.")
+
+
+def vocative_item(block, start, end, suggestion, reason):
+    item = asdict(finding(block, "Possível vocativo sem vírgula", "Verificar", start, end, reason,
+                          "FONTE Linguístico · vocativo"))
+    item.update(rule="vocativo", category_code="vocativo", severity="probable_error",
+                confidence="média", confidence_score=.85, suggestion=suggestion,
+                suggestion_kind="possible")
+    return item
+
 
 def analyze(blocks, settings):
     labels = classify(blocks, settings)
@@ -44,19 +84,23 @@ def analyze(blocks, settings):
         for rule, patterns in RULES.items():
             if not settings["rules"][rule]:
                 continue
-            mechanical = rule in {"pontuacao_duplicada", "espacamento", "que_tonico_interrogativo"}
+            mechanical = rule in {"pontuacao_duplicada", "espacamento", "que_tonico_interrogativo", "vocativo", "capitalizacao_contextual"}
             allowed = ["narracao", "dialogo", "pensamento"] if mechanical else ["narracao"]
             for start, end, role in spans(roles, allowed):
                 text = block.text[start:end]
                 if role != "narracao" and not any(c.isalpha() for c in text):
                     continue
+                if rule == "vocativo":
+                    out.extend(vocatives(block, start, text))
                 for pattern, category, severity, score, reason, replacement in patterns:
-                    for match in re.finditer(pattern, text, re.I):
+                    for match in re.finditer(pattern, text, 0 if rule == "capitalizacao_contextual" else re.I):
                         # “que, não obstante o frio, ...” é um inciso possível.
                         if rule == "virgula_que_nao" and re.match(
                                 r"\s*(?:obstante\b|só\b|apenas\b|,)", text[match.end():], re.I):
                             continue
                         suggestion = replacement
+                        if rule == "capitalizacao_contextual":
+                            suggestion = match[0].replace(match[1], match[1].capitalize(), 1)
                         level = "probable_error" if role != "narracao" else severity
                         if rule == "que_tonico_interrogativo":
                             suggestion = replacement.upper() if match[0].isupper() else replacement.capitalize() if match[0][0].isupper() else replacement
@@ -72,6 +116,7 @@ def analyze(blocks, settings):
                                               start + match.end(), reason, "FONTE Linguístico · " + rule))
                         item.update(rule=rule, category_code=rule, severity=level,
                                     confidence="alta" if score >= .9 else "média",
-                                    confidence_score=score, suggestion=suggestion)
+                                    confidence_score=score, suggestion=suggestion,
+                                    suggestion_kind="required" if level == "confirmed_error" else "possible")
                         out.append(item)
     return out

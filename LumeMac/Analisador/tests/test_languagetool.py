@@ -1,0 +1,166 @@
+"""Integração com o LanguageTool local: filtros, falas e ciclo do servidor embutido.
+
+O servidor é simulado; estes testes não medem a qualidade das regras do LanguageTool.
+"""
+import json
+import os
+from pathlib import Path
+import tempfile
+import unittest
+from unittest.mock import patch
+
+from fonte import languagetool as lt
+from fonte.reader import Block
+
+
+class Response:
+    def __init__(self, matches):
+        self.body = json.dumps({"matches": matches}).encode()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        pass
+
+    def read(self):
+        return self.body
+
+
+def match(text, word, rule_id, issue="grammar", category="GRAMMAR", replacements=()):
+    offset = len(text[:text.index(word)].encode("utf-16-le")) // 2
+    return {"offset": offset, "length": len(word.encode("utf-16-le")) // 2, "message": "Confira.",
+            "replacements": [{"value": r} for r in replacements],
+            "rule": {"id": rule_id, "issueType": issue, "category": {"id": category}}}
+
+
+def check(blocks, answers):
+    """`answers` associa o texto do parágrafo às ocorrências devolvidas pelo servidor."""
+    sent = []
+
+    def respond(request, timeout):
+        text = dict(x.split("=", 1) for x in request.data.decode().split("&"))["text"]
+        from urllib.parse import unquote_plus
+        text = unquote_plus(text)
+        sent.append(text)
+        return Response(answers.get(text, []))
+
+    with patch("fonte.languagetool.build_opener") as builder:
+        builder.return_value.open.side_effect = respond
+        results, _ = lt.check(blocks)
+    return results, sent
+
+
+class FilterTests(unittest.TestCase):
+    def test_dialogue_text_is_sent_and_checked(self):
+        text = "— Voce viu? — perguntou ela."
+        results, sent = check([Block(1, text)], {text: [match(text, "Voce", "PT_VOCE", "misspelling", "TYPOS", ["Você"])]})
+        self.assertEqual(sent, [text])
+        self.assertEqual([(r["text"][r["start"]:r["end"]], r["suggestion"]) for r in results], [("Voce", "Você")])
+
+    def test_speech_tag_after_dash_is_not_sentence_start(self):
+        text = "— Vamos? — perguntou ela. isso não."
+        answers = {text: [match(text, "perguntou", "UPPERCASE_SENTENCE_START", "typographical", "CASING"),
+                          match(text, "isso", "UPPERCASE_SENTENCE_START", "typographical", "CASING")]}
+        results, _ = check([Block(1, text)], answers)
+        self.assertEqual([r["text"][r["start"]:r["end"]] for r in results], ["isso"])
+
+    def test_proper_names_are_not_spelling_errors(self):
+        first, second = "Iolanda chegou.", "Depois, Iolanda saiu com Xarb."
+        answers = {first: [match(first, "Iolanda", "MORFOLOGIK_RULE_PT_BR", "misspelling", "TYPOS")],
+                   second: [match(second, "Xarb", "MORFOLOGIK_RULE_PT_BR", "misspelling", "TYPOS")]}
+        results, _ = check([Block(1, first), Block(2, second)], answers)
+        # ‘Iolanda’ aparece no meio de frase; ‘Xarb’ também. Nenhum é apontado.
+        self.assertEqual(results, [])
+
+    def test_sentence_initial_only_word_is_still_checked(self):
+        text = "Ontem choveu. Derrepente parou."
+        results, _ = check([Block(1, text)], {text: [match(text, "Derrepente", "MORFOLOGIK_RULE_PT_BR", "misspelling", "TYPOS")]})
+        self.assertEqual(len(results), 1)
+
+    def test_style_and_register_are_ignored(self):
+        text = "— Tá indo pra casa? — perguntou."
+        answers = {text: [match(text, "pra", "FORMAL_PRA_PARA", "style", "FORMAL"),
+                          match(text, "Tá", "X", "register", "COLLOQUIALISMS")]}
+        self.assertEqual(check([Block(1, text)], answers)[0], [])
+
+    def test_italic_spelling_is_protected_but_grammar_is_not(self):
+        text = "Ele pensou: weltschmerz demais as coisa."
+        block = Block(1, text, italic=[(text.index("weltschmerz"), text.index("weltschmerz") + 11)])
+        answers = {text: [match(text, "weltschmerz", "MORFOLOGIK_RULE_PT_BR", "misspelling", "TYPOS"),
+                          match(text, "as coisa", "AGREEMENT", "grammar", "GRAMMAR")]}
+        results, _ = check([block], answers)
+        self.assertEqual([r["text"][r["start"]:r["end"]] for r in results], ["as coisa"])
+
+    def test_headings_are_not_sent(self):
+        _, sent = check([Block(1, "Capítulo 1", heading=True), Block(2, "Texto.")], {})
+        self.assertEqual(sent, ["Texto."])
+
+
+class EmbeddedServerTests(unittest.TestCase):
+    def test_home_requires_server_jar(self):
+        with tempfile.TemporaryDirectory() as directory, patch.dict(os.environ, {"FONTE_LANGUAGETOOL": directory}):
+            with patch.object(lt, "__file__", str(Path(directory) / "x/fonte/languagetool.py")):
+                self.assertIsNone(lt.home())
+                (Path(directory) / lt.SERVER_JAR).write_text("")
+                self.assertEqual(lt.home(), Path(directory))
+
+    def test_bundled_java_is_preferred(self):
+        with tempfile.TemporaryDirectory() as directory:
+            java = Path(directory) / "jre/bin/java"
+            java.parent.mkdir(parents=True)
+            java.write_text("#!/bin/sh\n")
+            java.chmod(0o755)
+            self.assertEqual(lt.java(Path(directory)), java)
+
+    def test_frozen_engine_does_not_use_system_java(self):
+        with tempfile.TemporaryDirectory() as directory, patch.object(lt.sys, "frozen", True, create=True):
+            self.assertIsNone(lt.java(Path(directory)))
+
+    def test_missing_embedded_checker_is_reported(self):
+        with patch.object(lt, "home", return_value=None):
+            with self.assertRaisesRegex(ValueError, "não foi encontrado"):
+                with lt.embedded():
+                    pass
+
+    def test_server_that_exits_is_reported_and_port_is_local(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / lt.SERVER_JAR).write_text("")
+            fake = root / "jre/bin/java"
+            fake.parent.mkdir(parents=True)
+            fake.write_text("#!/bin/sh\necho falha simulada >&2\nexit 3\n")
+            fake.chmod(0o755)
+            with patch.object(lt, "home", return_value=root):
+                with self.assertRaisesRegex(ValueError, "falha simulada"):
+                    with lt.embedded(timeout=10):
+                        pass
+        port = lt.free_port()
+        self.assertTrue(1024 < port < 65536)
+
+
+class CommandLineTests(unittest.TestCase):
+    def test_explicit_port_uses_external_server_even_with_embedded_available(self):
+        from fonte import cli
+        from docx import Document
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "t.docx"
+            document = Document(); document.add_paragraph("Texto simples."); document.save(path)
+            calls = {}
+
+            def fake_run(blocks, loader, **kwargs):
+                calls.update(kwargs)
+                return [], [], {}
+            with patch.object(lt, "available", return_value=True), \
+                    patch.object(lt, "embedded", side_effect=AssertionError("não deveria iniciar")), \
+                    patch.object(cli, "run_pipeline", side_effect=fake_run):
+                code = cli.main(["revisar", str(path), "--languagetool", "--porta-lt", "8099",
+                                 "--saida", str(Path(directory) / "out")])
+            self.assertEqual(code, 0)
+            self.assertEqual((calls["languagetool"], calls["port"]), (True, 8099))
+            report = json.loads((Path(directory) / "out/relatorio.json").read_text())
+            self.assertEqual(report["metadata"]["languagetool_origem"], "externo")
+
+
+if __name__ == "__main__":
+    unittest.main()

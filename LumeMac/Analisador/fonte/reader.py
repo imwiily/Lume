@@ -16,6 +16,7 @@ class Block:
     chapter: str = "Sem capítulo identificado"
     heading: bool = False
     italic: list[tuple[int, int]] = field(default_factory=list)
+    narrative_role: str = 'body'
 
 
 def _paragraphs(parent):
@@ -67,7 +68,16 @@ def read_docx(path: Path, settings=None):
     document = Document(path)
     blocks = []
     chapter = "Sem capítulo identificado"
-    for number, p in enumerate(_paragraphs(document), 1):
+    paragraphs = list(_paragraphs(document))
+    # Front matter exige crédito editorial e um limite de capítulo reconhecido.
+    # Nunca descarta arbitrariamente os primeiros N parágrafos de uma narrativa.
+    first_chapter = next((i for i, p in enumerate(paragraphs) if chapter_label(p.text)), None)
+    credit = re.compile(r'^\s*(?:autor(?:a)?\s*:|revisão(?: e correção)?\s*:?)\s*$', re.I)
+    markers = [i for i,p in enumerate(paragraphs[:first_chapter]) if credit.match(p.text)] if first_chapter is not None else []
+    # Não engloba um prólogo narrativo situado depois dos créditos.
+    last_credit_value = next((i for i in range(markers[-1]+1, first_chapter) if paragraphs[i].text.strip()), markers[-1]) if markers else -1
+    front_end = last_credit_value + 1
+    for number, p in enumerate(paragraphs, 1):
         text = p.text
         if not text.strip():
             continue
@@ -82,8 +92,12 @@ def read_docx(path: Path, settings=None):
         heading = (text.strip().casefold() in custom_titles or style in custom_styles
                    or (options['chapter_auto'] and
                        (style.startswith(("heading", "título", "title", "cabeçalho"))
+                        or style in {'capítulo', 'capitulo', 'pré-capítulo', 'pre-capitulo', 'nome da obra'}
                         or outline_heading or chapter_label(text) or short_title)))
-        if heading:
+        narrative_role = 'front_matter' if number <= front_end else 'heading' if heading else 'body'
+        if narrative_role == 'front_matter':
+            heading = True
+        if heading and narrative_role != 'front_matter':
             chapter = text.strip()
         italic = []
         offset = 0
@@ -93,7 +107,7 @@ def read_docx(path: Path, settings=None):
                 if getattr(run, "italic", False):
                     italic.append((offset, offset + len(run.text)))
                 offset += len(run.text)
-        blocks.append(Block(number, text, chapter, heading, italic))
+        blocks.append(Block(number, text, chapter, heading, italic, narrative_role))
     warnings = ["Escopo: corpo do documento e tabelas. Cabeçalhos, rodapés, notas, comentários, caixas de texto e imagens não são analisados. A localização usa parágrafos, não páginas."]
     if not any(b.heading for b in blocks):
         warnings.append("Nenhum capítulo identificado. Cadastre os títulos ou estilos em Estrutura do manuscrito; aparência visual e quebra de página, isoladamente, não definem capítulos.")

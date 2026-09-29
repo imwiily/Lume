@@ -1,0 +1,112 @@
+"""Primeira leitura de contexto curto, sem resolução semântica de cenas.
+
+Janelas não atravessam capítulos/cortes explícitos. Evidências anteriores
+sustentam referências; parágrafos seguintes só ajudam a revisão humana.
+"""
+import re
+from ..analysis import SPEECH
+from ..lexicon import model_finite
+from ..segments import classify, spans
+from .common import alert, evidence
+
+RULES = {'dialogo_contextual', 'referente_contextual', 'gerundismo'}
+CUT = re.compile(r'\s*(?:\*{3}|—{3}|no dia seguinte\b|dias depois\b|na manhã seguinte\b)', re.I)
+GERUND = re.compile(r'\b(?:vou|vai|vamos|vão|vais|irei|irá|iremos|irão)\s+(?:poder\s+)?estar\s+[^\W\d_]+(?:ando|endo|indo)\b', re.I)
+
+
+def window(blocks, index):
+    current = blocks[index]
+    previous, following = [], []
+    if index and not CUT.match(current.text):
+        old = blocks[index - 1]
+        if not old.heading and old.chapter == current.chapter:
+            previous = [old]
+    for other in blocks[index + 1:index + 4]:
+        if other.heading or other.chapter != current.chapter or CUT.match(other.text):
+            break
+        following.append(other)
+    return previous + [current] + following
+
+
+def analyze(blocks, nlp, settings, *, docs=None):
+    labels = classify(blocks, settings)
+    if docs is None:
+        docs = list(nlp.pipe((b.text for b in blocks), batch_size=32))
+    by_number = {b.number: d for b, d in zip(blocks, docs)}
+    out = []
+    for index, (block, doc, roles) in enumerate(zip(blocks, docs, labels)):
+        if block.heading:
+            continue
+        context = window(blocks, index)
+        context_evidence = [evidence(b) for b in context]
+
+        def emit(rule, category, start, end, reason, related=(), severity='editorial_attention'):
+            item = alert(block, rule, category, start, end, reason, 'baixa', related)
+            item.update(severity=severity, suggestion=None, suggestion_kind='possible',
+                        context=context_evidence)
+            # Extração verificável, ainda sem inferir identidade ou foco narrativo.
+            item['scene_evidence'] = {
+                'participants': [evidence(b, t.idx, t.idx + len(t.text))
+                                 for b in context for t in by_number[b.number] if t.pos_ == 'PROPN'],
+                'subjects': [evidence(b, t.idx, t.idx + len(t.text))
+                             for b in context for t in by_number[b.number] if t.dep_ == 'nsubj'],
+            }
+            if category == 'Ação narrativa após fala':
+                item['category_code'] = 'narrative_action_after_speech'
+            elif rule == 'referente_contextual':
+                item['category_code'] = 'ambiguous_reference'
+            out.append(item)
+
+        if settings['rules']['gerundismo']:
+            for start, end, _ in spans(roles, ['narracao', 'dialogo', 'pensamento']):
+                for match in GERUND.finditer(block.text[start:end]):
+                    emit('gerundismo', 'Perífrase verbal possivelmente excessiva', start + match.start(), start + match.end(),
+                         'A sequência de auxiliares pode tornar a fala ou a prosa pesada. Considere uma forma mais direta, se a duração da ação não for relevante. Pode ser uma escolha legítima de aspecto ou de voz; não é erro obrigatório.')
+
+        if settings['rules']['dialogo_contextual'] and settings['dialogue_dashes']:
+            for start, end, role in spans(roles, ['narracao']):
+                if start == 0 or block.text[start - 1] not in '—–':
+                    continue
+                fragment = block.text[start:end]
+                parsed = nlp(fragment)
+                verb = next((t for t in parsed if model_finite(t)), None)
+                # Verbos com clítico e nomes com acento decomposto não são
+                # is_alpha no spaCy, mas continuam sendo tokens lexicais.
+                first = next((t for t in parsed if any(c.isalpha() for c in t.text)), None)
+                if verb is None or first is None:
+                    continue
+                if verb.lemma_.casefold() not in SPEECH and (first.text[0].islower() or
+                        not block.text[:start-1].rstrip().endswith(('.', '!', '?', '…'))):
+                    emit('dialogo_contextual', 'Ação narrativa após fala', start + first.idx,
+                         start + verb.idx + len(verb.text),
+                         'O primeiro verbo finito após o travessão descreve uma ação, sem verbo de elocução reconhecido. Confira se a fala deve ser encerrada e a ação iniciada com maiúscula. A lista de elocução é limitada.')
+                elif verb.lemma_.casefold() in SPEECH and end < len(block.text) and block.text[end] in '—–':
+                    continuation = block.text[end + 1:].lstrip()
+                    if (continuation and continuation[0].isupper()
+                            and not fragment.rstrip().endswith(('.', '!', '?', '…', ':'))):
+                        first_spoken = next((t for t in nlp(continuation) if any(c.isalpha() for c in t.text)), None)
+                        if first_spoken is not None and first_spoken.pos_ == 'PROPN':
+                            continue
+                        emit('dialogo_contextual', 'Retomada de fala após inciso', start + verb.idx, end,
+                             'A fala recomeça com maiúscula após o inciso de elocução, sem pontuação de encerramento. Confira se falta um ponto antes do travessão ou se a fala continua a mesma frase; nomes próprios podem justificar a maiúscula.')
+
+        if settings['rules']['referente_contextual']:
+            for target in doc:
+                if target.lower_ != 'objeto' or target.dep_ != 'obj' or target.i == 0 or doc[target.i - 1].lower_ != 'o':
+                    continue
+                # Só enumerações recentes, com pelo menos dois núcleos coordenados.
+                candidates = []
+                for prior in context[:context.index(block) + 1]:
+                    for token in by_number[prior.number]:
+                        if prior.number == block.number and token.idx >= target.idx:
+                            continue
+                        if token.pos_ == 'NOUN' and token.dep_ == 'conj' and token.head.pos_ == 'NOUN':
+                            candidates.extend([evidence(prior, token.head.idx, token.head.idx + len(token.head.text)),
+                                               evidence(prior, token.idx, token.idx + len(token.text))])
+                unique = {(e['paragraph'], e['start']): e for e in candidates}
+                if len(unique) >= 2:
+                    emit('referente_contextual', 'Objeto com antecedente possivelmente ambíguo',
+                         target.idx, target.idx + len(target.text),
+                         'Há uma enumeração nominal antes de “o objeto”. Qual dos elementos foi retomado? A janela curta não resolve a referência; confira se a cena já torna a escolha inequívoca.',
+                         list(unique.values()), 'author_query')
+    return out

@@ -18,6 +18,7 @@ class FrozenBlock:
     chapter: str
     heading: bool
     italic: tuple
+    narrative_role: str = 'body'
 
 
 @dataclass(frozen=True)
@@ -29,7 +30,7 @@ class Manuscript:
     @classmethod
     def capture(cls, blocks):
         frozen = tuple(FrozenBlock(b.number, b.text, b.chapter, b.heading,
-                                   tuple(tuple(x) for x in b.italic)) for b in blocks)
+                                   tuple(tuple(x) for x in b.italic), getattr(b, 'narrative_role', 'body')) for b in blocks)
         if len({b.number for b in frozen}) != len(frozen):
             raise ValueError("Parágrafos com identificadores duplicados.")
         offsets, cursor = [], 0
@@ -63,7 +64,10 @@ def standardize(items, module, manuscript):
         start, end = item["start"], item["end"]
         if (type(start) is not int or type(end) is not int or
                 not 0 <= start < end <= len(block.text) or item["text"] != block.text):
-            raise ValueError("Ocorrência incompatível com o manuscrito original.")
+            raise ValueError("Ocorrência incompatível com o manuscrito original "
+                             f"(módulo {module}, regra {item.get('rule', item['category'])}, "
+                             f"parágrafo {block.number}, intervalo {start}:{end}, "
+                             f"comprimento {len(block.text)}).")
         severity = item.get("severity", "editorial_attention")
         if item.get("rule") in ("duracao_suspensao", "adiamento_amanha"):
             severity = "possible_inconsistency"
@@ -82,6 +86,21 @@ def standardize(items, module, manuscript):
                     excerpt=block.text[start:end], message=item["reason"])
         item.setdefault("layer", "linguistica" if module in ("linguistic", "morphosyntactic") else "editorial")
         item.setdefault("suggestion", None)
+        def enrich(proof):
+            proof = dict(proof)
+            if proof.get("document", "atual") == "atual" and proof.get("paragraph") in locations:
+                source, base = locations[proof["paragraph"]]
+                lo, hi = proof["start"], proof["end"]
+                if not 0 <= lo <= hi <= len(source.text) or proof["text"] != source.text:
+                    raise ValueError("Evidência incompatível com o manuscrito original.")
+                proof.update(type="text_evidence", range={"start": base+lo, "end": base+hi},
+                             excerpt=source.text[lo:hi])
+            return proof
+        for field in ("related", "context", "evidence"):
+            if field in item:
+                item[field] = [enrich(proof) for proof in item[field]]
+        item.setdefault("evidence", [enrich(dict(paragraph=block.number, chapter=block.chapter,
+                            text=block.text, start=start, end=end, document="atual")), *item.get("related", [])])
         if manuscript.text[item["range"]["start"]:item["range"]["end"]] != item["excerpt"]:
             raise ValueError("Offsets globais divergentes.")
         result.append(item)

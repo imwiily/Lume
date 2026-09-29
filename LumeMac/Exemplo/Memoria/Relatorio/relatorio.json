@@ -1,0 +1,2811 @@
+{
+  "schema_version": 1,
+  "document": "Manuscrito-memoria.docx",
+  "sha256": "bbd3a4f1158dc48c3157a5545bc18b8f75655c2b229077e0a22c42abe4bd496f",
+  "created": "2026-09-29T02:31:43.790582+00:00",
+  "metadata": {
+    "tempo": "não analisado",
+    "paragrafos": 13,
+    "modelo": "core_news_sm",
+    "versao_modelo": "3.8.0",
+    "modo": "editorial",
+    "scenes": [
+      {
+        "id": "scene_0001",
+        "chapter": "Capítulo um",
+        "start_paragraph": 2,
+        "end_paragraph": 4,
+        "participants": [
+          {
+            "id": "char_47f86209fa67",
+            "name": "Íris",
+            "role": "actor",
+            "presence": "explicit_action",
+            "evidence": {
+              "paragraph": 2,
+              "chapter": "Capítulo um",
+              "text": "Íris só usa fogo.",
+              "start": 0,
+              "end": 4,
+              "document": "atual",
+              "type": "text_evidence",
+              "range": {
+                "start": 12,
+                "end": 16
+              },
+              "excerpt": "Íris"
+            }
+          },
+          {
+            "id": "char_c23ad6f18412",
+            "name": "Adrian",
+            "role": "actor",
+            "presence": "explicit_action",
+            "evidence": {
+              "paragraph": 4,
+              "chapter": "Capítulo um",
+              "text": "Adrian morreu em 18/09/2019.",
+              "start": 0,
+              "end": 6,
+              "document": "atual",
+              "type": "text_evidence",
+              "range": {
+                "start": 56,
+                "end": 62
+              },
+              "excerpt": "Adrian"
+            }
+          }
+        ],
+        "speakers": [],
+        "narrator": "unknown",
+        "location": [],
+        "time_reference": [],
+        "objects": [
+          {
+            "id": "obj_00812eb39868",
+            "name": "fogo",
+            "evidence": {
+              "paragraph": 2,
+              "chapter": "Capítulo um",
+              "text": "Íris só usa fogo.",
+              "start": 12,
+              "end": 16,
+              "document": "atual",
+              "type": "text_evidence",
+              "range": {
+                "start": 24,
+                "end": 28
+              },
+              "excerpt": "fogo"
+            }
+          },
+          {
+            "id": "obj_ecaf94ccdccd",
+            "name": "pingente",
+            "evidence": {
+              "paragraph": 3,
+              "chapter": "Capítulo um",
+              "text": "O pingente foi destruído.",
+              "start": 2,
+              "end": 10,
+              "document": "atual",
+              "type": "text_evidence",
+              "range": {
+                "start": 32,
+                "end": 40
+              },
+              "excerpt": "pingente"
+            }
+          },
+          {
+            "id": "obj_ecaf94ccdccd",
+            "name": "pingente",
+            "evidence": {
+              "paragraph": 3,
+              "chapter": "Capítulo um",
+              "text": "O pingente foi destruído.",
+              "start": 0,
+              "end": 25,
+              "document": "atual",
+              "type": "text_evidence",
+              "range": {
+                "start": 30,
+                "end": 55
+              },
+              "excerpt": "O pingente foi destruído."
+            }
+          }
+        ],
+        "events": [
+          {
+            "id": "event_2_8",
+            "subject": "char_47f86209fa67",
+            "action": "usar",
+            "object": "fogo",
+            "type": "explicit_action",
+            "evidence": {
+              "paragraph": 2,
+              "chapter": "Capítulo um",
+              "text": "Íris só usa fogo.",
+              "start": 0,
+              "end": 17,
+              "document": "atual",
+              "type": "text_evidence",
+              "range": {
+                "start": 12,
+                "end": 29
+              },
+              "excerpt": "Íris só usa fogo."
+            },
+            "confidence": 0.7
+          },
+          {
+            "id": "event_3_15",
+            "subject": null,
+            "action": "destruir",
+            "object": null,
+            "type": "explicit_action",
+            "evidence": {
+              "paragraph": 3,
+              "chapter": "Capítulo um",
+              "text": "O pingente foi destruído.",
+              "start": 0,
+              "end": 25,
+              "document": "atual",
+              "type": "text_evidence",
+              "range": {
+                "start": 30,
+                "end": 55
+              },
+              "excerpt": "O pingente foi destruído."
+            },
+            "confidence": 0.4
+          },
+          {
+            "id": "event_4_7",
+            "subject": "char_c23ad6f18412",
+            "action": "morrer",
+            "object": null,
+            "type": "explicit_action",
+            "evidence": {
+              "paragraph": 4,
+              "chapter": "Capítulo um",
+              "text": "Adrian morreu em 18/09/2019.",
+              "start": 0,
+              "end": 28,
+              "document": "atual",
+              "type": "text_evidence",
+              "range": {
+                "start": 56,
+                "end": 84
+              },
+              "excerpt": "Adrian morreu em 18/09/2019."
+            },
+            "confidence": 0.7
+          }
+        ],
+        "dialogue_turns": [],
+        "references": [],
+        "actions": [
+          "event_2_8",
+          "event_3_15",
+          "event_4_7"
+        ],
+        "facts": [
+          {
+            "id": "fact_2_0_0",
+            "scene": "scene_0001",
+            "subject": "char_47f86209fa67",
+            "relation": "ability",
+            "value": "fogo",
+            "polarity": "positive",
+            "scope": "exclusive",
+            "confidence": 0.85,
+            "evidence": {
+              "paragraph": 2,
+              "chapter": "Capítulo um",
+              "text": "Íris só usa fogo.",
+              "start": 0,
+              "end": 17,
+              "document": "atual",
+              "type": "text_evidence",
+              "range": {
+                "start": 12,
+                "end": 29
+              },
+              "excerpt": "Íris só usa fogo."
+            }
+          },
+          {
+            "id": "fact_3_0_1",
+            "scene": "scene_0001",
+            "subject": "obj_ecaf94ccdccd",
+            "relation": "object_state",
+            "value": "destroyed",
+            "polarity": "positive",
+            "scope": "asserted",
+            "confidence": 0.85,
+            "evidence": {
+              "paragraph": 3,
+              "chapter": "Capítulo um",
+              "text": "O pingente foi destruído.",
+              "start": 0,
+              "end": 25,
+              "document": "atual",
+              "type": "text_evidence",
+              "range": {
+                "start": 30,
+                "end": 55
+              },
+              "excerpt": "O pingente foi destruído."
+            }
+          },
+          {
+            "id": "fact_4_0_2",
+            "scene": "scene_0001",
+            "subject": "char_c23ad6f18412",
+            "relation": "death_date",
+            "value": "2019-09-18",
+            "polarity": "positive",
+            "scope": "asserted",
+            "confidence": 0.85,
+            "evidence": {
+              "paragraph": 4,
+              "chapter": "Capítulo um",
+              "text": "Adrian morreu em 18/09/2019.",
+              "start": 0,
+              "end": 28,
+              "document": "atual",
+              "type": "text_evidence",
+              "range": {
+                "start": 56,
+                "end": 84
+              },
+              "excerpt": "Adrian morreu em 18/09/2019."
+            }
+          }
+        ]
+      },
+      {
+        "id": "scene_0002",
+        "chapter": "Capítulo dois",
+        "start_paragraph": 6,
+        "end_paragraph": 13,
+        "participants": [
+          {
+            "id": "char_47f86209fa67",
+            "name": "Íris",
+            "role": "actor",
+            "presence": "explicit_action",
+            "evidence": {
+              "paragraph": 6,
+              "chapter": "Capítulo dois",
+              "text": "Íris criou gelo.",
+              "start": 0,
+              "end": 4,
+              "document": "atual",
+              "type": "text_evidence",
+              "range": {
+                "start": 99,
+                "end": 103
+              },
+              "excerpt": "Íris"
+            }
+          },
+          {
+            "id": "char_47f86209fa67",
+            "name": "Íris",
+            "role": "speaker",
+            "presence": "unresolved",
+            "evidence": {
+              "paragraph": 10,
+              "chapter": "Capítulo dois",
+              "text": "— Você está bem? — perguntou Íris.",
+              "start": 29,
+              "end": 33,
+              "document": "atual",
+              "type": "text_evidence",
+              "range": {
+                "start": 226,
+                "end": 230
+              },
+              "excerpt": "Íris"
+            }
+          },
+          {
+            "id": "char_c5156f39a155",
+            "name": "Helena",
+            "role": "actor",
+            "presence": "explicit_action",
+            "evidence": {
+              "paragraph": 11,
+              "chapter": "Capítulo dois",
+              "text": "— Não vou — Helena fechou a porta.",
+              "start": 12,
+              "end": 18,
+              "document": "atual",
+              "type": "text_evidence",
+              "range": {
+                "start": 244,
+                "end": 250
+              },
+              "excerpt": "Helena"
+            }
+          }
+        ],
+        "speakers": [
+          "char_47f86209fa67"
+        ],
+        "narrator": "unknown",
+        "location": [
+          {
+            "id": "loc_cb87945e2aad",
+            "name": "chão",
+            "evidence": {
+              "paragraph": 12,
+              "chapter": "Capítulo dois",
+              "text": "No chão havia pedaços de madeira, pedras e uma espada quebrada.",
+              "start": 3,
+              "end": 7,
+              "document": "atual",
+              "type": "text_evidence",
+              "range": {
+                "start": 270,
+                "end": 274
+              },
+              "excerpt": "chão"
+            }
+          }
+        ],
+        "time_reference": [
+          {
+            "id": "fact_8_0_2",
+            "scene": "scene_0002",
+            "subject": "scene_0002",
+            "relation": "scene_date",
+            "value": "2026-09-17",
+            "polarity": "positive",
+            "scope": "asserted",
+            "confidence": 0.85,
+            "evidence": {
+              "paragraph": 8,
+              "chapter": "Capítulo dois",
+              "text": "Data atual: 17/09/2026.",
+              "start": 0,
+              "end": 23,
+              "document": "atual",
+              "type": "text_evidence",
+              "range": {
+                "start": 152,
+                "end": 175
+              },
+              "excerpt": "Data atual: 17/09/2026."
+            }
+          }
+        ],
+        "objects": [
+          {
+            "id": "obj_99cff4ccf498",
+            "name": "gelo",
+            "evidence": {
+              "paragraph": 6,
+              "chapter": "Capítulo dois",
+              "text": "Íris criou gelo.",
+              "start": 11,
+              "end": 15,
+              "document": "atual",
+              "type": "text_evidence",
+              "range": {
+                "start": 110,
+                "end": 114
+              },
+              "excerpt": "gelo"
+            }
+          },
+          {
+            "id": "obj_ecaf94ccdccd",
+            "name": "pingente",
+            "evidence": {
+              "paragraph": 7,
+              "chapter": "Capítulo dois",
+              "text": "O pingente intacto estava no bolso.",
+              "start": 2,
+              "end": 10,
+              "document": "atual",
+              "type": "text_evidence",
+              "range": {
+                "start": 118,
+                "end": 126
+              },
+              "excerpt": "pingente"
+            }
+          },
+          {
+            "id": "obj_87d3b9ce32ce",
+            "name": "bolso",
+            "evidence": {
+              "paragraph": 7,
+              "chapter": "Capítulo dois",
+              "text": "O pingente intacto estava no bolso.",
+              "start": 29,
+              "end": 34,
+              "document": "atual",
+              "type": "text_evidence",
+              "range": {
+                "start": 145,
+                "end": 150
+              },
+              "excerpt": "bolso"
+            }
+          },
+          {
+            "id": "obj_ecaf94ccdccd",
+            "name": "pingente",
+            "evidence": {
+              "paragraph": 7,
+              "chapter": "Capítulo dois",
+              "text": "O pingente intacto estava no bolso.",
+              "start": 0,
+              "end": 35,
+              "document": "atual",
+              "type": "text_evidence",
+              "range": {
+                "start": 116,
+                "end": 151
+              },
+              "excerpt": "O pingente intacto estava no bolso."
+            }
+          },
+          {
+            "id": "obj_3a6eb0790f39",
+            "name": "data",
+            "evidence": {
+              "paragraph": 8,
+              "chapter": "Capítulo dois",
+              "text": "Data atual: 17/09/2026.",
+              "start": 0,
+              "end": 4,
+              "document": "atual",
+              "type": "text_evidence",
+              "range": {
+                "start": 152,
+                "end": 156
+              },
+              "excerpt": "Data"
+            }
+          },
+          {
+            "id": "obj_5eb59fe89054",
+            "name": "ano",
+            "evidence": {
+              "paragraph": 9,
+              "chapter": "Capítulo dois",
+              "text": "Ontem fez sete anos.",
+              "start": 15,
+              "end": 19,
+              "document": "atual",
+              "type": "text_evidence",
+              "range": {
+                "start": 191,
+                "end": 195
+              },
+              "excerpt": "anos"
+            }
+          },
+          {
+            "id": "obj_158bdb6fad0f",
+            "name": "porta",
+            "evidence": {
+              "paragraph": 11,
+              "chapter": "Capítulo dois",
+              "text": "— Não vou — Helena fechou a porta.",
+              "start": 28,
+              "end": 33,
+              "document": "atual",
+              "type": "text_evidence",
+              "range": {
+                "start": 260,
+                "end": 265
+              },
+              "excerpt": "porta"
+            }
+          },
+          {
+            "id": "obj_0e58d2f31335",
+            "name": "pedaço",
+            "evidence": {
+              "paragraph": 12,
+              "chapter": "Capítulo dois",
+              "text": "No chão havia pedaços de madeira, pedras e uma espada quebrada.",
+              "start": 14,
+              "end": 21,
+              "document": "atual",
+              "type": "text_evidence",
+              "range": {
+                "start": 281,
+                "end": 288
+              },
+              "excerpt": "pedaços"
+            }
+          },
+          {
+            "id": "obj_99f9b426176b",
+            "name": "madeira",
+            "evidence": {
+              "paragraph": 12,
+              "chapter": "Capítulo dois",
+              "text": "No chão havia pedaços de madeira, pedras e uma espada quebrada.",
+              "start": 25,
+              "end": 32,
+              "document": "atual",
+              "type": "text_evidence",
+              "range": {
+                "start": 292,
+                "end": 299
+              },
+              "excerpt": "madeira"
+            }
+          },
+          {
+            "id": "obj_dbc83c8a105d",
+            "name": "pedra",
+            "evidence": {
+              "paragraph": 12,
+              "chapter": "Capítulo dois",
+              "text": "No chão havia pedaços de madeira, pedras e uma espada quebrada.",
+              "start": 34,
+              "end": 40,
+              "document": "atual",
+              "type": "text_evidence",
+              "range": {
+                "start": 301,
+                "end": 307
+              },
+              "excerpt": "pedras"
+            }
+          },
+          {
+            "id": "obj_3c6a8fb631e0",
+            "name": "espado",
+            "evidence": {
+              "paragraph": 12,
+              "chapter": "Capítulo dois",
+              "text": "No chão havia pedaços de madeira, pedras e uma espada quebrada.",
+              "start": 47,
+              "end": 53,
+              "document": "atual",
+              "type": "text_evidence",
+              "range": {
+                "start": 314,
+                "end": 320
+              },
+              "excerpt": "espada"
+            }
+          },
+          {
+            "id": "obj_c58bf55b8da4",
+            "name": "objeto",
+            "evidence": {
+              "paragraph": 13,
+              "chapter": "Capítulo dois",
+              "text": "Ela pegou o objeto.",
+              "start": 12,
+              "end": 18,
+              "document": "atual",
+              "type": "text_evidence",
+              "range": {
+                "start": 343,
+                "end": 349
+              },
+              "excerpt": "objeto"
+            }
+          }
+        ],
+        "events": [
+          {
+            "id": "event_6_5",
+            "subject": "char_47f86209fa67",
+            "action": "criar",
+            "object": "gelo",
+            "type": "explicit_action",
+            "evidence": {
+              "paragraph": 6,
+              "chapter": "Capítulo dois",
+              "text": "Íris criou gelo.",
+              "start": 0,
+              "end": 16,
+              "document": "atual",
+              "type": "text_evidence",
+              "range": {
+                "start": 99,
+                "end": 115
+              },
+              "excerpt": "Íris criou gelo."
+            },
+            "confidence": 0.7
+          },
+          {
+            "id": "event_9_6",
+            "subject": null,
+            "action": "fazer",
+            "object": "anos",
+            "type": "explicit_action",
+            "evidence": {
+              "paragraph": 9,
+              "chapter": "Capítulo dois",
+              "text": "Ontem fez sete anos.",
+              "start": 0,
+              "end": 20,
+              "document": "atual",
+              "type": "text_evidence",
+              "range": {
+                "start": 176,
+                "end": 196
+              },
+              "excerpt": "Ontem fez sete anos."
+            },
+            "confidence": 0.4
+          },
+          {
+            "id": "event_10_19",
+            "subject": "char_47f86209fa67",
+            "action": "perguntar",
+            "object": null,
+            "type": "explicit_action",
+            "evidence": {
+              "paragraph": 10,
+              "chapter": "Capítulo dois",
+              "text": "— Você está bem? — perguntou Íris.",
+              "start": 17,
+              "end": 34,
+              "document": "atual",
+              "type": "text_evidence",
+              "range": {
+                "start": 214,
+                "end": 231
+              },
+              "excerpt": "— perguntou Íris."
+            },
+            "confidence": 0.7
+          },
+          {
+            "id": "event_11_19",
+            "subject": "char_c5156f39a155",
+            "action": "fechar",
+            "object": "porta",
+            "type": "explicit_action",
+            "evidence": {
+              "paragraph": 11,
+              "chapter": "Capítulo dois",
+              "text": "— Não vou — Helena fechou a porta.",
+              "start": 2,
+              "end": 34,
+              "document": "atual",
+              "type": "text_evidence",
+              "range": {
+                "start": 234,
+                "end": 266
+              },
+              "excerpt": "Não vou — Helena fechou a porta."
+            },
+            "confidence": 0.7
+          },
+          {
+            "id": "event_12_8",
+            "subject": null,
+            "action": "haver",
+            "object": "pedaços",
+            "type": "explicit_action",
+            "evidence": {
+              "paragraph": 12,
+              "chapter": "Capítulo dois",
+              "text": "No chão havia pedaços de madeira, pedras e uma espada quebrada.",
+              "start": 0,
+              "end": 63,
+              "document": "atual",
+              "type": "text_evidence",
+              "range": {
+                "start": 267,
+                "end": 330
+              },
+              "excerpt": "No chão havia pedaços de madeira, pedras e uma espada quebrada."
+            },
+            "confidence": 0.4
+          },
+          {
+            "id": "event_12_54",
+            "subject": null,
+            "action": "quebrar",
+            "object": null,
+            "type": "explicit_action",
+            "evidence": {
+              "paragraph": 12,
+              "chapter": "Capítulo dois",
+              "text": "No chão havia pedaços de madeira, pedras e uma espada quebrada.",
+              "start": 0,
+              "end": 63,
+              "document": "atual",
+              "type": "text_evidence",
+              "range": {
+                "start": 267,
+                "end": 330
+              },
+              "excerpt": "No chão havia pedaços de madeira, pedras e uma espada quebrada."
+            },
+            "confidence": 0.4
+          },
+          {
+            "id": "event_13_4",
+            "subject": null,
+            "action": "pegar",
+            "object": "objeto",
+            "type": "explicit_action",
+            "evidence": {
+              "paragraph": 13,
+              "chapter": "Capítulo dois",
+              "text": "Ela pegou o objeto.",
+              "start": 0,
+              "end": 19,
+              "document": "atual",
+              "type": "text_evidence",
+              "range": {
+                "start": 331,
+                "end": 350
+              },
+              "excerpt": "Ela pegou o objeto."
+            },
+            "confidence": 0.4
+          }
+        ],
+        "dialogue_turns": [
+          {
+            "speaker": "char_47f86209fa67",
+            "speech": "Você está bem?",
+            "speech_act": "question",
+            "confidence": 0.9,
+            "evidence": {
+              "paragraph": 10,
+              "chapter": "Capítulo dois",
+              "text": "— Você está bem? — perguntou Íris.",
+              "start": 1,
+              "end": 17,
+              "document": "atual",
+              "type": "text_evidence",
+              "range": {
+                "start": 198,
+                "end": 214
+              },
+              "excerpt": " Você está bem? "
+            }
+          },
+          {
+            "speaker": null,
+            "speech": "Não vou",
+            "speech_act": "statement",
+            "confidence": 0.4,
+            "evidence": {
+              "paragraph": 11,
+              "chapter": "Capítulo dois",
+              "text": "— Não vou — Helena fechou a porta.",
+              "start": 1,
+              "end": 10,
+              "document": "atual",
+              "type": "text_evidence",
+              "range": {
+                "start": 233,
+                "end": 242
+              },
+              "excerpt": " Não vou "
+            }
+          }
+        ],
+        "references": [
+          {
+            "text": "Ela",
+            "candidates": [
+              "char_47f86209fa67",
+              "char_c5156f39a155"
+            ],
+            "status": "unresolved",
+            "evidence": {
+              "paragraph": 13,
+              "chapter": "Capítulo dois",
+              "text": "Ela pegou o objeto.",
+              "start": 0,
+              "end": 3,
+              "document": "atual",
+              "type": "text_evidence",
+              "range": {
+                "start": 331,
+                "end": 334
+              },
+              "excerpt": "Ela"
+            }
+          },
+          {
+            "text": "objeto",
+            "candidates": [
+              "obj_99cff4ccf498",
+              "obj_ecaf94ccdccd",
+              "obj_87d3b9ce32ce",
+              "obj_3a6eb0790f39",
+              "obj_5eb59fe89054",
+              "obj_158bdb6fad0f",
+              "obj_0e58d2f31335",
+              "obj_99f9b426176b",
+              "obj_dbc83c8a105d",
+              "obj_3c6a8fb631e0"
+            ],
+            "status": "unresolved",
+            "evidence": {
+              "paragraph": 13,
+              "chapter": "Capítulo dois",
+              "text": "Ela pegou o objeto.",
+              "start": 12,
+              "end": 18,
+              "document": "atual",
+              "type": "text_evidence",
+              "range": {
+                "start": 343,
+                "end": 349
+              },
+              "excerpt": "objeto"
+            }
+          }
+        ],
+        "actions": [
+          "event_6_5",
+          "event_9_6",
+          "event_10_19",
+          "event_11_19",
+          "event_12_8",
+          "event_12_54",
+          "event_13_4"
+        ],
+        "facts": [
+          {
+            "id": "fact_6_0_0",
+            "scene": "scene_0002",
+            "subject": "char_47f86209fa67",
+            "relation": "ability_use",
+            "value": "gelo",
+            "polarity": "positive",
+            "scope": "asserted",
+            "confidence": 0.85,
+            "evidence": {
+              "paragraph": 6,
+              "chapter": "Capítulo dois",
+              "text": "Íris criou gelo.",
+              "start": 0,
+              "end": 16,
+              "document": "atual",
+              "type": "text_evidence",
+              "range": {
+                "start": 99,
+                "end": 115
+              },
+              "excerpt": "Íris criou gelo."
+            }
+          },
+          {
+            "id": "fact_7_0_1",
+            "scene": "scene_0002",
+            "subject": "obj_ecaf94ccdccd",
+            "relation": "object_state",
+            "value": "intact",
+            "polarity": "positive",
+            "scope": "asserted",
+            "confidence": 0.85,
+            "evidence": {
+              "paragraph": 7,
+              "chapter": "Capítulo dois",
+              "text": "O pingente intacto estava no bolso.",
+              "start": 0,
+              "end": 35,
+              "document": "atual",
+              "type": "text_evidence",
+              "range": {
+                "start": 116,
+                "end": 151
+              },
+              "excerpt": "O pingente intacto estava no bolso."
+            }
+          },
+          {
+            "id": "fact_8_0_2",
+            "scene": "scene_0002",
+            "subject": "scene_0002",
+            "relation": "scene_date",
+            "value": "2026-09-17",
+            "polarity": "positive",
+            "scope": "asserted",
+            "confidence": 0.85,
+            "evidence": {
+              "paragraph": 8,
+              "chapter": "Capítulo dois",
+              "text": "Data atual: 17/09/2026.",
+              "start": 0,
+              "end": 23,
+              "document": "atual",
+              "type": "text_evidence",
+              "range": {
+                "start": 152,
+                "end": 175
+              },
+              "excerpt": "Data atual: 17/09/2026."
+            }
+          },
+          {
+            "id": "fact_9_0_3",
+            "scene": "scene_0002",
+            "subject": null,
+            "relation": "anniversary_yesterday",
+            "value": 7,
+            "polarity": "positive",
+            "scope": "asserted",
+            "confidence": 0.85,
+            "evidence": {
+              "paragraph": 9,
+              "chapter": "Capítulo dois",
+              "text": "Ontem fez sete anos.",
+              "start": 0,
+              "end": 20,
+              "document": "atual",
+              "type": "text_evidence",
+              "range": {
+                "start": 176,
+                "end": 196
+              },
+              "excerpt": "Ontem fez sete anos."
+            }
+          }
+        ]
+      }
+    ],
+    "fact_bank": {
+      "schema_version": 1,
+      "characters": {
+        "char_47f86209fa67": {
+          "id": "char_47f86209fa67",
+          "name": "Íris",
+          "aliases": [],
+          "mentions": [
+            {
+              "id": "char_47f86209fa67",
+              "name": "Íris",
+              "role": "actor",
+              "presence": "explicit_action",
+              "evidence": {
+                "paragraph": 2,
+                "chapter": "Capítulo um",
+                "text": "Íris só usa fogo.",
+                "start": 0,
+                "end": 4,
+                "document": "atual",
+                "type": "text_evidence",
+                "range": {
+                  "start": 12,
+                  "end": 16
+                },
+                "excerpt": "Íris"
+              }
+            },
+            {
+              "id": "char_47f86209fa67",
+              "name": "Íris",
+              "role": "actor",
+              "presence": "explicit_action",
+              "evidence": {
+                "paragraph": 6,
+                "chapter": "Capítulo dois",
+                "text": "Íris criou gelo.",
+                "start": 0,
+                "end": 4,
+                "document": "atual",
+                "type": "text_evidence",
+                "range": {
+                  "start": 99,
+                  "end": 103
+                },
+                "excerpt": "Íris"
+              }
+            },
+            {
+              "id": "char_47f86209fa67",
+              "name": "Íris",
+              "role": "speaker",
+              "presence": "unresolved",
+              "evidence": {
+                "paragraph": 10,
+                "chapter": "Capítulo dois",
+                "text": "— Você está bem? — perguntou Íris.",
+                "start": 29,
+                "end": 33,
+                "document": "atual",
+                "type": "text_evidence",
+                "range": {
+                  "start": 226,
+                  "end": 230
+                },
+                "excerpt": "Íris"
+              }
+            }
+          ],
+          "facts": [
+            "fact_2_0_0",
+            "fact_6_0_0"
+          ]
+        },
+        "char_c23ad6f18412": {
+          "id": "char_c23ad6f18412",
+          "name": "Adrian",
+          "aliases": [],
+          "mentions": [
+            {
+              "id": "char_c23ad6f18412",
+              "name": "Adrian",
+              "role": "actor",
+              "presence": "explicit_action",
+              "evidence": {
+                "paragraph": 4,
+                "chapter": "Capítulo um",
+                "text": "Adrian morreu em 18/09/2019.",
+                "start": 0,
+                "end": 6,
+                "document": "atual",
+                "type": "text_evidence",
+                "range": {
+                  "start": 56,
+                  "end": 62
+                },
+                "excerpt": "Adrian"
+              }
+            }
+          ],
+          "facts": [
+            "fact_4_0_2"
+          ]
+        },
+        "char_c5156f39a155": {
+          "id": "char_c5156f39a155",
+          "name": "Helena",
+          "aliases": [],
+          "mentions": [
+            {
+              "id": "char_c5156f39a155",
+              "name": "Helena",
+              "role": "actor",
+              "presence": "explicit_action",
+              "evidence": {
+                "paragraph": 11,
+                "chapter": "Capítulo dois",
+                "text": "— Não vou — Helena fechou a porta.",
+                "start": 12,
+                "end": 18,
+                "document": "atual",
+                "type": "text_evidence",
+                "range": {
+                  "start": 244,
+                  "end": 250
+                },
+                "excerpt": "Helena"
+              }
+            }
+          ],
+          "facts": []
+        }
+      },
+      "objects": {
+        "obj_00812eb39868": {
+          "id": "obj_00812eb39868",
+          "name": "fogo",
+          "mentions": [
+            {
+              "id": "obj_00812eb39868",
+              "name": "fogo",
+              "evidence": {
+                "paragraph": 2,
+                "chapter": "Capítulo um",
+                "text": "Íris só usa fogo.",
+                "start": 12,
+                "end": 16,
+                "document": "atual",
+                "type": "text_evidence",
+                "range": {
+                  "start": 24,
+                  "end": 28
+                },
+                "excerpt": "fogo"
+              }
+            }
+          ],
+          "facts": []
+        },
+        "obj_ecaf94ccdccd": {
+          "id": "obj_ecaf94ccdccd",
+          "name": "pingente",
+          "mentions": [
+            {
+              "id": "obj_ecaf94ccdccd",
+              "name": "pingente",
+              "evidence": {
+                "paragraph": 3,
+                "chapter": "Capítulo um",
+                "text": "O pingente foi destruído.",
+                "start": 2,
+                "end": 10,
+                "document": "atual",
+                "type": "text_evidence",
+                "range": {
+                  "start": 32,
+                  "end": 40
+                },
+                "excerpt": "pingente"
+              }
+            },
+            {
+              "id": "obj_ecaf94ccdccd",
+              "name": "pingente",
+              "evidence": {
+                "paragraph": 3,
+                "chapter": "Capítulo um",
+                "text": "O pingente foi destruído.",
+                "start": 0,
+                "end": 25,
+                "document": "atual",
+                "type": "text_evidence",
+                "range": {
+                  "start": 30,
+                  "end": 55
+                },
+                "excerpt": "O pingente foi destruído."
+              }
+            },
+            {
+              "id": "obj_ecaf94ccdccd",
+              "name": "pingente",
+              "evidence": {
+                "paragraph": 7,
+                "chapter": "Capítulo dois",
+                "text": "O pingente intacto estava no bolso.",
+                "start": 2,
+                "end": 10,
+                "document": "atual",
+                "type": "text_evidence",
+                "range": {
+                  "start": 118,
+                  "end": 126
+                },
+                "excerpt": "pingente"
+              }
+            },
+            {
+              "id": "obj_ecaf94ccdccd",
+              "name": "pingente",
+              "evidence": {
+                "paragraph": 7,
+                "chapter": "Capítulo dois",
+                "text": "O pingente intacto estava no bolso.",
+                "start": 0,
+                "end": 35,
+                "document": "atual",
+                "type": "text_evidence",
+                "range": {
+                  "start": 116,
+                  "end": 151
+                },
+                "excerpt": "O pingente intacto estava no bolso."
+              }
+            }
+          ],
+          "facts": [
+            "fact_3_0_1",
+            "fact_7_0_1"
+          ]
+        },
+        "obj_99cff4ccf498": {
+          "id": "obj_99cff4ccf498",
+          "name": "gelo",
+          "mentions": [
+            {
+              "id": "obj_99cff4ccf498",
+              "name": "gelo",
+              "evidence": {
+                "paragraph": 6,
+                "chapter": "Capítulo dois",
+                "text": "Íris criou gelo.",
+                "start": 11,
+                "end": 15,
+                "document": "atual",
+                "type": "text_evidence",
+                "range": {
+                  "start": 110,
+                  "end": 114
+                },
+                "excerpt": "gelo"
+              }
+            }
+          ],
+          "facts": []
+        },
+        "obj_87d3b9ce32ce": {
+          "id": "obj_87d3b9ce32ce",
+          "name": "bolso",
+          "mentions": [
+            {
+              "id": "obj_87d3b9ce32ce",
+              "name": "bolso",
+              "evidence": {
+                "paragraph": 7,
+                "chapter": "Capítulo dois",
+                "text": "O pingente intacto estava no bolso.",
+                "start": 29,
+                "end": 34,
+                "document": "atual",
+                "type": "text_evidence",
+                "range": {
+                  "start": 145,
+                  "end": 150
+                },
+                "excerpt": "bolso"
+              }
+            }
+          ],
+          "facts": []
+        },
+        "obj_3a6eb0790f39": {
+          "id": "obj_3a6eb0790f39",
+          "name": "data",
+          "mentions": [
+            {
+              "id": "obj_3a6eb0790f39",
+              "name": "data",
+              "evidence": {
+                "paragraph": 8,
+                "chapter": "Capítulo dois",
+                "text": "Data atual: 17/09/2026.",
+                "start": 0,
+                "end": 4,
+                "document": "atual",
+                "type": "text_evidence",
+                "range": {
+                  "start": 152,
+                  "end": 156
+                },
+                "excerpt": "Data"
+              }
+            }
+          ],
+          "facts": []
+        },
+        "obj_5eb59fe89054": {
+          "id": "obj_5eb59fe89054",
+          "name": "ano",
+          "mentions": [
+            {
+              "id": "obj_5eb59fe89054",
+              "name": "ano",
+              "evidence": {
+                "paragraph": 9,
+                "chapter": "Capítulo dois",
+                "text": "Ontem fez sete anos.",
+                "start": 15,
+                "end": 19,
+                "document": "atual",
+                "type": "text_evidence",
+                "range": {
+                  "start": 191,
+                  "end": 195
+                },
+                "excerpt": "anos"
+              }
+            }
+          ],
+          "facts": []
+        },
+        "obj_158bdb6fad0f": {
+          "id": "obj_158bdb6fad0f",
+          "name": "porta",
+          "mentions": [
+            {
+              "id": "obj_158bdb6fad0f",
+              "name": "porta",
+              "evidence": {
+                "paragraph": 11,
+                "chapter": "Capítulo dois",
+                "text": "— Não vou — Helena fechou a porta.",
+                "start": 28,
+                "end": 33,
+                "document": "atual",
+                "type": "text_evidence",
+                "range": {
+                  "start": 260,
+                  "end": 265
+                },
+                "excerpt": "porta"
+              }
+            }
+          ],
+          "facts": []
+        },
+        "obj_0e58d2f31335": {
+          "id": "obj_0e58d2f31335",
+          "name": "pedaço",
+          "mentions": [
+            {
+              "id": "obj_0e58d2f31335",
+              "name": "pedaço",
+              "evidence": {
+                "paragraph": 12,
+                "chapter": "Capítulo dois",
+                "text": "No chão havia pedaços de madeira, pedras e uma espada quebrada.",
+                "start": 14,
+                "end": 21,
+                "document": "atual",
+                "type": "text_evidence",
+                "range": {
+                  "start": 281,
+                  "end": 288
+                },
+                "excerpt": "pedaços"
+              }
+            }
+          ],
+          "facts": []
+        },
+        "obj_99f9b426176b": {
+          "id": "obj_99f9b426176b",
+          "name": "madeira",
+          "mentions": [
+            {
+              "id": "obj_99f9b426176b",
+              "name": "madeira",
+              "evidence": {
+                "paragraph": 12,
+                "chapter": "Capítulo dois",
+                "text": "No chão havia pedaços de madeira, pedras e uma espada quebrada.",
+                "start": 25,
+                "end": 32,
+                "document": "atual",
+                "type": "text_evidence",
+                "range": {
+                  "start": 292,
+                  "end": 299
+                },
+                "excerpt": "madeira"
+              }
+            }
+          ],
+          "facts": []
+        },
+        "obj_dbc83c8a105d": {
+          "id": "obj_dbc83c8a105d",
+          "name": "pedra",
+          "mentions": [
+            {
+              "id": "obj_dbc83c8a105d",
+              "name": "pedra",
+              "evidence": {
+                "paragraph": 12,
+                "chapter": "Capítulo dois",
+                "text": "No chão havia pedaços de madeira, pedras e uma espada quebrada.",
+                "start": 34,
+                "end": 40,
+                "document": "atual",
+                "type": "text_evidence",
+                "range": {
+                  "start": 301,
+                  "end": 307
+                },
+                "excerpt": "pedras"
+              }
+            }
+          ],
+          "facts": []
+        },
+        "obj_3c6a8fb631e0": {
+          "id": "obj_3c6a8fb631e0",
+          "name": "espado",
+          "mentions": [
+            {
+              "id": "obj_3c6a8fb631e0",
+              "name": "espado",
+              "evidence": {
+                "paragraph": 12,
+                "chapter": "Capítulo dois",
+                "text": "No chão havia pedaços de madeira, pedras e uma espada quebrada.",
+                "start": 47,
+                "end": 53,
+                "document": "atual",
+                "type": "text_evidence",
+                "range": {
+                  "start": 314,
+                  "end": 320
+                },
+                "excerpt": "espada"
+              }
+            }
+          ],
+          "facts": []
+        },
+        "obj_c58bf55b8da4": {
+          "id": "obj_c58bf55b8da4",
+          "name": "objeto",
+          "mentions": [
+            {
+              "id": "obj_c58bf55b8da4",
+              "name": "objeto",
+              "evidence": {
+                "paragraph": 13,
+                "chapter": "Capítulo dois",
+                "text": "Ela pegou o objeto.",
+                "start": 12,
+                "end": 18,
+                "document": "atual",
+                "type": "text_evidence",
+                "range": {
+                  "start": 343,
+                  "end": 349
+                },
+                "excerpt": "objeto"
+              }
+            }
+          ],
+          "facts": []
+        }
+      },
+      "locations": {
+        "loc_cb87945e2aad": {
+          "id": "loc_cb87945e2aad",
+          "name": "chão",
+          "mentions": [
+            {
+              "id": "loc_cb87945e2aad",
+              "name": "chão",
+              "evidence": {
+                "paragraph": 12,
+                "chapter": "Capítulo dois",
+                "text": "No chão havia pedaços de madeira, pedras e uma espada quebrada.",
+                "start": 3,
+                "end": 7,
+                "document": "atual",
+                "type": "text_evidence",
+                "range": {
+                  "start": 270,
+                  "end": 274
+                },
+                "excerpt": "chão"
+              }
+            }
+          ]
+        }
+      },
+      "facts": [
+        {
+          "id": "fact_2_0_0",
+          "scene": "scene_0001",
+          "subject": "char_47f86209fa67",
+          "relation": "ability",
+          "value": "fogo",
+          "polarity": "positive",
+          "scope": "exclusive",
+          "confidence": 0.85,
+          "evidence": {
+            "paragraph": 2,
+            "chapter": "Capítulo um",
+            "text": "Íris só usa fogo.",
+            "start": 0,
+            "end": 17,
+            "document": "atual",
+            "type": "text_evidence",
+            "range": {
+              "start": 12,
+              "end": 29
+            },
+            "excerpt": "Íris só usa fogo."
+          }
+        },
+        {
+          "id": "fact_3_0_1",
+          "scene": "scene_0001",
+          "subject": "obj_ecaf94ccdccd",
+          "relation": "object_state",
+          "value": "destroyed",
+          "polarity": "positive",
+          "scope": "asserted",
+          "confidence": 0.85,
+          "evidence": {
+            "paragraph": 3,
+            "chapter": "Capítulo um",
+            "text": "O pingente foi destruído.",
+            "start": 0,
+            "end": 25,
+            "document": "atual",
+            "type": "text_evidence",
+            "range": {
+              "start": 30,
+              "end": 55
+            },
+            "excerpt": "O pingente foi destruído."
+          }
+        },
+        {
+          "id": "fact_4_0_2",
+          "scene": "scene_0001",
+          "subject": "char_c23ad6f18412",
+          "relation": "death_date",
+          "value": "2019-09-18",
+          "polarity": "positive",
+          "scope": "asserted",
+          "confidence": 0.85,
+          "evidence": {
+            "paragraph": 4,
+            "chapter": "Capítulo um",
+            "text": "Adrian morreu em 18/09/2019.",
+            "start": 0,
+            "end": 28,
+            "document": "atual",
+            "type": "text_evidence",
+            "range": {
+              "start": 56,
+              "end": 84
+            },
+            "excerpt": "Adrian morreu em 18/09/2019."
+          }
+        },
+        {
+          "id": "fact_6_0_0",
+          "scene": "scene_0002",
+          "subject": "char_47f86209fa67",
+          "relation": "ability_use",
+          "value": "gelo",
+          "polarity": "positive",
+          "scope": "asserted",
+          "confidence": 0.85,
+          "evidence": {
+            "paragraph": 6,
+            "chapter": "Capítulo dois",
+            "text": "Íris criou gelo.",
+            "start": 0,
+            "end": 16,
+            "document": "atual",
+            "type": "text_evidence",
+            "range": {
+              "start": 99,
+              "end": 115
+            },
+            "excerpt": "Íris criou gelo."
+          }
+        },
+        {
+          "id": "fact_7_0_1",
+          "scene": "scene_0002",
+          "subject": "obj_ecaf94ccdccd",
+          "relation": "object_state",
+          "value": "intact",
+          "polarity": "positive",
+          "scope": "asserted",
+          "confidence": 0.85,
+          "evidence": {
+            "paragraph": 7,
+            "chapter": "Capítulo dois",
+            "text": "O pingente intacto estava no bolso.",
+            "start": 0,
+            "end": 35,
+            "document": "atual",
+            "type": "text_evidence",
+            "range": {
+              "start": 116,
+              "end": 151
+            },
+            "excerpt": "O pingente intacto estava no bolso."
+          }
+        },
+        {
+          "id": "fact_8_0_2",
+          "scene": "scene_0002",
+          "subject": "scene_0002",
+          "relation": "scene_date",
+          "value": "2026-09-17",
+          "polarity": "positive",
+          "scope": "asserted",
+          "confidence": 0.85,
+          "evidence": {
+            "paragraph": 8,
+            "chapter": "Capítulo dois",
+            "text": "Data atual: 17/09/2026.",
+            "start": 0,
+            "end": 23,
+            "document": "atual",
+            "type": "text_evidence",
+            "range": {
+              "start": 152,
+              "end": 175
+            },
+            "excerpt": "Data atual: 17/09/2026."
+          }
+        },
+        {
+          "id": "fact_9_0_3",
+          "scene": "scene_0002",
+          "subject": null,
+          "relation": "anniversary_yesterday",
+          "value": 7,
+          "polarity": "positive",
+          "scope": "asserted",
+          "confidence": 0.85,
+          "evidence": {
+            "paragraph": 9,
+            "chapter": "Capítulo dois",
+            "text": "Ontem fez sete anos.",
+            "start": 0,
+            "end": 20,
+            "document": "atual",
+            "type": "text_evidence",
+            "range": {
+              "start": 176,
+              "end": 196
+            },
+            "excerpt": "Ontem fez sete anos."
+          }
+        }
+      ],
+      "events": [
+        {
+          "id": "event_2_8",
+          "subject": "char_47f86209fa67",
+          "action": "usar",
+          "object": "fogo",
+          "type": "explicit_action",
+          "evidence": {
+            "paragraph": 2,
+            "chapter": "Capítulo um",
+            "text": "Íris só usa fogo.",
+            "start": 0,
+            "end": 17,
+            "document": "atual",
+            "type": "text_evidence",
+            "range": {
+              "start": 12,
+              "end": 29
+            },
+            "excerpt": "Íris só usa fogo."
+          },
+          "confidence": 0.7
+        },
+        {
+          "id": "event_3_15",
+          "subject": null,
+          "action": "destruir",
+          "object": null,
+          "type": "explicit_action",
+          "evidence": {
+            "paragraph": 3,
+            "chapter": "Capítulo um",
+            "text": "O pingente foi destruído.",
+            "start": 0,
+            "end": 25,
+            "document": "atual",
+            "type": "text_evidence",
+            "range": {
+              "start": 30,
+              "end": 55
+            },
+            "excerpt": "O pingente foi destruído."
+          },
+          "confidence": 0.4
+        },
+        {
+          "id": "event_4_7",
+          "subject": "char_c23ad6f18412",
+          "action": "morrer",
+          "object": null,
+          "type": "explicit_action",
+          "evidence": {
+            "paragraph": 4,
+            "chapter": "Capítulo um",
+            "text": "Adrian morreu em 18/09/2019.",
+            "start": 0,
+            "end": 28,
+            "document": "atual",
+            "type": "text_evidence",
+            "range": {
+              "start": 56,
+              "end": 84
+            },
+            "excerpt": "Adrian morreu em 18/09/2019."
+          },
+          "confidence": 0.7
+        },
+        {
+          "id": "event_6_5",
+          "subject": "char_47f86209fa67",
+          "action": "criar",
+          "object": "gelo",
+          "type": "explicit_action",
+          "evidence": {
+            "paragraph": 6,
+            "chapter": "Capítulo dois",
+            "text": "Íris criou gelo.",
+            "start": 0,
+            "end": 16,
+            "document": "atual",
+            "type": "text_evidence",
+            "range": {
+              "start": 99,
+              "end": 115
+            },
+            "excerpt": "Íris criou gelo."
+          },
+          "confidence": 0.7
+        },
+        {
+          "id": "event_9_6",
+          "subject": null,
+          "action": "fazer",
+          "object": "anos",
+          "type": "explicit_action",
+          "evidence": {
+            "paragraph": 9,
+            "chapter": "Capítulo dois",
+            "text": "Ontem fez sete anos.",
+            "start": 0,
+            "end": 20,
+            "document": "atual",
+            "type": "text_evidence",
+            "range": {
+              "start": 176,
+              "end": 196
+            },
+            "excerpt": "Ontem fez sete anos."
+          },
+          "confidence": 0.4
+        },
+        {
+          "id": "event_10_19",
+          "subject": "char_47f86209fa67",
+          "action": "perguntar",
+          "object": null,
+          "type": "explicit_action",
+          "evidence": {
+            "paragraph": 10,
+            "chapter": "Capítulo dois",
+            "text": "— Você está bem? — perguntou Íris.",
+            "start": 17,
+            "end": 34,
+            "document": "atual",
+            "type": "text_evidence",
+            "range": {
+              "start": 214,
+              "end": 231
+            },
+            "excerpt": "— perguntou Íris."
+          },
+          "confidence": 0.7
+        },
+        {
+          "id": "event_11_19",
+          "subject": "char_c5156f39a155",
+          "action": "fechar",
+          "object": "porta",
+          "type": "explicit_action",
+          "evidence": {
+            "paragraph": 11,
+            "chapter": "Capítulo dois",
+            "text": "— Não vou — Helena fechou a porta.",
+            "start": 2,
+            "end": 34,
+            "document": "atual",
+            "type": "text_evidence",
+            "range": {
+              "start": 234,
+              "end": 266
+            },
+            "excerpt": "Não vou — Helena fechou a porta."
+          },
+          "confidence": 0.7
+        },
+        {
+          "id": "event_12_8",
+          "subject": null,
+          "action": "haver",
+          "object": "pedaços",
+          "type": "explicit_action",
+          "evidence": {
+            "paragraph": 12,
+            "chapter": "Capítulo dois",
+            "text": "No chão havia pedaços de madeira, pedras e uma espada quebrada.",
+            "start": 0,
+            "end": 63,
+            "document": "atual",
+            "type": "text_evidence",
+            "range": {
+              "start": 267,
+              "end": 330
+            },
+            "excerpt": "No chão havia pedaços de madeira, pedras e uma espada quebrada."
+          },
+          "confidence": 0.4
+        },
+        {
+          "id": "event_12_54",
+          "subject": null,
+          "action": "quebrar",
+          "object": null,
+          "type": "explicit_action",
+          "evidence": {
+            "paragraph": 12,
+            "chapter": "Capítulo dois",
+            "text": "No chão havia pedaços de madeira, pedras e uma espada quebrada.",
+            "start": 0,
+            "end": 63,
+            "document": "atual",
+            "type": "text_evidence",
+            "range": {
+              "start": 267,
+              "end": 330
+            },
+            "excerpt": "No chão havia pedaços de madeira, pedras e uma espada quebrada."
+          },
+          "confidence": 0.4
+        },
+        {
+          "id": "event_13_4",
+          "subject": null,
+          "action": "pegar",
+          "object": "objeto",
+          "type": "explicit_action",
+          "evidence": {
+            "paragraph": 13,
+            "chapter": "Capítulo dois",
+            "text": "Ela pegou o objeto.",
+            "start": 0,
+            "end": 19,
+            "document": "atual",
+            "type": "text_evidence",
+            "range": {
+              "start": 331,
+              "end": 350
+            },
+            "excerpt": "Ela pegou o objeto."
+          },
+          "confidence": 0.4
+        }
+      ]
+    },
+    "narrative_summary": {
+      "scenes": 2,
+      "facts": 7,
+      "characters": 3,
+      "objects": 12,
+      "events": 10
+    },
+    "stages": [
+      {
+        "module": "linguistic",
+        "title": "Revisão linguística",
+        "state": "skipped",
+        "finding_count": 0,
+        "coverage": "partial",
+        "detail": "Padrões determinísticos; pontuação e interrogação também em falas/pensamentos. LanguageTool opcional."
+      },
+      {
+        "module": "morphosyntactic",
+        "title": "Análise morfossintática",
+        "state": "skipped",
+        "finding_count": 0,
+        "coverage": "partial",
+        "detail": "Tempo predominante, estrutura, quatro relações temporais locais e acentuação verbal contextual. Cobertura parcial; homógrafos permanecem dúvidas."
+      },
+      {
+        "module": "editorial",
+        "title": "Contexto curto",
+        "state": "completed",
+        "finding_count": 2,
+        "coverage": "partial",
+        "detail": "Diálogo, repetições, gerundismo e referências em janelas curtas. Cenas, participantes, falantes, objetos, eventos e candidatos a referentes; extração parcial de fatos narrativos explícitos.",
+        "duration_ms": 769
+      },
+      {
+        "module": "global_coherence",
+        "title": "Coerência global",
+        "state": "completed",
+        "finding_count": 3,
+        "coverage": "partial",
+        "detail": "Banco de fatos produzido pelas cenas; comparação de habilidades exclusivas, estados de objetos e aniversários com datas explícitas. Cobertura parcial.",
+        "duration_ms": 1
+      },
+      {
+        "module": "audit",
+        "title": "Auditoria final",
+        "state": "not_implemented",
+        "finding_count": 0,
+        "coverage": "not_implemented",
+        "detail": "Auditor editorial independente ainda não implementado; nenhuma busca adicional foi realizada."
+      }
+    ],
+    "pipeline_version": 2,
+    "occurrence_schema_version": 1,
+    "text_index": {
+      "unit": "unicode_codepoint",
+      "separator": "\n",
+      "scope": "nonempty_body_paragraphs_and_tables",
+      "length": 350,
+      "sha256": "9716d5554f039ef46f004be09b71d4623fb23c21d6f01954008b4828a862185d",
+      "paragraphs": [
+        {
+          "paragraph": 1,
+          "start": 0,
+          "end": 11
+        },
+        {
+          "paragraph": 2,
+          "start": 12,
+          "end": 29
+        },
+        {
+          "paragraph": 3,
+          "start": 30,
+          "end": 55
+        },
+        {
+          "paragraph": 4,
+          "start": 56,
+          "end": 84
+        },
+        {
+          "paragraph": 5,
+          "start": 85,
+          "end": 98
+        },
+        {
+          "paragraph": 6,
+          "start": 99,
+          "end": 115
+        },
+        {
+          "paragraph": 7,
+          "start": 116,
+          "end": 151
+        },
+        {
+          "paragraph": 8,
+          "start": 152,
+          "end": 175
+        },
+        {
+          "paragraph": 9,
+          "start": 176,
+          "end": 196
+        },
+        {
+          "paragraph": 10,
+          "start": 197,
+          "end": 231
+        },
+        {
+          "paragraph": 11,
+          "start": 232,
+          "end": 266
+        },
+        {
+          "paragraph": 12,
+          "start": 267,
+          "end": 330
+        },
+        {
+          "paragraph": 13,
+          "start": 331,
+          "end": 350
+        }
+      ]
+    },
+    "confidence_semantics": "rule_strength_not_calibrated_probability",
+    "search_settings": {
+      "schema_version": 1,
+      "rules": {
+        "tempo_verbal": false,
+        "estrutura": false,
+        "pontuacao_dialogo": false,
+        "palavra_consecutiva": false,
+        "palavra_proxima": false,
+        "frase_duplicada": false,
+        "variacao_nome": false,
+        "duracao_suspensao": false,
+        "adiamento_amanha": false,
+        "referente_proximidade": false,
+        "pronome_apos_corte": false,
+        "construcao_invalida": false,
+        "pontuacao_duplicada": false,
+        "espacamento": false,
+        "virgula_que_nao": false,
+        "que_tonico_interrogativo": false,
+        "coerencia_temporal": false,
+        "acentuacao_contextual": false,
+        "vocativo": false,
+        "capitalizacao_contextual": false,
+        "dialogo_contextual": true,
+        "referente_contextual": true,
+        "gerundismo": false,
+        "memoria_narrativa": true,
+        "conflito_habilidade": true,
+        "conflito_objeto": true,
+        "conflito_cronologia": true
+      },
+      "tense_scopes": [
+        "narracao"
+      ],
+      "repetition_scopes": [
+        "narracao",
+        "dialogo",
+        "pensamento"
+      ],
+      "word_distance": 8,
+      "repetition_boundary": "trecho",
+      "duplicate_across_paragraphs": true,
+      "duplicate_similarity": 1.0,
+      "dialogue_dashes": true,
+      "quotes_role": "dialogo",
+      "italic_thoughts": true,
+      "ignored_names": [],
+      "chapter_titles": [],
+      "chapter_styles": [],
+      "chapter_auto": true
+    },
+    "chapters": [
+      {
+        "paragraph": 1,
+        "title": "Capítulo um"
+      },
+      {
+        "paragraph": 5,
+        "title": "Capítulo dois"
+      }
+    ],
+    "languagetool": false,
+    "versao_fonte": "0.8.0"
+  },
+  "warnings": [
+    "Escopo: corpo do documento e tabelas. Cabeçalhos, rodapés, notas, comentários, caixas de texto e imagens não são analisados. A localização usa parágrafos, não páginas.",
+    "Análise editorial experimental: regras locais de duração/adiamento, repetições, grafias próximas de nomes e referências em construções específicas. Não detecta todas as inconsistências nem interpreta o cânone, o registro de personagem ou a causalidade do enredo.",
+    "Confiança baixa/média/alta descreve a força do indício da regra, não a probabilidade de existir um erro. Mesmo alertas de confiança alta exigem leitura humana.",
+    "As regras de continuidade e referências examinam também falas e itálicos. Repetições seguem as áreas de busca configuradas.",
+    "Memória narrativa com cobertura restrita a fatos explícitos; identidade de objetos e referências permanecem hipóteses. Auditoria editorial independente ainda não implementada. Etapa concluída significa apenas que as regras disponíveis terminaram.",
+    "Filtros aplicados antes da busca. Falas/pensamentos são separados pelas marcações configuradas; pensamentos implícitos e diálogos ambíguos podem ser classificados incorretamente. Estrutura e acentuação contextual são verificadas na narração; pontuação duplicada, espaçamento e quê final também em falas/pensamentos. LanguageTool mantém sua proteção própria de falas/itálicos."
+  ],
+  "findings": [
+    {
+      "id": "1f0f70ce120a6dd5",
+      "category": "Habilidade possivelmente contraditória",
+      "priority": "Explorar",
+      "paragraph": 6,
+      "chapter": "Capítulo dois",
+      "text": "Íris criou gelo.",
+      "start": 0,
+      "end": 16,
+      "reason": "A personagem tinha habilidade exclusiva de fogo, mas agora usa gelo. Confira se houve uma evolução ou exceção explicada na obra.",
+      "source": "FONTE Editorial · conflito_habilidade",
+      "layer": "editorial",
+      "rule": "conflito_habilidade",
+      "confidence": "média",
+      "related": [
+        {
+          "paragraph": 2,
+          "chapter": "Capítulo um",
+          "text": "Íris só usa fogo.",
+          "start": 0,
+          "end": 17,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 12,
+            "end": 29
+          },
+          "excerpt": "Íris só usa fogo."
+        },
+        {
+          "paragraph": 6,
+          "chapter": "Capítulo dois",
+          "text": "Íris criou gelo.",
+          "start": 0,
+          "end": 16,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 99,
+            "end": 115
+          },
+          "excerpt": "Íris criou gelo."
+        }
+      ],
+      "category_code": "ability_conflict",
+      "severity": "possible_inconsistency",
+      "confidence_score": 0.85,
+      "suggestion": null,
+      "evidence": [
+        {
+          "paragraph": 2,
+          "chapter": "Capítulo um",
+          "text": "Íris só usa fogo.",
+          "start": 0,
+          "end": 17,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 12,
+            "end": 29
+          },
+          "excerpt": "Íris só usa fogo."
+        },
+        {
+          "paragraph": 6,
+          "chapter": "Capítulo dois",
+          "text": "Íris criou gelo.",
+          "start": 0,
+          "end": 16,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 99,
+            "end": 115
+          },
+          "excerpt": "Íris criou gelo."
+        }
+      ],
+      "module": "global_coherence",
+      "range": {
+        "start": 99,
+        "end": 115
+      },
+      "excerpt": "Íris criou gelo.",
+      "message": "A personagem tinha habilidade exclusiva de fogo, mas agora usa gelo. Confira se houve uma evolução ou exceção explicada na obra.",
+      "context": [
+        {
+          "paragraph": 5,
+          "chapter": "Capítulo dois",
+          "text": "Capítulo dois",
+          "start": 0,
+          "end": 13,
+          "document": "atual"
+        },
+        {
+          "paragraph": 6,
+          "chapter": "Capítulo dois",
+          "text": "Íris criou gelo.",
+          "start": 0,
+          "end": 16,
+          "document": "atual"
+        },
+        {
+          "paragraph": 7,
+          "chapter": "Capítulo dois",
+          "text": "O pingente intacto estava no bolso.",
+          "start": 0,
+          "end": 35,
+          "document": "atual"
+        },
+        {
+          "paragraph": 8,
+          "chapter": "Capítulo dois",
+          "text": "Data atual: 17/09/2026.",
+          "start": 0,
+          "end": 23,
+          "document": "atual"
+        }
+      ]
+    },
+    {
+      "id": "27a29932a9034965",
+      "category": "Estado de objeto possivelmente incompatível",
+      "priority": "Explorar",
+      "paragraph": 7,
+      "chapter": "Capítulo dois",
+      "text": "O pingente intacto estava no bolso.",
+      "start": 0,
+      "end": 35,
+      "reason": "Um objeto com a mesma designação foi destruído e aparece intacto. Nenhuma restauração explícita foi reconhecida; confirme a identidade e a continuidade do objeto.",
+      "source": "FONTE Editorial · conflito_objeto",
+      "layer": "editorial",
+      "rule": "conflito_objeto",
+      "confidence": "média",
+      "related": [
+        {
+          "paragraph": 3,
+          "chapter": "Capítulo um",
+          "text": "O pingente foi destruído.",
+          "start": 0,
+          "end": 25,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 30,
+            "end": 55
+          },
+          "excerpt": "O pingente foi destruído."
+        },
+        {
+          "paragraph": 7,
+          "chapter": "Capítulo dois",
+          "text": "O pingente intacto estava no bolso.",
+          "start": 0,
+          "end": 35,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 116,
+            "end": 151
+          },
+          "excerpt": "O pingente intacto estava no bolso."
+        }
+      ],
+      "category_code": "object_state_conflict",
+      "severity": "possible_inconsistency",
+      "confidence_score": 0.85,
+      "suggestion": null,
+      "evidence": [
+        {
+          "paragraph": 3,
+          "chapter": "Capítulo um",
+          "text": "O pingente foi destruído.",
+          "start": 0,
+          "end": 25,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 30,
+            "end": 55
+          },
+          "excerpt": "O pingente foi destruído."
+        },
+        {
+          "paragraph": 7,
+          "chapter": "Capítulo dois",
+          "text": "O pingente intacto estava no bolso.",
+          "start": 0,
+          "end": 35,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 116,
+            "end": 151
+          },
+          "excerpt": "O pingente intacto estava no bolso."
+        }
+      ],
+      "module": "global_coherence",
+      "range": {
+        "start": 116,
+        "end": 151
+      },
+      "excerpt": "O pingente intacto estava no bolso.",
+      "message": "Um objeto com a mesma designação foi destruído e aparece intacto. Nenhuma restauração explícita foi reconhecida; confirme a identidade e a continuidade do objeto.",
+      "context": [
+        {
+          "paragraph": 5,
+          "chapter": "Capítulo dois",
+          "text": "Capítulo dois",
+          "start": 0,
+          "end": 13,
+          "document": "atual"
+        },
+        {
+          "paragraph": 6,
+          "chapter": "Capítulo dois",
+          "text": "Íris criou gelo.",
+          "start": 0,
+          "end": 16,
+          "document": "atual"
+        },
+        {
+          "paragraph": 7,
+          "chapter": "Capítulo dois",
+          "text": "O pingente intacto estava no bolso.",
+          "start": 0,
+          "end": 35,
+          "document": "atual"
+        },
+        {
+          "paragraph": 8,
+          "chapter": "Capítulo dois",
+          "text": "Data atual: 17/09/2026.",
+          "start": 0,
+          "end": 23,
+          "document": "atual"
+        },
+        {
+          "paragraph": 9,
+          "chapter": "Capítulo dois",
+          "text": "Ontem fez sete anos.",
+          "start": 0,
+          "end": 20,
+          "document": "atual"
+        }
+      ]
+    },
+    {
+      "id": "9daec7c8e1afbb82",
+      "category": "Cronologia incompatível",
+      "priority": "Explorar",
+      "paragraph": 9,
+      "chapter": "Capítulo dois",
+      "text": "Ontem fez sete anos.",
+      "start": 0,
+      "end": 20,
+      "reason": "A data da cena implica ontem em 16/09/2026; o aniversário de 7 anos seria em 18/09/2026.",
+      "source": "FONTE Editorial · conflito_cronologia",
+      "layer": "editorial",
+      "rule": "conflito_cronologia",
+      "confidence": "média",
+      "related": [
+        {
+          "paragraph": 4,
+          "chapter": "Capítulo um",
+          "text": "Adrian morreu em 18/09/2019.",
+          "start": 0,
+          "end": 28,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 56,
+            "end": 84
+          },
+          "excerpt": "Adrian morreu em 18/09/2019."
+        },
+        {
+          "paragraph": 8,
+          "chapter": "Capítulo dois",
+          "text": "Data atual: 17/09/2026.",
+          "start": 0,
+          "end": 23,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 152,
+            "end": 175
+          },
+          "excerpt": "Data atual: 17/09/2026."
+        },
+        {
+          "paragraph": 9,
+          "chapter": "Capítulo dois",
+          "text": "Ontem fez sete anos.",
+          "start": 0,
+          "end": 20,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 176,
+            "end": 196
+          },
+          "excerpt": "Ontem fez sete anos."
+        }
+      ],
+      "category_code": "chronology_conflict",
+      "severity": "possible_inconsistency",
+      "confidence_score": 0.85,
+      "suggestion": null,
+      "evidence": [
+        {
+          "paragraph": 4,
+          "chapter": "Capítulo um",
+          "text": "Adrian morreu em 18/09/2019.",
+          "start": 0,
+          "end": 28,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 56,
+            "end": 84
+          },
+          "excerpt": "Adrian morreu em 18/09/2019."
+        },
+        {
+          "paragraph": 8,
+          "chapter": "Capítulo dois",
+          "text": "Data atual: 17/09/2026.",
+          "start": 0,
+          "end": 23,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 152,
+            "end": 175
+          },
+          "excerpt": "Data atual: 17/09/2026."
+        },
+        {
+          "paragraph": 9,
+          "chapter": "Capítulo dois",
+          "text": "Ontem fez sete anos.",
+          "start": 0,
+          "end": 20,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 176,
+            "end": 196
+          },
+          "excerpt": "Ontem fez sete anos."
+        }
+      ],
+      "module": "global_coherence",
+      "range": {
+        "start": 176,
+        "end": 196
+      },
+      "excerpt": "Ontem fez sete anos.",
+      "message": "A data da cena implica ontem em 16/09/2026; o aniversário de 7 anos seria em 18/09/2026.",
+      "context": [
+        {
+          "paragraph": 7,
+          "chapter": "Capítulo dois",
+          "text": "O pingente intacto estava no bolso.",
+          "start": 0,
+          "end": 35,
+          "document": "atual"
+        },
+        {
+          "paragraph": 8,
+          "chapter": "Capítulo dois",
+          "text": "Data atual: 17/09/2026.",
+          "start": 0,
+          "end": 23,
+          "document": "atual"
+        },
+        {
+          "paragraph": 9,
+          "chapter": "Capítulo dois",
+          "text": "Ontem fez sete anos.",
+          "start": 0,
+          "end": 20,
+          "document": "atual"
+        },
+        {
+          "paragraph": 10,
+          "chapter": "Capítulo dois",
+          "text": "— Você está bem? — perguntou Íris.",
+          "start": 0,
+          "end": 34,
+          "document": "atual"
+        },
+        {
+          "paragraph": 11,
+          "chapter": "Capítulo dois",
+          "text": "— Não vou — Helena fechou a porta.",
+          "start": 0,
+          "end": 34,
+          "document": "atual"
+        }
+      ]
+    },
+    {
+      "id": "e00e2c6dcace90a9",
+      "category": "Ação narrativa após fala",
+      "priority": "Explorar",
+      "paragraph": 11,
+      "chapter": "Capítulo dois",
+      "text": "— Não vou — Helena fechou a porta.",
+      "start": 12,
+      "end": 25,
+      "reason": "O primeiro verbo finito após o travessão descreve uma ação, sem verbo de elocução reconhecido. Confira se a fala deve ser encerrada e a ação iniciada com maiúscula. A lista de elocução é limitada.",
+      "source": "FONTE Editorial · dialogo_contextual",
+      "layer": "editorial",
+      "rule": "dialogo_contextual",
+      "confidence": "baixa",
+      "related": [],
+      "severity": "editorial_attention",
+      "suggestion": null,
+      "suggestion_kind": "possible",
+      "context": [
+        {
+          "paragraph": 10,
+          "chapter": "Capítulo dois",
+          "text": "— Você está bem? — perguntou Íris.",
+          "start": 0,
+          "end": 34,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 197,
+            "end": 231
+          },
+          "excerpt": "— Você está bem? — perguntou Íris."
+        },
+        {
+          "paragraph": 11,
+          "chapter": "Capítulo dois",
+          "text": "— Não vou — Helena fechou a porta.",
+          "start": 0,
+          "end": 34,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 232,
+            "end": 266
+          },
+          "excerpt": "— Não vou — Helena fechou a porta."
+        },
+        {
+          "paragraph": 12,
+          "chapter": "Capítulo dois",
+          "text": "No chão havia pedaços de madeira, pedras e uma espada quebrada.",
+          "start": 0,
+          "end": 63,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 267,
+            "end": 330
+          },
+          "excerpt": "No chão havia pedaços de madeira, pedras e uma espada quebrada."
+        },
+        {
+          "paragraph": 13,
+          "chapter": "Capítulo dois",
+          "text": "Ela pegou o objeto.",
+          "start": 0,
+          "end": 19,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 331,
+            "end": 350
+          },
+          "excerpt": "Ela pegou o objeto."
+        }
+      ],
+      "scene_evidence": {
+        "participants": [
+          {
+            "paragraph": 10,
+            "chapter": "Capítulo dois",
+            "text": "— Você está bem? — perguntou Íris.",
+            "start": 29,
+            "end": 33,
+            "document": "atual"
+          },
+          {
+            "paragraph": 11,
+            "chapter": "Capítulo dois",
+            "text": "— Não vou — Helena fechou a porta.",
+            "start": 12,
+            "end": 18,
+            "document": "atual"
+          }
+        ],
+        "subjects": [
+          {
+            "paragraph": 10,
+            "chapter": "Capítulo dois",
+            "text": "— Você está bem? — perguntou Íris.",
+            "start": 2,
+            "end": 6,
+            "document": "atual"
+          },
+          {
+            "paragraph": 10,
+            "chapter": "Capítulo dois",
+            "text": "— Você está bem? — perguntou Íris.",
+            "start": 29,
+            "end": 33,
+            "document": "atual"
+          },
+          {
+            "paragraph": 11,
+            "chapter": "Capítulo dois",
+            "text": "— Não vou — Helena fechou a porta.",
+            "start": 12,
+            "end": 18,
+            "document": "atual"
+          },
+          {
+            "paragraph": 13,
+            "chapter": "Capítulo dois",
+            "text": "Ela pegou o objeto.",
+            "start": 0,
+            "end": 3,
+            "document": "atual"
+          }
+        ]
+      },
+      "category_code": "narrative_action_after_speech",
+      "module": "editorial",
+      "confidence_score": 0.4,
+      "range": {
+        "start": 244,
+        "end": 257
+      },
+      "excerpt": "Helena fechou",
+      "message": "O primeiro verbo finito após o travessão descreve uma ação, sem verbo de elocução reconhecido. Confira se a fala deve ser encerrada e a ação iniciada com maiúscula. A lista de elocução é limitada.",
+      "evidence": [
+        {
+          "paragraph": 11,
+          "chapter": "Capítulo dois",
+          "text": "— Não vou — Helena fechou a porta.",
+          "start": 12,
+          "end": 25,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 244,
+            "end": 257
+          },
+          "excerpt": "Helena fechou"
+        }
+      ]
+    },
+    {
+      "id": "9812e3c5b2d19fe0",
+      "category": "Objeto com antecedente possivelmente ambíguo",
+      "priority": "Explorar",
+      "paragraph": 13,
+      "chapter": "Capítulo dois",
+      "text": "Ela pegou o objeto.",
+      "start": 12,
+      "end": 18,
+      "reason": "Há uma enumeração nominal antes de “o objeto”. Qual dos elementos foi retomado? A janela curta não resolve a referência; confira se a cena já torna a escolha inequívoca.",
+      "source": "FONTE Editorial · referente_contextual",
+      "layer": "editorial",
+      "rule": "referente_contextual",
+      "confidence": "baixa",
+      "related": [
+        {
+          "paragraph": 12,
+          "chapter": "Capítulo dois",
+          "text": "No chão havia pedaços de madeira, pedras e uma espada quebrada.",
+          "start": 25,
+          "end": 32,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 292,
+            "end": 299
+          },
+          "excerpt": "madeira"
+        },
+        {
+          "paragraph": 12,
+          "chapter": "Capítulo dois",
+          "text": "No chão havia pedaços de madeira, pedras e uma espada quebrada.",
+          "start": 34,
+          "end": 40,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 301,
+            "end": 307
+          },
+          "excerpt": "pedras"
+        },
+        {
+          "paragraph": 12,
+          "chapter": "Capítulo dois",
+          "text": "No chão havia pedaços de madeira, pedras e uma espada quebrada.",
+          "start": 47,
+          "end": 53,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 314,
+            "end": 320
+          },
+          "excerpt": "espada"
+        }
+      ],
+      "severity": "author_query",
+      "suggestion": null,
+      "suggestion_kind": "possible",
+      "context": [
+        {
+          "paragraph": 12,
+          "chapter": "Capítulo dois",
+          "text": "No chão havia pedaços de madeira, pedras e uma espada quebrada.",
+          "start": 0,
+          "end": 63,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 267,
+            "end": 330
+          },
+          "excerpt": "No chão havia pedaços de madeira, pedras e uma espada quebrada."
+        },
+        {
+          "paragraph": 13,
+          "chapter": "Capítulo dois",
+          "text": "Ela pegou o objeto.",
+          "start": 0,
+          "end": 19,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 331,
+            "end": 350
+          },
+          "excerpt": "Ela pegou o objeto."
+        }
+      ],
+      "scene_evidence": {
+        "participants": [],
+        "subjects": [
+          {
+            "paragraph": 13,
+            "chapter": "Capítulo dois",
+            "text": "Ela pegou o objeto.",
+            "start": 0,
+            "end": 3,
+            "document": "atual"
+          }
+        ]
+      },
+      "category_code": "ambiguous_reference",
+      "module": "editorial",
+      "confidence_score": 0.4,
+      "range": {
+        "start": 343,
+        "end": 349
+      },
+      "excerpt": "objeto",
+      "message": "Há uma enumeração nominal antes de “o objeto”. Qual dos elementos foi retomado? A janela curta não resolve a referência; confira se a cena já torna a escolha inequívoca.",
+      "evidence": [
+        {
+          "paragraph": 13,
+          "chapter": "Capítulo dois",
+          "text": "Ela pegou o objeto.",
+          "start": 12,
+          "end": 18,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 343,
+            "end": 349
+          },
+          "excerpt": "objeto"
+        },
+        {
+          "paragraph": 12,
+          "chapter": "Capítulo dois",
+          "text": "No chão havia pedaços de madeira, pedras e uma espada quebrada.",
+          "start": 25,
+          "end": 32,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 292,
+            "end": 299
+          },
+          "excerpt": "madeira"
+        },
+        {
+          "paragraph": 12,
+          "chapter": "Capítulo dois",
+          "text": "No chão havia pedaços de madeira, pedras e uma espada quebrada.",
+          "start": 34,
+          "end": 40,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 301,
+            "end": 307
+          },
+          "excerpt": "pedras"
+        },
+        {
+          "paragraph": 12,
+          "chapter": "Capítulo dois",
+          "text": "No chão havia pedaços de madeira, pedras e uma espada quebrada.",
+          "start": 47,
+          "end": 53,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 314,
+            "end": 320
+          },
+          "excerpt": "espada"
+        }
+      ]
+    }
+  ]
+}

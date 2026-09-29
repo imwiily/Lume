@@ -45,6 +45,19 @@ def nominal_context(token, value):
     if value & NONVERB and token.dep_ != 'ROOT':
         if not has_subject:
             return True
+    # Adjetivo posposto (“a noite inteira”): o substantivo anterior não é o
+    # sujeito desta forma e concorda com ela como adjetivo (minúscula, mesmo
+    # gênero e número), mesmo quando o modelo a marca como verbo principal.
+    if value & NONVERB and token.i > 0 and token.text[:1].islower():
+        previous = token.doc[token.i - 1]
+        if previous.pos_ == 'NOUN' and not (previous.head == token and previous.dep_.startswith('nsubj')):
+            word = token.lower_
+            plural = word.endswith('s')
+            gender = previous.morph.get('Gender')
+            endings = ('a', 'as') if 'Fem' in gender else ('o', 'os') if 'Masc' in gender else ()
+            if (plural == ('Plur' in previous.morph.get('Number'))
+                    and word.endswith(endings + ('e', 'es'))):
+                return True
     return False
 
 

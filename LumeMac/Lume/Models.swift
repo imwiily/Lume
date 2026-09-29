@@ -124,6 +124,14 @@ struct Finding: Decodable, Identifiable {
     }
 }
 
+struct NarrativeSummary: Decodable {
+    let scenes: Int
+    let facts: Int
+    let characters: Int
+    let objects: Int
+    let events: Int
+}
+
 struct ReportMetadata: Decodable {
     let tempo: String
     let paragrafos: Int
@@ -131,9 +139,11 @@ struct ReportMetadata: Decodable {
     let languagetool: Bool
     let chapters: [ChapterMarker]?
     let stages: [AnalysisStage]?
+    let narrativeSummary: NarrativeSummary?
     enum CodingKeys: String, CodingKey {
         case tempo, paragrafos, languagetool, chapters, stages
         case versaoFonte = "versao_fonte"
+        case narrativeSummary = "narrative_summary"
     }
 }
 
@@ -189,18 +199,34 @@ struct ChapterMarker: Decodable {
 struct SearchRule: Identifiable {
     let id: String
     let title: String
-    static let newIDs: Set<String> = ["construcao_invalida", "pontuacao_duplicada", "espacamento", "virgula_que_nao", "que_tonico_interrogativo", "coerencia_temporal", "acentuacao_contextual"]
+    static let newIDs: Set<String> = ["construcao_invalida", "pontuacao_duplicada", "espacamento", "virgula_que_nao", "que_tonico_interrogativo", "coerencia_temporal", "acentuacao_contextual", "vocativo", "capitalizacao_contextual", "dialogo_contextual", "referente_contextual", "gerundismo", "memoria_narrativa", "conflito_habilidade", "conflito_objeto", "conflito_cronologia", "coerencia_generica",
+                                          "crase", "homofonos", "concordancia", "regencia", "virgula_sujeito_verbo"]
     static let all: [SearchRule] = [
         .init(id: "construcao_invalida", title: "Construções inválidas conhecidas"),
         .init(id: "pontuacao_duplicada", title: "Pontuação duplicada"),
         .init(id: "espacamento", title: "Espaçamento no texto"),
         .init(id: "virgula_que_nao", title: "Vírgula em ‘que, não’"),
         .init(id: "que_tonico_interrogativo", title: "Acento em quê no fim da pergunta"),
+        .init(id: "vocativo", title: "Possíveis vocativos sem vírgula"),
+        .init(id: "capitalizacao_contextual", title: "Maiúscula após pergunta ou exclamação"),
         .init(id: "coerencia_temporal", title: "Relações temporais entre orações"),
         .init(id: "acentuacao_contextual", title: "Acentuação verbal no contexto passado"),
+        .init(id: "crase", title: "Crase ausente ou indevida"),
+        .init(id: "homofonos", title: "Por que, há/a, onde/aonde, mal/mau, mas/mais"),
+        .init(id: "concordancia", title: "Concordância verbal e nominal · narração"),
+        .init(id: "regencia", title: "Regência na norma culta · atenção editorial"),
+        .init(id: "virgula_sujeito_verbo", title: "Vírgula entre sujeito e verbo · narração"),
         .init(id: "tempo_verbal", title: "Mudanças de tempo verbal"),
         .init(id: "estrutura", title: "Estrutura da frase · narração"),
         .init(id: "pontuacao_dialogo", title: "Ligação entre fala e narração"),
+        .init(id: "dialogo_contextual", title: "Ações e retomadas de fala por travessão"),
+        .init(id: "referente_contextual", title: "Objeto após enumeração · contexto curto"),
+        .init(id: "memoria_narrativa", title: "Construir cenas e memória narrativa"),
+        .init(id: "coerencia_generica", title: "Fatos, estados, posse e continuidade narrativa"),
+        .init(id: "conflito_habilidade", title: "Habilidades exclusivas contraditórias"),
+        .init(id: "conflito_objeto", title: "Continuidade de estado dos objetos"),
+        .init(id: "conflito_cronologia", title: "Aniversários e datas incompatíveis"),
+        .init(id: "gerundismo", title: "Perífrases verbais · atenção editorial"),
         .init(id: "palavra_consecutiva", title: "Palavras repetidas consecutivamente"),
         .init(id: "palavra_proxima", title: "Palavras repetidas próximas"),
         .init(id: "frase_duplicada", title: "Frases repetidas"),

@@ -30,7 +30,7 @@ def main():
         assert document.read_bytes() == original, "O original mudou"
         assert report["schema_version"] == 1
         assert report["sha256"] == hashlib.sha256(original).hexdigest()
-        assert report["metadata"]["versao_fonte"] == "0.6.0"
+        assert report["metadata"]["versao_fonte"] == "0.9.5"
         assert isinstance(report["metadata"]["paragrafos"], int)
         assert isinstance(report["metadata"]["languagetool"], bool)
         ids = set()

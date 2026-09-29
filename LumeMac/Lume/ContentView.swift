@@ -50,6 +50,13 @@ struct ContentView: View {
                 Text("Etapas e alcance da revisão").font(.title2)
                 ScrollView {
                     VStack(alignment: .leading, spacing: 18) {
+                        if let memory = store.report?.metadata.narrativeSummary {
+                            VStack(alignment: .leading, spacing: 5) {
+                                Text("Memória narrativa").font(.headline)
+                                Text("\(memory.scenes) cenas · \(memory.facts) fatos · \(memory.events) eventos")
+                                Text("As ocorrências mostram as evidências comparadas. Cenas e fatos completos ficam no relatório JSON.").font(.caption).foregroundStyle(LumeTheme.secondary)
+                            }
+                        }
                         ForEach(store.report?.metadata.stages ?? []) { stage in
                             VStack(alignment: .leading, spacing: 5) {
                                 Text(stage.title + " · " + stage.statusText).font(.headline)
@@ -184,7 +191,7 @@ struct ContentView: View {
                 .buttonStyle(LumeButtonStyle()).disabled(store.documentURL == nil)
             Toggle("Corretor gramatical local", isOn: $store.useLanguageTool)
                 .font(.callout).disabled(store.analysisMode == "editorial")
-                .help("Usa o servidor LanguageTool local, iniciado separadamente na porta 8081.")
+                .help("Ortografia e gramática com o LanguageTool incluído no motor, executado neste Mac, sem internet. Motores sem o corretor embutido exigem um servidor LanguageTool iniciado separadamente na porta 8081.")
         }
     }
 

@@ -19,6 +19,20 @@ fi
 fonte_python="$PWD/Analisador/.venv/bin/python"
 "$fonte_python" -c 'import platform; assert platform.machine() == "arm64", "Use um ambiente Python arm64 nativo"'
 "$fonte_python" -m pip install --upgrade ./Analisador
+# Caches copiados com datas futuras podem fazer setuptools reutilizar código antigo.
+"$fonte_python" - <<'PYVERIFY'
+from pathlib import Path
+import fonte
+source = Path('Analisador/fonte')
+installed = Path(fonte.__file__).parent
+mismatched = [str(path.relative_to(source)) for path in source.rglob('*')
+              if path.is_file() and path.suffix in {'.py', '.html'}
+              and (not (installed / path.relative_to(source)).is_file()
+                   or path.read_bytes() != (installed / path.relative_to(source)).read_bytes())]
+if mismatched:
+    raise SystemExit('Instalação divergente do código-fonte: ' + ', '.join(mismatched)
+                     + '. Mova Analisador/build para uma pasta de backup e execute a montagem novamente.')
+PYVERIFY
 "$fonte_python" -m pip install 'pyinstaller==6.22.3'
 if ! "$fonte_python" -c 'import pt_core_news_sm' >/dev/null 2>&1; then
   "$fonte_python" -m pip install 'https://github.com/explosion/spacy-models/releases/download/pt_core_news_sm-3.8.0/pt_core_news_sm-3.8.0-py3-none-any.whl'
@@ -34,6 +48,10 @@ if ! "$fonte_python" -m unittest discover -s Tests -p 'test_*.py' >"$fonte_outpu
   tail -n 50 "$fonte_output/testes-pacotes.log"
   exit 1
 fi
+if [ ! -f Analisador/.languagetool/languagetool-server.jar ]; then
+  printf '%s\n' 'Preparando o corretor gramatical embutido (LanguageTool e Java mínimo). Requer JDK 17+ e internet.'
+  "$fonte_python" Scripts/preparar_languagetool.py
+fi
 "$fonte_python" Scripts/build_engine.py --output "$fonte_output"
 fonte_engine="$(cat "$fonte_output/engine-path.txt")"
 if [ "$fonte_mode" = --motor ]; then
@@ -48,20 +66,9 @@ if ! xcodebuild -project Lume.xcodeproj -scheme Lume -configuration Release -der
 fi
 swiftc Lume/Models.swift Lume/PythonRunner.swift Tests/ContractCheck.swift -o "$fonte_output/contrato-swift"
 "$fonte_output/contrato-swift" Exemplo/Mestre/relatorio.json "$fonte_python"
-fonte_app="$fonte_output/Lume.app"
-/usr/bin/ditto "$fonte_output/DerivedData/Build/Products/Release/Lume.app" "$fonte_app"
-/usr/bin/ditto "$fonte_engine" "$fonte_app/Contents/Resources/Engine.lumemotor"
-# Os Mach-O internos já foram assinados pelo PyInstaller. Assina somente o bundle externo.
-/usr/bin/codesign --force --sign - "$fonte_app"
-/usr/bin/codesign --verify --deep --strict "$fonte_app"
-"$fonte_app/Contents/Resources/Engine.lumemotor/runtime/lume-engine" --lume-probe
-# Verifica que a assinatura do app não alterou o inventário interno.
-"$fonte_python" - "$fonte_app/Contents/Resources/Engine.lumemotor" <<'PY'
-import sys
-sys.path.insert(0, 'Engine')
-from engine_packages import validate
-validate(sys.argv[1])
-PY
-/usr/bin/ditto -c -k --sequesterRsrc --keepParent "$fonte_app" "$fonte_output/Lume.app.zip"
+"$fonte_python" Scripts/package_app.py \
+  --app "$fonte_output/DerivedData/Build/Products/Release/Lume.app" \
+  --engine "$fonte_engine" --output "$fonte_output/Pacote"
+fonte_app="$fonte_output/Pacote/Lume.app"
 printf '\n%s\n' 'Concluído. Abra Lume.app; ele já contém Python, modelo e analisador.' "$fonte_app"
 open "$fonte_output"

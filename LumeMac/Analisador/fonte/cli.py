@@ -1,4 +1,5 @@
 import argparse
+from contextlib import nullcontext
 from datetime import datetime, timezone
 import hashlib
 import json
@@ -34,8 +35,10 @@ def parser():
     review.add_argument("--original", type=Path, help="DOCX original opcional para procurar cicatrizes de edição")
     review.add_argument("--tempo", choices=["auto", "passado", "presente"], default="auto")
     review.add_argument("--incluir-italico", action="store_true", help="Analisar também itálicos na narração")
-    review.add_argument("--languagetool", action="store_true", help="Usar servidor local opcional; nenhum serviço na nuvem")
-    review.add_argument("--porta-lt", type=int, default=8081)
+    review.add_argument("--languagetool", action="store_true",
+                        help="Usar o corretor gramatical local: o embutido, se existir; senão, um servidor já ativo. Nenhum serviço na nuvem")
+    review.add_argument("--porta-lt", type=int,
+                        help="Porta de um servidor LanguageTool já ativo (ignora o embutido; padrão 8081 quando não há embutido)")
     review.add_argument("--abrir", action="store_true", help="Abrir relatório no navegador")
     commands.add_parser("diagnostico", help="Conferir Python e modelo instalado")
     return root
@@ -50,7 +53,10 @@ def main(argv=None):
             entries = len(lexical_data())
             print(f"FONTE {__version__} · Python {sys.version.split()[0]} · modelo {nlp.meta['name']} {nlp.meta['version']}")
             print(f"Confirmação lexical local: {entries} formas no PortiLexicon-UD.")
-            print("Pronto para análise narrativa. LanguageTool é opcional e precisa de um servidor local separado.")
+            from .languagetool import available
+            print("Corretor gramatical local: " + ("embutido disponível." if available()
+                  else "não embutido; use um servidor LanguageTool local separado."))
+            print("Pronto para análise narrativa.")
             return 0
         path = args.arquivo.expanduser().resolve()
         if not path.is_file():
@@ -82,19 +88,30 @@ def main(argv=None):
             settings["italic_thoughts"] = False
         def progress(event):
             print("LUME_PROGRESS " + json.dumps(event, ensure_ascii=False), flush=True)
-        findings, extra_warnings, metadata = run_pipeline(
-            blocks, load_model, settings=settings, tense=args.tempo, mode=args.modo,
-            original=original_blocks, languagetool=args.languagetool, port=args.porta_lt,
-            progress=progress)
+        from . import languagetool as grammar_checker
+        origin = None
+        if args.languagetool and args.porta_lt is None and grammar_checker.available():
+            print("Iniciando o corretor gramatical local…", flush=True)
+            server, origin = grammar_checker.embedded(), "embutido"
+        else:
+            server = nullcontext(args.porta_lt or 8081)
+            origin = "externo" if args.languagetool else None
+        with server as port:
+            findings, extra_warnings, metadata = run_pipeline(
+                blocks, load_model, settings=settings, tense=args.tempo, mode=args.modo,
+                original=original_blocks, languagetool=args.languagetool, port=port,
+                progress=progress)
         metadata.update(original_metadata)
         warnings.extend(extra_warnings)
         if args.config and not any(settings['rules'].values()) and not args.languagetool:
             warnings.append("Todas as verificações estão desativadas nesta configuração. A ausência de alertas não representa uma análise do conteúdo.")
         metadata['search_settings']=settings if args.config else None
-        metadata['chapters']=[{'paragraph':b.number,'title':b.chapter} for b in blocks if b.heading]
+        metadata['chapters']=[{'paragraph':b.number,'title':b.chapter} for b in blocks if b.heading and b.narrative_role != 'front_matter']
+        metadata['document_structure']=[{'paragraph':b.number,'role':b.narrative_role} for b in blocks if b.narrative_role != 'body']
         if args.config:
             warnings.append("Filtros aplicados antes da busca. Falas/pensamentos são separados pelas marcações configuradas; pensamentos implícitos e diálogos ambíguos podem ser classificados incorretamente. Estrutura e acentuação contextual são verificadas na narração; pontuação duplicada, espaçamento e quê final também em falas/pensamentos. LanguageTool mantém sua proteção própria de falas/itálicos.")
-        metadata.update({"languagetool": args.languagetool, "versao_fonte": __version__})
+        metadata.update({"languagetool": args.languagetool, "languagetool_origem": origin,
+                         "versao_fonte": __version__})
         data = {"schema_version": 1, "document": path.name, "sha256": digest,
                 "created": datetime.now(timezone.utc).isoformat(), "metadata": metadata,
                 "warnings": warnings, "findings": findings}
@@ -112,7 +129,8 @@ def main(argv=None):
                 handle.write(content)
         print(f"{len(findings)} suspeitas para avaliação humana. Isso não mede a qualidade nem certifica a publicação.")
         print(f"Relatório: {output / 'relatorio.html'}")
-        print("Manuscrito preservado. Corretor gramatical geral: " + ("LanguageTool local" if args.languagetool else "não executada (opcional)"))
+        print("Manuscrito preservado. Corretor gramatical geral: " + (
+            f"LanguageTool local ({origin})" if args.languagetool else "não executado (opcional)"))
         if args.abrir:
             webbrowser.open((output / "relatorio.html").as_uri())
         return 0
