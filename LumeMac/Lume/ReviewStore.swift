@@ -139,6 +139,12 @@ final class ReviewStore: ObservableObject {
         panel.allowedContentTypes = [UTType(filenameExtension: "docx") ?? .data]
         panel.allowsMultipleSelection = false
         guard panel.runModal() == .OK, let url = panel.url else { return }
+        openDocument(url)
+    }
+
+    /// Mesmo caminho para o painel e para arrastar o arquivo até a janela.
+    func openDocument(_ url: URL) {
+        guard !isBusy else { return }
         guard url.pathExtension.lowercased() == "docx" else {
             errorText = "Escolha um DOCX. No Pages, use Arquivo → Exportar Para → Word."
             return
@@ -655,3 +661,14 @@ enum AnthropicKey {
         SecItemDelete([kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service] as CFDictionary)
     }
 }
+
+#if DEBUG
+// Apenas para inspeção visual (LUME_SNAPSHOT): coloca a interface em estados fixos.
+extension ReviewStore {
+    func debugLoadReport(_ url: URL) throws { try loadReport(url) }
+    func debugShowReading(_ stages: [AnalysisStage]) {
+        analysisStages = stages; isAnalyzing = true; screen = .review
+    }
+    func debugReset() { isAnalyzing = false; screen = .preparation }
+}
+#endif

@@ -14,6 +14,9 @@ As seções antigas descrevem a cobertura e os resultados de cada entrega, não 
 - O app usa o motor embutido, salvo se o motor instalado for de versão mais nova.
 - **Removida a memória narrativa heurística** (cenas, identidades, eventos, banco de fatos e
   comparações). Relatórios e configurações antigos continuam legíveis.
+- **Nova identidade visual “Luz de leitura”** (`Identidade/GUIA.md`): paleta noite, vela e
+  linho, símbolo da chama sobre o livro, novo ícone e interface refeita (Início com arrastar e
+  soltar, Mesa de leitura com página e nota de margem, atalhos ⌘1–⌘6 e ⌘[ / ⌘]).
 
 ## FONTE 0.9.5 — robustez semântica e memória narrativa
 
