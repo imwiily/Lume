@@ -55,17 +55,23 @@ def proper_names(blocks, settings):
     return names
 
 
-def check(blocks, port=8081, protect_italics=True, settings=None):
+def check(blocks, port=8081, protect_italics=True, settings=None, avancar=None):
+    """`avancar(feitos, total)` é chamado ao longo da verificação, para o progresso na interface."""
     if not 1 <= port <= 65535:
         raise ValueError("A porta do LanguageTool precisa estar entre 1 e 65535.")
     settings = validate(settings or {})
     opener = build_opener(ProxyHandler({}), NoRedirect())
     names = proper_names(blocks, settings)
     results, warnings = [], []
+    total = sum(1 for b in blocks if not b.heading and b.text.strip())
+    passo, feitos = max(1, total // 200), 0
     for block in blocks:
         text = block.text
         if block.heading or not text.strip():
             continue
+        feitos += 1
+        if avancar and (feitos % passo == 0 or feitos == total):
+            avancar(feitos, total)
         if len(text) > 18000:
             warnings.append(f"LanguageTool: parágrafo {block.number} excede 18 mil caracteres e não foi enviado ao servidor local.")
             continue

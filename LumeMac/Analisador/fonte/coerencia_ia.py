@@ -47,7 +47,7 @@ def _intervalo(texto, trecho):
 
 
 def analisar(blocks, pasta, documento="manuscrito", modelo="claude-sonnet-5-5", teto=1.0, esforco="medium",
-             registrar=print):
+             registrar=print, avancar=None):
     """Roda uma rodada incremental e devolve (ocorrências, avisos, resumo da rodada)."""
     _, Projeto, capitulos, ErroModelo, criar_modelo = _coerencia()
     lista = paragrafos(blocks)
@@ -55,7 +55,7 @@ def analisar(blocks, pasta, documento="manuscrito", modelo="claude-sonnet-5-5", 
     try:
         cliente.verificar()
         projeto = Projeto(pasta)
-        rodada = projeto.atualizar(documento, lista, cliente, registrar=registrar)
+        rodada = projeto.atualizar(documento, lista, cliente, registrar=registrar, avancar=avancar)
     except ErroModelo as erro:
         raise ValueError("Coerência com IA: " + str(erro)) from erro
     por_numero = {b.number: b for b in blocks}

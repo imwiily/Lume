@@ -35,10 +35,24 @@ struct AnalysisStage: Decodable, Identifiable {
     let finding_count: Int
     let coverage: String
     let detail: String
+    // Andamento dentro da etapa (motores a partir desta versão); ausente nos anteriores.
+    var done: Int? = nil
+    var total: Int? = nil
+    var unit: String? = nil
     var id: String { module }
+    /// “420 de 1.274 parágrafos”, com separador de milhar em português.
+    var progressText: String? {
+        guard let done, let total, total > 0 else { return nil }
+        let numero = NumberFormatter()
+        numero.locale = Locale(identifier: "pt_BR")
+        numero.numberStyle = .decimal
+        let feitos = numero.string(from: NSNumber(value: done)) ?? "\(done)"
+        let todos = numero.string(from: NSNumber(value: total)) ?? "\(total)"
+        return "\(feitos) de \(todos)" + (unit.map { " " + $0 } ?? "")
+    }
     var statusText: String {
         switch state {
-        case "running": return "Em andamento"
+        case "running": return progressText.map { "Em andamento · " + $0 } ?? "Em andamento"
         case "completed": return "\(finding_count) ocorrências · cobertura parcial"
         case "skipped": return "Não selecionado"
         case "not_implemented": return "Ainda não disponível"

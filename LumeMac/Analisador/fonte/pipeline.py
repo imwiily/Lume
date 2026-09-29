@@ -32,6 +32,12 @@ def run(blocks, model_loader, *, settings=None, tense="auto", mode="ambas",
             "versao_modelo": "", "modo": mode}
     nlp = None
     scenes = []
+    atual = {}
+
+    def avancar(feitos, total, unidade):
+        """Andamento dentro da etapa em curso (campos opcionais do evento de progresso)."""
+        if progress and "stage" in atual:
+            progress(dict(atual["stage"], done=feitos, total=total, unit=unidade))
     from .semantic import RULES as SEMANTIC_RULES, extract, FactBank, compare
     semantic_enabled = editorial_mode and not coerencia and any(rules[r] for r in SEMANTIC_RULES)
 
@@ -59,7 +65,8 @@ def run(blocks, model_loader, *, settings=None, tense="auto", mode="ambas",
             out.extend(repeated)
         if languagetool:
             from .languagetool import check
-            extra, extra_warnings = check(blocks, port, options["italic_thoughts"], settings=options)
+            extra, extra_warnings = check(blocks, port, options["italic_thoughts"], settings=options,
+                                          avancar=lambda f, t: avancar(f, t, "parágrafos"))
             # A regra específica do FONTE explica melhor o mesmo trecho.
             covered = [(f["paragraph"], f["start"], f["end"]) for f in out]
             out.extend(f for f in extra if not any(
@@ -131,7 +138,8 @@ def run(blocks, model_loader, *, settings=None, tense="auto", mode="ambas",
         warnings.extend(extra_warnings)
         if coerencia:
             from .coerencia_ia import analisar as coerencia_ia
-            extra, extra_warnings, rodada = coerencia_ia(blocks, registrar=lambda *_: None, **coerencia)
+            extra, extra_warnings, rodada = coerencia_ia(blocks, registrar=lambda *_: None,
+                                                         avancar=lambda f, t: avancar(f, t, "cenas"), **coerencia)
             out.extend(extra); warnings.extend(extra_warnings)
             meta["coerencia_ia"] = rodada
         if semantic_enabled:
@@ -181,6 +189,7 @@ def run(blocks, model_loader, *, settings=None, tense="auto", mode="ambas",
             emit("not_implemented" if module == "audit" else "skipped")
             continue
         emit("running")
+        atual["stage"] = stage
         started = perf_counter()
         try:
             batch = standardize(action(), module, manuscript)

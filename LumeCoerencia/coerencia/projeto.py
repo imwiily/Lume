@@ -100,7 +100,7 @@ class Projeto:
             self._gravar(nome, valor)
 
     # ---- rodada ------------------------------------------------------------------------------
-    def atualizar(self, documento, paragrafos, modelo, maximo=3500, registrar=print, reler=False):
+    def atualizar(self, documento, paragrafos, modelo, maximo=3500, registrar=print, reler=False, avancar=None):
         """Uma rodada. Se o teto de gasto for atingido, o que já foi lido fica salvo:
         capítulos não lidos seguem na próxima rodada, e fatos cujos pares ainda não
         foram julgados ficam marcados para reavaliação (sem nova leitura)."""
@@ -130,6 +130,8 @@ class Projeto:
         registrar(f"{len(caps)} capítulos: {len(alterados)} a enviar, {len(caps) - len(alterados)} sem alteração (não enviados).")
         parada = None
         enviados = 0
+        # Andamento para a interface: cenas lidas de todos os capítulos a enviar.
+        total_cenas, lidas = sum(len(cenas(c.paragrafos, maximo)) for c in alterados), 0
         for cap in alterados:
             antes = _tokens(modelo.chamadas)
             fatos_cap, sugestoes_cap = [], []
@@ -143,6 +145,9 @@ class Projeto:
                                     rel=fato["paragrafo"] - cap.inicio, novo=True)
                         fatos_cap.append(fato)
                     sugestoes_cap += sug
+                    lidas += 1
+                    if avancar:
+                        avancar(lidas, total_cenas)
                     (self.pasta / "cenas" / f"{cap.id}-{cena.numero:02d}.json").write_text(json.dumps(
                         {"capitulo": cap.titulo, "cena": cena.numero, "resposta": bruto, "descartes": descartes},
                         ensure_ascii=False, indent=2), encoding="utf-8")

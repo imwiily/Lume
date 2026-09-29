@@ -460,7 +460,9 @@ final class ReviewStore: ObservableObject {
             if let index = analysisStages.firstIndex(where: { $0.module == stage.module }) {
                 analysisStages[index] = stage
             }
-            if stage.state == "running", canCancel { jobLabel = stage.title + "…" }
+            if stage.state == "running", canCancel {
+                jobLabel = stage.title + (stage.progressText.map { " · " + $0 } ?? "") + "…"
+            }
         }
     }
 

@@ -164,3 +164,20 @@ class CommandLineTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ProgressoTests(unittest.TestCase):
+    def test_pipeline_reports_paragraph_progress_during_the_stage(self):
+        from fonte.pipeline import run
+        from fonte.settings import RULES, validate
+        blocks = [Block(i + 1, f"Parágrafo número {i + 1}.") for i in range(30)]
+        eventos = []
+        with patch("fonte.languagetool.build_opener") as builder:
+            builder.return_value.open.side_effect = lambda request, timeout: Response([])
+            run(blocks, lambda: None, settings=validate({"rules": {r: False for r in RULES}}), mode="linguistica", languagetool=True,
+                progress=eventos.append)
+        andamento = [(e["done"], e["total"], e["unit"]) for e in eventos if e.get("module") == "linguistic" and "done" in e]
+        self.assertTrue(andamento)
+        self.assertEqual(andamento[-1], (30, 30, "parágrafos"))
+        self.assertEqual([d for d, *_ in andamento], sorted(d for d, *_ in andamento))
+        self.assertTrue(all(e["state"] == "running" for e in eventos if "done" in e))

@@ -164,3 +164,13 @@ class EstimativaTests(unittest.TestCase):
             self.assertEqual((depois["a_enviar"], depois["caracteres"]), (0, 0))
             alterado = livro(["Lia tinha olhos verdes."], ["Lia piscou os olhos verdes."])
             self.assertEqual(Projeto(pasta).estimar(alterado, "falso:1b")["titulos_a_enviar"], ["Capítulo 2"])
+
+
+class AndamentoTests(unittest.TestCase):
+    def test_progress_counts_scenes_of_chapters_sent(self):
+        texto = livro(["Lia tinha olhos verdes."], ["Lia piscou os olhos castanhos."])
+        with tempfile.TemporaryDirectory() as pasta:
+            passos = []
+            Projeto(pasta).atualizar("livro.docx", texto, LeitorFalso(), registrar=lambda *_: None,
+                                     avancar=lambda f, t: passos.append((f, t)))
+            self.assertEqual(passos, [(1, 3), (2, 3), (3, 3)])
