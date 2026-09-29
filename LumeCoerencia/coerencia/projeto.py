@@ -21,7 +21,7 @@ import json
 from pathlib import Path
 import re
 
-from .analise import (SISTEMA_JUIZ, ESQUEMA_JUIZ, confirmada, ler_cena, normalizar, pares_candidatos,
+from .analise import (SISTEMA_JUIZ, ESQUEMA_JUIZ, confirmada, ler_cena, mesma_contradicao, normalizar, pares_candidatos,
                       pedido_juiz, registro, relevantes, verificar)
 from .leitura import cenas
 
@@ -202,6 +202,19 @@ class Projeto:
             if existente["status"] in ("corrigida", "resolvida_por_edicao"):
                 existente.update(status="aberta", atualizada=_agora(), nota="reapareceu depois de marcada como corrigida")
             return
+        # Mesmo ponto do texto de uma pendência já registrada: vira relacionada, sem número novo.
+        novo = {lado: {"paragrafo": (lados[lado]["capitulo"], lados[lado]["rel"]), "trecho": lados[lado]["trecho"]}
+                for lado in ("a", "b")}
+        for pendencia in self.pendencias:
+            if pendencia["status"] == "resolvida_por_edicao":
+                continue
+            atual = {lado: {"paragrafo": (pendencia[lado]["capitulo"], pendencia[lado]["rel"]),
+                            "trecho": pendencia[lado]["trecho"]} for lado in ("a", "b")}
+            if mesma_contradicao(novo, atual):
+                relacionadas = pendencia.setdefault("relacionadas", [])
+                if all(r["chave"] != chave_par for r in relacionadas):
+                    relacionadas.append({"chave": chave_par, **lados, "explicacao": julgamento["explicacao"]})
+                return
         self.pendencias.append({"id": f"C{len(self.pendencias) + 1:03d}", "chave": chave_par, **lados,
                                 "explicacao": julgamento["explicacao"], "confianca": julgamento["confianca"],
                                 "status": "aberta", "criada": _agora()})

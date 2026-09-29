@@ -245,7 +245,41 @@ class Analise:
         resultado = [registro(par, self.modelo.json(SISTEMA_JUIZ, pedido_juiz(self.paragrafos, par), ESQUEMA_JUIZ, f"juiz {n}"))
                      for n, par in enumerate(pares, 1)]
         (self.pasta / "julgamentos.json").write_text(json.dumps(resultado, ensure_ascii=False, indent=2), encoding="utf-8")
-        contradicoes = [r for r in resultado if confirmada(r)]
+        contradicoes = agrupar([r for r in resultado if confirmada(r)])
         (self.pasta / "contradicoes.json").write_text(json.dumps(contradicoes, ensure_ascii=False, indent=2), encoding="utf-8")
         (self.pasta / "descartes.json").write_text(json.dumps(self.descartes, ensure_ascii=False, indent=2), encoding="utf-8")
         return contradicoes
+
+
+def _sobrepoe(x, y):
+    """Trechos do mesmo parágrafo que se sobrepõem (um contém o outro ou dividem a maior parte das palavras)."""
+    if x["paragrafo"] != y["paragrafo"]:
+        return False
+    a, b = normalizar(x["trecho"]), normalizar(y["trecho"])
+    if a in b or b in a:
+        return True
+    pa, pb = set(re.findall(r"\w+", a)), set(re.findall(r"\w+", b))
+    return bool(pa and pb) and len(pa & pb) / min(len(pa), len(pb)) >= .6
+
+
+def mesma_contradicao(x, y):
+    return any(_sobrepoe(x[i], y[j]) for i in ("a", "b") for j in ("a", "b"))
+
+
+def agrupar(contradicoes):
+    """Une alertas sobre o mesmo ponto do texto. Fica o de maior confiança (e,
+    no empate, o primeiro); os demais seguem em `relacionadas`."""
+    ordem = {"alta": 0, "media": 1, "baixa": 2}
+    grupos = []
+    for c in contradicoes:
+        grupo = next((g for g in grupos if any(mesma_contradicao(c, m) for m in g)), None)
+        if grupo is None:
+            grupos.append([c])
+        else:
+            grupo.append(c)
+    resultado = []
+    for grupo in grupos:
+        principal = min(grupo, key=lambda c: ordem.get(c.get("confianca"), 3))
+        outras = [{"a": c["a"], "b": c["b"], "explicacao": c["explicacao"]} for c in grupo if c is not principal]
+        resultado.append({**principal, "relacionadas": outras} if outras else principal)
+    return resultado

@@ -131,3 +131,18 @@ class ModeloTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class AgrupamentoTests(unittest.TestCase):
+    def test_same_point_is_reported_once_with_related(self):
+        from coerencia.analise import agrupar
+        um = {"a": {"paragrafo": 20, "trecho": "irmã mais nova"}, "b": {"paragrafo": 20, "trecho": "cinco anos mais velha"},
+              "confianca": "alta", "explicacao": "idade"}
+        dois = {"a": {"paragrafo": 6, "trecho": "ligo para minha irmã"}, "b": {"paragrafo": 20, "trecho": "Minha irmã mais nova, Paula"},
+                "confianca": "media", "explicacao": "idade de novo"}
+        outro = {"a": {"paragrafo": 3, "trecho": "olhos verdes"}, "b": {"paragrafo": 9, "trecho": "olhos azuis"},
+                 "confianca": "alta", "explicacao": "cor"}
+        grupos = agrupar([dois, um, outro])
+        self.assertEqual(len(grupos), 2)
+        self.assertEqual(grupos[0]["explicacao"], "idade")
+        self.assertEqual(len(grupos[0]["relacionadas"]), 1)
