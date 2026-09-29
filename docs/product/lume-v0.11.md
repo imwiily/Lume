@@ -1,5 +1,7 @@
 # Lume v0.11 — memória narrativa confiável
 
+> **Documento histórico.** A memória narrativa heurística descrita aqui foi removida em 29/09/2026 por não produzir alertas úteis; contradições narrativas passaram à Coerência com IA (`LumeCoerencia/`). Os gates de preservação do manuscrito, contratos e comandos de teste continuam válidos.
+
 ## Finalidade e estado observado
 
 Lume é um aplicativo editorial macOS com interface SwiftUI e motor Python FONTE.

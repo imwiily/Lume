@@ -1,12 +1,15 @@
-# Lume 0.11.4 — FONTE 0.9.4 embutido
+# Lume — revisão editorial para macOS
 
-Hotfix para Apple Silicon com macOS 27.0 ou posterior. O aplicativo completo inclui Python, modelo português e o motor FONTE 0.9.4, com as correções de memória narrativa verificadas em Echoes e Hikari. O manuscrito permanece inalterado; sugestões e decisões ficam nos relatórios.
+O app analisa manuscritos DOCX sem alterá-los: ortografia e gramática (LanguageTool
+embutido e regras próprias de crase, homófonos, concordância, regência e vírgula), tempo
+verbal da narração informado (passado ou presente), repetições, diálogos, variações de
+nomes e prazos. Contradições narrativas são verificadas pela Coerência com IA (Claude),
+opcional. Sugestões e decisões ficam nos relatórios.
 
-## Atualização do motor FONTE 0.9.5 — memória narrativa
-
-O motor 0.9.5 está disponível em [Motor-final/fonte-0.9.5-9b9a561f.lumemotor.zip](Saida/robustez-semantica/Motor-final/fonte-0.9.5-9b9a561f.lumemotor.zip). Extraia o ZIP e selecione a pasta `.lumemotor` em **Motor de análise → Instalar atualização…**. É compatível com o Lume 0.11.4; o aplicativo anterior continua com 0.9.4 embutido. Esta entrega atualiza apenas o motor e seu relatório HTML.
-
-A atualização separa participantes locais de personagens canônicos, promove eventos com papéis e polaridade preservados e mantém estados, posse e conhecimento entre cenas. A confiança acompanha entidades, referências, eventos e fatos. Há 300 testes do analisador aprovados, além de paridade dos fontes com o motor em Echoes, Hikari e casos mínimos. A cobertura em prosa real ainda é parcial; os números e limites estão em [validação](Documentacao/VALIDACAO.md).
+A memória narrativa heurística das versões 0.9.x foi removida em 29/09/2026: não produzia
+alertas úteis nos textos de teste nem nos manuscritos reais. Configurações antigas que
+mencionam suas regras continuam abrindo. A versão exibida ainda é 0.11.4 / FONTE 0.9.5
+até a próxima entrega oficial.
 
 ## Usar a entrega
 

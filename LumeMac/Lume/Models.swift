@@ -213,8 +213,12 @@ struct ChapterMarker: Decodable {
 struct SearchRule: Identifiable {
     let id: String
     let title: String
-    static let newIDs: Set<String> = ["construcao_invalida", "pontuacao_duplicada", "espacamento", "virgula_que_nao", "que_tonico_interrogativo", "coerencia_temporal", "acentuacao_contextual", "vocativo", "capitalizacao_contextual", "dialogo_contextual", "referente_contextual", "gerundismo", "memoria_narrativa", "conflito_habilidade", "conflito_objeto", "conflito_cronologia", "coerencia_generica",
+    static let newIDs: Set<String> = ["construcao_invalida", "pontuacao_duplicada", "espacamento", "virgula_que_nao", "que_tonico_interrogativo", "coerencia_temporal", "acentuacao_contextual", "vocativo", "capitalizacao_contextual", "dialogo_contextual", "referente_contextual", "gerundismo",
                                           "crase", "homofonos", "concordancia", "regencia", "virgula_sujeito_verbo"]
+    /// Regras da memória narrativa heurística, removida do motor: configurações antigas que as
+    /// mencionam continuam abrindo, e essas chaves são descartadas.
+    static let retiredIDs: Set<String> = ["memoria_narrativa", "conflito_habilidade", "conflito_objeto",
+                                          "conflito_cronologia", "coerencia_generica"]
     static let all: [SearchRule] = [
         .init(id: "construcao_invalida", title: "Construções inválidas conhecidas"),
         .init(id: "pontuacao_duplicada", title: "Pontuação duplicada"),
@@ -235,11 +239,6 @@ struct SearchRule: Identifiable {
         .init(id: "pontuacao_dialogo", title: "Ligação entre fala e narração"),
         .init(id: "dialogo_contextual", title: "Ações e retomadas de fala por travessão"),
         .init(id: "referente_contextual", title: "Objeto após enumeração · contexto curto"),
-        .init(id: "memoria_narrativa", title: "Construir cenas e memória narrativa"),
-        .init(id: "coerencia_generica", title: "Fatos, estados, posse e continuidade narrativa"),
-        .init(id: "conflito_habilidade", title: "Habilidades exclusivas contraditórias"),
-        .init(id: "conflito_objeto", title: "Continuidade de estado dos objetos"),
-        .init(id: "conflito_cronologia", title: "Aniversários e datas incompatíveis"),
         .init(id: "gerundismo", title: "Perífrases verbais · atenção editorial"),
         .init(id: "palavra_consecutiva", title: "Palavras repetidas consecutivamente"),
         .init(id: "palavra_proxima", title: "Palavras repetidas próximas"),
@@ -279,6 +278,7 @@ struct SearchSettings: Codable {
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         var result = try decoder.decode(SearchSettings.self, from: data)
+        for key in SearchRule.retiredIDs { result.rules.removeValue(forKey: key) }
         let scopes = Set(["narracao", "dialogo", "pensamento"])
         let known = Set(SearchRule.all.map(\.id))
         let legacy = known.subtracting(SearchRule.newIDs)

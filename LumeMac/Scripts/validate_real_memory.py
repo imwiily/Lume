@@ -1,4 +1,4 @@
-"""Compara uma análise atual com um relatório anterior, preservando o DOCX.
+"""Compara uma análise atual com um relatório anterior do mesmo DOCX, preservando o arquivo.
 
 Usar com o Python do analisador. --engine também verifica paridade do executável.
 Os manuscritos permanecem externos ao repositório.
@@ -42,23 +42,20 @@ def main():
         meta = report['metadata']
         assert report['sha256'] == digest == hashlib.sha256(docx.read_bytes()).hexdigest()
         assert meta['text_index'] == old['metadata']['text_index']
-        events = {e['id']:e for e in meta['fact_bank']['events']}
-        for fact in meta['fact_bank']['facts']:
-            assert fact['event_id'] in events
-            proof = fact['evidence']
-            assert proof['text'][proof['start']:proof['end']] == proof['excerpt']
-            assert not (fact['relation']=='object_use' and fact['subject']==fact['value'])
+        for finding in report['findings']:
+            assert finding['text'][finding['start']:finding['end']] == finding['excerpt']
         results[name] = report
     if 'motor' in results:
         assert results['fontes']['findings'] == results['motor']['findings']
-        for field in ['scenes','fact_bank','narrative_diagnostics','text_index']:
+        for field in ['text_index']:
             assert results['fontes']['metadata'][field] == results['motor']['metadata'][field], field
-    current = results['fontes']['metadata']
+    antes = {f['id'] for f in old['findings']}
+    depois = {f['id'] for f in results['fontes']['findings']}
     summary = dict(preserved=True, sha256=digest, same_text_index=True, engine_parity=True if args.engine else None,
-                   before=old['metadata']['narrative_summary'], after=current['narrative_summary'],
-                   before_diagnostics=old['metadata']['narrative_diagnostics'], after_diagnostics=current['narrative_diagnostics'])
+                   findings_before=len(antes), findings_after=len(depois),
+                   kept=len(antes & depois), removed=len(antes - depois), added=len(depois - antes))
     (output/'validacao.json').write_text(json.dumps(summary,ensure_ascii=False,indent=2))
-    print(json.dumps(summary['after'], ensure_ascii=False))
+    print(json.dumps({k: summary[k] for k in ('findings_before', 'findings_after', 'kept', 'removed', 'added')}))
 
 
 if __name__ == '__main__':

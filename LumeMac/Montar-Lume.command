@@ -18,7 +18,10 @@ if [ ! -x Analisador/.venv/bin/python ]; then
 fi
 fonte_python="$PWD/Analisador/.venv/bin/python"
 "$fonte_python" -c 'import platform; assert platform.machine() == "arm64", "Use um ambiente Python arm64 nativo"'
-"$fonte_python" -m pip install --upgrade ./Analisador
+# Reinstala do zero: um upgrade não apaga módulos que saíram do código, e o cache
+# Analisador/build (gerado pelo setuptools) pode reintroduzir cópias antigas.
+rm -rf Analisador/build
+"$fonte_python" -m pip install --upgrade --force-reinstall --no-deps ./Analisador
 # Coerência com IA (Claude): instalada em modo editável; o motor congelado usa os fontes de ../LumeCoerencia.
 "$fonte_python" -m pip install -e ../LumeCoerencia
 # Caches copiados com datas futuras podem fazer setuptools reutilizar código antigo.
@@ -31,6 +34,8 @@ mismatched = [str(path.relative_to(source)) for path in source.rglob('*')
               if path.is_file() and path.suffix in {'.py', '.html'}
               and (not (installed / path.relative_to(source)).is_file()
                    or path.read_bytes() != (installed / path.relative_to(source)).read_bytes())]
+mismatched += [str(path.relative_to(installed)) + ' (sobra)' for path in installed.rglob('*.py')
+               if '__pycache__' not in path.parts and not (source / path.relative_to(installed)).is_file()]
 if mismatched:
     raise SystemExit('Instalação divergente do código-fonte: ' + ', '.join(mismatched)
                      + '. Mova Analisador/build para uma pasta de backup e execute a montagem novamente.')

@@ -10,9 +10,12 @@ LEGACY_RULES = RULES[:]
 NEW_RULES = ['construcao_invalida', 'pontuacao_duplicada', 'espacamento', 'virgula_que_nao',
              'que_tonico_interrogativo', 'coerencia_temporal', 'acentuacao_contextual',
              'vocativo', 'capitalizacao_contextual', 'dialogo_contextual',
-             'referente_contextual', 'gerundismo', 'memoria_narrativa',
-             'conflito_habilidade', 'conflito_objeto', 'conflito_cronologia', 'coerencia_generica']
+             'referente_contextual', 'gerundismo']
 RULES += NEW_RULES
+# Regras da memória narrativa heurística, removida em 29/09/2026. Configurações
+# antigas que as mencionam continuam válidas; essas chaves são ignoradas.
+RETIRED_RULES = ['memoria_narrativa', 'conflito_habilidade', 'conflito_objeto', 'conflito_cronologia',
+                 'coerencia_generica']
 # Classes gramaticais com apoio sintático (fonte/grammar.py). Ligadas por padrão,
 # como as anteriores; ‘desativar todas’ de configurações antigas continua valendo.
 GRAMMAR_RULES = ['crase', 'homofonos', 'concordancia', 'regencia', 'virgula_sujeito_verbo']
@@ -44,9 +47,10 @@ def validate(value):
     result = deepcopy(DEFAULT)
     result.update(value)
     rules = value.get('rules', {})
-    if not isinstance(rules, dict) or set(rules)-set(RULES) or any(type(v) is not bool for v in rules.values()):
+    if (not isinstance(rules, dict) or set(rules) - set(RULES) - set(RETIRED_RULES)
+            or any(type(v) is not bool for v in rules.values())):
         raise ValueError('Lista de verificações inválida.')
-    result['rules'] = {**DEFAULT['rules'], **rules}
+    result['rules'] = {**DEFAULT['rules'], **{k: v for k, v in rules.items() if k in RULES}}
     # Preserva ‘desativar todas’ em configurações da versão anterior.
     if set(LEGACY_RULES).issubset(rules) and not any(rules.values()):
         result['rules'] = {r: False for r in RULES}

@@ -1,5 +1,7 @@
 # Aceitação da v0.11 — Lume
 
+> **Documento histórico.** A memória narrativa heurística descrita aqui foi removida em 29/09/2026 por não produzir alertas úteis; contradições narrativas passaram à Coerência com IA (`LumeCoerencia/`). Os gates de preservação do manuscrito, contratos e comandos de teste continuam válidos.
+
 Estes são critérios de fechamento, não resultados desta configuração documental.
 Todos começam sem aprovação nova. A [validação histórica](../../LumeMac/Documentacao/VALIDACAO.md)
 é referência de baseline; cada alteração funcional precisa de evidência própria.

@@ -1,6 +1,5 @@
 """Etapas sequenciais sobre uma captura imutável; sem correção automática."""
 from copy import deepcopy
-from dataclasses import asdict
 from time import perf_counter
 from .contracts import Manuscript, standardize
 from .settings import GRAMMAR_RULES, validate
@@ -16,8 +15,8 @@ STAGES = (
 
 def run(blocks, model_loader, *, settings=None, tense="auto", mode="ambas",
         original=None, languagetool=False, port=8081, progress=None, coerencia=None):
-    """`coerencia`: opções da Coerência com IA (pasta, documento, modelo, teto, esforco).
-    Quando presente, substitui a memória narrativa heurística nesta análise."""
+    """`coerencia`: opções da Coerência com IA (pasta, documento, modelo, teto, esforco), que
+    verifica contradições narrativas na etapa Coerência global."""
     if mode not in ("linguistica", "editorial", "ambas"):
         raise ValueError("Modo de análise inválido.")
     options = validate(settings or {})
@@ -31,15 +30,12 @@ def run(blocks, model_loader, *, settings=None, tense="auto", mode="ambas",
     meta = {"tempo": "não analisado", "paragrafos": len(blocks), "modelo": "não utilizado",
             "versao_modelo": "", "modo": mode}
     nlp = None
-    scenes = []
     atual = {}
 
     def avancar(feitos, total, unidade):
         """Andamento dentro da etapa em curso (campos opcionais do evento de progresso)."""
         if progress and "stage" in atual:
             progress(dict(atual["stage"], done=feitos, total=total, unit=unidade))
-    from .semantic import RULES as SEMANTIC_RULES, extract, FactBank, compare
-    semantic_enabled = editorial_mode and not coerencia and any(rules[r] for r in SEMANTIC_RULES)
 
     def model():
         nonlocal nlp
@@ -107,7 +103,6 @@ def run(blocks, model_loader, *, settings=None, tense="auto", mode="ambas",
         return out
 
     def editorial():
-        nonlocal scenes
         from .editorial import analyze as legacy
         out = []
         if linguistic_mode and rules["pontuacao_dialogo"]:
@@ -122,13 +117,8 @@ def run(blocks, model_loader, *, settings=None, tense="auto", mode="ambas",
                 ["palavra_proxima", "frase_duplicada", "referente_proximidade", "pronome_apos_corte"]))
             out.extend(extra); warnings.extend(extra_warnings)
             from .editorial.context import analyze as contextual, RULES as CONTEXT_RULES
-            if semantic_enabled or any(rules[r] for r in CONTEXT_RULES):
-                docs = list(model().pipe((b.text for b in blocks), batch_size=32))
-                if semantic_enabled:
-                    scenes = extract(manuscript, docs, options)
-                    meta["scenes"] = [asdict(scene) for scene in scenes]
-                if any(rules[r] for r in CONTEXT_RULES):
-                    out.extend(contextual(blocks, model(), options, docs=docs))
+            if any(rules[r] for r in CONTEXT_RULES):
+                out.extend(contextual(blocks, model(), options))
         return out
 
     def global_coherence():
@@ -142,19 +132,6 @@ def run(blocks, model_loader, *, settings=None, tense="auto", mode="ambas",
                                                          avancar=lambda f, t: avancar(f, t, "cenas"), **coerencia)
             out.extend(extra); warnings.extend(extra_warnings)
             meta["coerencia_ia"] = rodada
-        if semantic_enabled:
-            bank = FactBank.consolidate(scenes)
-            out.extend(compare(bank, manuscript, options))
-            meta["fact_bank"] = bank.to_dict()
-            for scene in meta.get("scenes", []):
-                scene["incoming_fact_ids"] = bank.incoming_fact_ids.get(scene["id"], [])
-                # Projeção final consistente nos dois caminhos JSON; objetos Scene
-                # da etapa Editorial permanecem intactos.
-                scene["facts"] = [deepcopy(f) for f in bank.facts if f["scene"] == scene["id"]]
-            from .narrative import diagnostics
-            meta["narrative_diagnostics"] = diagnostics(scenes, bank)
-            meta["narrative_summary"] = dict(scenes=len(scenes), facts=len(bank.facts),
-                                              characters=len(bank.characters), objects=len(bank.objects), events=len(bank.events))
         return out
 
     from .linguistic import RULES
@@ -165,13 +142,13 @@ def run(blocks, model_loader, *, settings=None, tense="auto", mode="ambas",
             any(rules[r] for r in GRAMMAR_RULES) or
             ((rules["tempo_verbal"] or rules["coerencia_temporal"]) and options["tense_scopes"])), morphosyntactic,
          "Tempo predominante, estrutura, quatro relações temporais locais, acentuação verbal contextual, crase, homófonos, concordância, regência e vírgula entre sujeito e verbo. Cobertura parcial; homógrafos permanecem dúvidas."),
-        (semantic_enabled or (linguistic_mode and rules["pontuacao_dialogo"]) or (editorial_mode and (
+        ((linguistic_mode and rules["pontuacao_dialogo"]) or (editorial_mode and (
             any(rules[r] for r in ("palavra_proxima", "frase_duplicada", "referente_proximidade",
                                   "dialogo_contextual", "referente_contextual", "gerundismo")) or
             (rules["pronome_apos_corte"] and previous))), editorial,
-         "Diálogo, repetições, gerundismo e referências em janelas curtas. Cenas, participantes, falantes, objetos, eventos e candidatos a referentes; extração parcial de fatos narrativos explícitos."),
-        (semantic_enabled or bool(coerencia) or (editorial_mode and any(rules[r] for r in ("variacao_nome", "duracao_suspensao", "adiamento_amanha"))), global_coherence,
-         "Banco de fatos produzido pelas cenas; comparação de atributos, relações, posse, conhecimento, presença, estados e cronologia; regras anteriores preservadas. Cobertura parcial."),
+         "Diálogo, repetições, gerundismo e referências em janelas curtas."),
+        (bool(coerencia) or (editorial_mode and any(rules[r] for r in ("variacao_nome", "duracao_suspensao", "adiamento_amanha"))), global_coherence,
+         "Variações de nomes e prazos; contradições narrativas com a Coerência com IA, quando ligada. Cobertura parcial."),
         (False, None, "Auditor editorial independente ainda não implementado; nenhuma busca adicional foi realizada."),
     ]
 
@@ -216,5 +193,5 @@ def run(blocks, model_loader, *, settings=None, tense="auto", mode="ambas",
     findings.sort(key=lambda f: (f["paragraph"], f["start"], f["category"]))
     meta.update(stages=stages, pipeline_version=2, occurrence_schema_version=1,
                 text_index=manuscript.index(), confidence_semantics="rule_strength_not_calibrated_probability")
-    warnings.append("Memória narrativa com cobertura restrita a fatos explícitos; identidade de objetos e referências permanecem hipóteses. Auditoria editorial independente ainda não implementada. Etapa concluída significa apenas que as regras disponíveis terminaram.")
+    warnings.append("Auditoria editorial independente ainda não implementada. Etapa concluída significa apenas que as regras disponíveis terminaram.")
     return findings, list(dict.fromkeys(warnings)), meta

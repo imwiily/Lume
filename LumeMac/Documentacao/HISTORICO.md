@@ -2,6 +2,19 @@
 
 As seções antigas descrevem a cobertura e os resultados de cada entrega, não o estado atual. Caminhos de código e de `Saida/` são relativos à pasta `LumeMac`.
 
+## Em desenvolvimento (após 0.11.4 / FONTE 0.9.5) — 29/09/2026
+
+- Corretor gramatical LanguageTool embutido no motor, ligado por padrão, revisando também as falas.
+- Regras de crase, homófonos, concordância, regência e vírgula entre sujeito e verbo.
+- Avaliação cega da detecção (`Scripts/avaliar_deteccao.py`, corpus `tests/corpus/deteccao/`).
+- Coerência com IA (Claude) na etapa Coerência global, com leitura incremental por capítulo,
+  estimativa e confirmação de custo, teto de gasto e chave nas Chaves do macOS.
+- Progresso dentro da etapa (“420 de 1.274 parágrafos”).
+- Tempo da narração informado (passado ou presente); detecção automática removida.
+- O app usa o motor embutido, salvo se o motor instalado for de versão mais nova.
+- **Removida a memória narrativa heurística** (cenas, identidades, eventos, banco de fatos e
+  comparações). Relatórios e configurações antigos continuam legíveis.
+
 ## FONTE 0.9.5 — robustez semântica e memória narrativa
 
 Atualização independente de motor, mantendo protocolos e schema de relatório. `narrative_memory.py` concentra promoção seletiva, classificação dos participantes e proveniência/confiança. O banco distingue `characters` e `local_participants`; fala e recorrência ou ação relevante podem promover uma identidade anônima singular. Referências inequívocas atualizam o foco discursivo; cortes explícitos continuam exigindo reintrodução do referente.

@@ -68,14 +68,15 @@ class CoerenciaIATests(unittest.TestCase):
         self.assertEqual((achado["module"], achado["severity"]), ("global_coherence", "possible_inconsistency"))
         self.assertEqual(achado["excerpt"], "olhos castanhos")
         self.assertEqual(achado["related"][0]["excerpt"], "olhos verdes")
-        self.assertNotIn("fact_bank", meta)  # memória narrativa heurística não rodou
         self.assertEqual(meta["coerencia_ia"]["enviados"], 2)
         self.assertTrue(any("enviados à Anthropic" in a for a in avisos))
 
-    def test_heuristic_memory_still_runs_without_ai(self):
-        _, _, meta = run(blocos(), lambda: NLP, settings=validate({}), mode="editorial")
-        self.assertIn("fact_bank", meta)
+    def test_without_ai_no_narrative_memory_runs_and_nothing_is_sent(self):
+        with patch("coerencia.modelo.criar_modelo", side_effect=AssertionError("sem API")):
+            findings, _, meta = run(blocos(), lambda: NLP, settings=validate({}), mode="editorial")
+        self.assertNotIn("fact_bank", meta)
         self.assertNotIn("coerencia_ia", meta)
+        self.assertFalse(any(f.get("rule") == "coerencia_ia" for f in findings))
 
     def test_unchanged_text_costs_nothing_and_keeps_ids(self):
         primeira, *_ = self.rodar()
