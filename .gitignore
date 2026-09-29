@@ -10,6 +10,10 @@ dist/
 DerivedData/
 xcuserdata/
 LumeMac/Saida/
+LumeMac/Analisador/.languagetool/
 .env
 .env.*
 !.env.example
+.claude/settings.local.json
+LumeCoerencia/Saida/
+LumeCoerencia/Projetos/
