@@ -46,7 +46,9 @@ final class PythonRunner: @unchecked Sendable {
         if let task = task, task.isRunning { task.terminate() }
     }
 
-    func run(executable: URL, arguments: [String], directory: URL, logURL: URL) async throws -> CommandResult {
+    /// `extraEnvironment` leva segredos (como a chave da API) ao motor sem expô-los nos argumentos do processo.
+    func run(executable: URL, arguments: [String], directory: URL, logURL: URL,
+             extraEnvironment: [String: String] = [:]) async throws -> CommandResult {
         try begin()
         return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<CommandResult, Error>) in
             DispatchQueue.global(qos: .userInitiated).async {
@@ -66,6 +68,7 @@ final class PythonRunner: @unchecked Sendable {
                     environment["PATH"] = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:" + (environment["PATH"] ?? "")
                     environment["PYTHONUNBUFFERED"] = "1"
                     environment["PYTHONDONTWRITEBYTECODE"] = "1"
+                    environment.merge(extraEnvironment) { _, novo in novo }
                     task.environment = environment
                     // Arquivo, em vez de pipes: evita bloqueio quando a saída é volumosa.
                     task.standardOutput = output

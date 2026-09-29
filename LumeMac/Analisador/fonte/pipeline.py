@@ -15,7 +15,9 @@ STAGES = (
 
 
 def run(blocks, model_loader, *, settings=None, tense="auto", mode="ambas",
-        original=None, languagetool=False, port=8081, progress=None):
+        original=None, languagetool=False, port=8081, progress=None, coerencia=None):
+    """`coerencia`: opções da Coerência com IA (pasta, documento, modelo, teto, esforco).
+    Quando presente, substitui a memória narrativa heurística nesta análise."""
     if mode not in ("linguistica", "editorial", "ambas"):
         raise ValueError("Modo de análise inválido.")
     options = validate(settings or {})
@@ -31,7 +33,7 @@ def run(blocks, model_loader, *, settings=None, tense="auto", mode="ambas",
     nlp = None
     scenes = []
     from .semantic import RULES as SEMANTIC_RULES, extract, FactBank, compare
-    semantic_enabled = editorial_mode and any(rules[r] for r in SEMANTIC_RULES)
+    semantic_enabled = editorial_mode and not coerencia and any(rules[r] for r in SEMANTIC_RULES)
 
     def model():
         nonlocal nlp
@@ -127,6 +129,11 @@ def run(blocks, model_loader, *, settings=None, tense="auto", mode="ambas",
         out, extra_warnings = legacy(blocks, settings=selected(
             ["variacao_nome", "duracao_suspensao", "adiamento_amanha"]))
         warnings.extend(extra_warnings)
+        if coerencia:
+            from .coerencia_ia import analisar as coerencia_ia
+            extra, extra_warnings, rodada = coerencia_ia(blocks, registrar=lambda *_: None, **coerencia)
+            out.extend(extra); warnings.extend(extra_warnings)
+            meta["coerencia_ia"] = rodada
         if semantic_enabled:
             bank = FactBank.consolidate(scenes)
             out.extend(compare(bank, manuscript, options))
@@ -155,7 +162,7 @@ def run(blocks, model_loader, *, settings=None, tense="auto", mode="ambas",
                                   "dialogo_contextual", "referente_contextual", "gerundismo")) or
             (rules["pronome_apos_corte"] and previous))), editorial,
          "Diálogo, repetições, gerundismo e referências em janelas curtas. Cenas, participantes, falantes, objetos, eventos e candidatos a referentes; extração parcial de fatos narrativos explícitos."),
-        (semantic_enabled or (editorial_mode and any(rules[r] for r in ("variacao_nome", "duracao_suspensao", "adiamento_amanha"))), global_coherence,
+        (semantic_enabled or bool(coerencia) or (editorial_mode and any(rules[r] for r in ("variacao_nome", "duracao_suspensao", "adiamento_amanha"))), global_coherence,
          "Banco de fatos produzido pelas cenas; comparação de atributos, relações, posse, conhecimento, presença, estados e cronologia; regras anteriores preservadas. Cobertura parcial."),
         (False, None, "Auditor editorial independente ainda não implementado; nenhuma busca adicional foi realizada."),
     ]

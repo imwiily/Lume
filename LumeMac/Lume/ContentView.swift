@@ -7,6 +7,8 @@ struct ContentView: View {
     @State private var showSetup = false
     @State private var showSearchSettings = false
     @State private var showCoverage = false
+    @State private var showKeySheet = false
+    @State private var keyText = ""
 
     var body: some View {
         VStack(spacing: 0) {
@@ -70,6 +72,35 @@ struct ContentView: View {
                 }
                 Button("Concluir") { showCoverage = false }.keyboardShortcut(.defaultAction)
             }.padding(26).frame(width: 620, height: 580)
+        }
+        .sheet(isPresented: $showKeySheet) {
+            VStack(alignment: .leading, spacing: 14) {
+                Text("Chave da API da Anthropic").font(.title2)
+                Text("Crie a chave em console.anthropic.com → API Keys e copie o valor completo logo após criá-la (começa com sk-ant-). Ela fica guardada nas Chaves do macOS, não em arquivos do Lume.")
+                    .font(.callout).foregroundStyle(LumeTheme.secondary).fixedSize(horizontal: false, vertical: true)
+                SecureField("sk-ant-…", text: $keyText)
+                Text("Com a Coerência com IA ligada, os capítulos alterados são enviados à Anthropic. Pela política atual da API, os dados não são usados para treino por padrão e são apagados em até 30 dias.")
+                    .font(.caption).foregroundStyle(LumeTheme.secondary).fixedSize(horizontal: false, vertical: true)
+                HStack {
+                    if store.hasAPIKey {
+                        Button("Remover chave", role: .destructive) { store.removeAPIKey(); showKeySheet = false }
+                    }
+                    Spacer()
+                    Button("Cancelar") { keyText = ""; showKeySheet = false }.keyboardShortcut(.cancelAction)
+                    Button("Guardar") {
+                        store.saveAPIKey(keyText)
+                        keyText = ""
+                        if store.hasAPIKey && store.errorText == nil { showKeySheet = false }
+                    }.keyboardShortcut(.defaultAction).disabled(keyText.isEmpty)
+                }
+            }.padding(24).frame(width: 520)
+        }
+        .alert("Enviar à Anthropic?", isPresented: Binding(get: { store.coherenceEstimate != nil },
+                                                           set: { if !$0 { store.coherenceEstimate = nil } })) {
+            Button("Cancelar", role: .cancel) { store.cancelCoherence() }
+            Button("Enviar e analisar") { store.confirmCoherence() }
+        } message: {
+            Text((store.coherenceEstimate?.summary ?? "") + String(format: "\nTeto desta análise: US$ %.2f.", store.coherenceBudget))
         }
         .alert("Lume", isPresented: Binding(get: { store.errorText != nil && !showSearchSettings }, set: { if !$0 { store.errorText = nil } })) {
             Button("OK", role: .cancel) { store.errorText = nil }
@@ -192,6 +223,30 @@ struct ContentView: View {
             Toggle("Corretor gramatical local", isOn: $store.useLanguageTool)
                 .font(.callout).disabled(store.analysisMode == "editorial")
                 .help("Ortografia e gramática com o LanguageTool incluído no motor, executado neste Mac, sem internet. Motores sem o corretor embutido exigem um servidor LanguageTool iniciado separadamente na porta 8081.")
+            Toggle("Coerência com IA (Claude)", isOn: $store.useCoherenceAI)
+                .font(.callout).disabled(store.analysisMode == "linguistica")
+                .help("Contradições narrativas analisadas pela API do Claude, no lugar da memória narrativa local. Só os capítulos alterados são enviados à Anthropic; antes do envio, o Lume mostra o custo estimado e pede confirmação.")
+            if store.useCoherenceAI {
+                VStack(alignment: .leading, spacing: 8) {
+                    Picker("Modelo", selection: $store.coherenceModel) {
+                        Text("Sonnet 5.5 · recomendado").tag("claude-sonnet-5-5")
+                        Text("Opus 5.5 · mais forte, custa o dobro").tag("claude-opus-5-5")
+                    }.font(.callout)
+                    HStack {
+                        Text("Teto por análise (US$)").font(.callout)
+                        TextField("1,00", value: $store.coherenceBudget, format: .number.precision(.fractionLength(2)))
+                            .frame(width: 70).multilineTextAlignment(.trailing)
+                    }
+                    HStack {
+                        Label(store.hasAPIKey ? "Chave configurada" : "Chave não configurada",
+                              systemImage: store.hasAPIKey ? "checkmark.seal" : "exclamationmark.triangle")
+                            .font(.caption).foregroundStyle(store.hasAPIKey ? LumeTheme.secondary : Color.orange)
+                        Spacer()
+                        Button(store.hasAPIKey ? "Trocar chave…" : "Configurar chave…") { showKeySheet = true }
+                            .font(.caption)
+                    }
+                }.padding(.leading, 20).disabled(store.analysisMode == "linguistica")
+            }
         }
     }
 

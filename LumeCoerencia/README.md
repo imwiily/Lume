@@ -9,6 +9,8 @@ clima, horário) usando a **API do Claude**. O manuscrito é somente lido.
 > em até 30 dias (há exceções; ver Privacy Center da Anthropic). Um modelo local via
 > Ollama continua possível com `--modelo <nome-do-ollama>`, e aí nada sai do computador.
 
+O mesmo motor também está **dentro do Lume.app** (opção *Coerência com IA* na etapa Coerência global).
+
 ## Preparar
 
 ```sh

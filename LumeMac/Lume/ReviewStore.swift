@@ -1,6 +1,7 @@
 import SwiftUI
 import AppKit
 import UniformTypeIdentifiers
+import Security
 
 @MainActor
 final class ReviewStore: ObservableObject {
@@ -40,6 +41,20 @@ final class ReviewStore: ObservableObject {
     @Published var tense = "passado"
     @Published var includeItalics = false
     @Published var useLanguageTool = true
+    // Coerência com IA (Claude): desligada por padrão; nada é enviado sem confirmação do custo.
+    @Published var useCoherenceAI = UserDefaults.standard.bool(forKey: "coherenceAI") {
+        didSet { UserDefaults.standard.set(useCoherenceAI, forKey: "coherenceAI") }
+    }
+    @Published var coherenceModel = UserDefaults.standard.string(forKey: "coherenceModel") ?? "claude-sonnet-5-5" {
+        didSet { UserDefaults.standard.set(coherenceModel, forKey: "coherenceModel") }
+    }
+    @Published var coherenceBudget = UserDefaults.standard.object(forKey: "coherenceBudget") as? Double ?? 1.0 {
+        didSet { UserDefaults.standard.set(max(0.05, coherenceBudget), forKey: "coherenceBudget") }
+    }
+    @Published private(set) var hasAPIKey = AnthropicKey.exists()
+    @Published var coherenceEstimate: CoherenceEstimate?
+    private var coherenceConfirmed = false
+    var coherenceActive: Bool { useCoherenceAI && analysisMode != "linguistica" }
     @Published var isBusy = false
     @Published var canCancel = false
     @Published var jobLabel = ""
@@ -48,7 +63,7 @@ final class ReviewStore: ObservableObject {
     @Published var logURL: URL?
     @Published var hasUnsavedDecisions = false
 
-    private enum Job: Equatable { case analyze, install, diagnose }
+    private enum Job: Equatable { case analyze, install, diagnose, estimate }
     private let runner = PythonRunner.shared
     private let manager = FileManager.default
 
@@ -263,14 +278,59 @@ final class ReviewStore: ObservableObject {
         status = "\(loaded.findings.count) candidatos. Avalie cada trecho no contexto."
     }
 
-    func analyze() { start(.analyze) }
+    func analyze() {
+        guard coherenceActive, !coherenceConfirmed else { return start(.analyze) }
+        guard hasAPIKey else {
+            errorText = "Configure a chave da API da Anthropic para usar a Coerência com IA, ou desligue a opção."
+            return
+        }
+        start(.estimate)
+    }
+
+    func confirmCoherence() {
+        coherenceEstimate = nil
+        coherenceConfirmed = true
+        start(.analyze)
+    }
+
+    func cancelCoherence() {
+        coherenceEstimate = nil
+        status = "Análise cancelada antes de enviar qualquer texto."
+    }
+
+    func saveAPIKey(_ key: String) {
+        let key = key.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard key.hasPrefix("sk-ant-"), key.count > 60 else {
+            errorText = "Essa não parece uma chave completa da API da Anthropic (começa com sk-ant- e tem mais de 100 caracteres). Copie a chave logo após criá-la no console."
+            return
+        }
+        do {
+            try AnthropicKey.save(key)
+            hasAPIKey = true
+            status = "Chave da API guardada nas Chaves do macOS."
+        } catch { errorText = error.localizedDescription }
+    }
+
+    func removeAPIKey() {
+        AnthropicKey.delete()
+        hasAPIKey = false
+        status = "Chave da API removida das Chaves do macOS."
+    }
+
+    private var coherenceProject: URL? {
+        guard let document = documentURL else { return nil }
+        let name = document.deletingPathExtension().lastPathComponent
+        let safe = String(name.map { $0.isLetter || $0.isNumber || $0 == "-" || $0 == " " ? $0 : "-" })
+        return try? supportDirectory("Coerencia").appendingPathComponent(safe, isDirectory: true)
+    }
     func install() { start(.install) }
     func diagnose() { start(.diagnose) }
 
     private func start(_ job: Job) {
         guard !isBusy, let directory = engineDirectory else { return }
         if job == .install && embeddedEngine != nil { return }
-        if job == .analyze && (!canAnalyze || !mayReplaceReport()) { return }
+        if job == .estimate && (!canAnalyze || !mayReplaceReport()) { return }
+        if job == .analyze && (!canAnalyze || (!coherenceConfirmed && !mayReplaceReport())) { return }
         if job == .diagnose && !pythonExists {
             errorText = "Prepare o analisador antes de verificar a instalação."
             return
@@ -282,6 +342,7 @@ final class ReviewStore: ObservableObject {
             // Não cria output: a CLI exige uma pasta de saída que ainda não exista.
             let executable: URL
             var arguments: [String]
+            var environment: [String: String] = [:]
             switch job {
             case .install:
                 executable = URL(fileURLWithPath: "/bin/bash")
@@ -310,7 +371,27 @@ final class ReviewStore: ObservableObject {
                 }
                 if includeItalics { arguments.append("--incluir-italico") }
                 if useLanguageTool && analysisMode != "editorial" { arguments.append("--languagetool") }
+                if coherenceActive, coherenceConfirmed, let project = coherenceProject {
+                    guard let key = AnthropicKey.read() else {
+                        coherenceConfirmed = false
+                        throw FonteError.message("Não foi possível ler a chave da API nas Chaves do macOS. Configure-a novamente.")
+                    }
+                    environment["ANTHROPIC_API_KEY"] = key
+                    arguments += ["--coerencia-ia", "--coerencia-projeto", project.path, "--coerencia-modelo", coherenceModel,
+                                  "--coerencia-teto", String(format: "%.2f", locale: Locale(identifier: "en_US_POSIX"), coherenceBudget)]
+                }
+                coherenceConfirmed = false
                 jobLabel = "Analisando o manuscrito…"
+            case .estimate:
+                guard let input = documentURL, let python = pythonURL, let project = coherenceProject else { return }
+                executable = python
+                saveSearchSettings()
+                let config = try supportDirectory("Configuracoes").appendingPathComponent(jobID + ".json")
+                try searchSettings.encoded().write(to: config, options: .atomic)
+                // Só lê o manuscrito e o estado do projeto; não chama a API.
+                arguments = engineArguments + ["coerencia-estimar", input.path, "--coerencia-projeto", project.path,
+                                               "--coerencia-modelo", coherenceModel, "--config", config.path]
+                jobLabel = "Calculando o custo da Coerência com IA…"
             }
             isBusy = true; canCancel = job == .analyze; logURL = log; errorText = nil
             if job == .analyze {
@@ -331,7 +412,8 @@ final class ReviewStore: ObservableObject {
                     isBusy = false; canCancel = false; jobLabel = ""; isAnalyzing = false
                 }
                 do {
-                    let result = try await runner.run(executable: executable, arguments: arguments, directory: directory, logURL: log)
+                    let result = try await runner.run(executable: executable, arguments: arguments, directory: directory,
+                                                      logURL: log, extraEnvironment: environment)
                     if job == .analyze { updateProgress(from: log) }
                     if result.cancelled {
                         analysisFailed = true
@@ -340,10 +422,22 @@ final class ReviewStore: ObservableObject {
                     }
                     guard result.exitCode == 0 else {
                         let details = String(PythonRunner.tail(log).suffix(1800))
+                        if job == .estimate {
+                            throw FonteError.message("Não foi possível estimar a Coerência com IA. Se o motor selecionado for anterior a esta versão do Lume, use Motor de análise → Restaurar embutido.\n\n\(details)")
+                        }
                         throw FonteError.message("A operação não foi concluída (código \(result.exitCode)).\n\n\(details)")
                     }
                     switch job {
                     case .analyze: try loadReport(output.appendingPathComponent("relatorio.json"))
+                    case .estimate:
+                        let prefix = "LUME_ESTIMATIVA "
+                        guard let line = PythonRunner.tail(log).split(separator: "\n").last(where: { $0.hasPrefix(prefix) }),
+                              let estimate = try? JSONDecoder().decode(CoherenceEstimate.self, from: Data(line.dropFirst(prefix.count).utf8)) else {
+                            throw FonteError.message("O motor não devolveu a estimativa da Coerência com IA.")
+                        }
+                        coherenceEstimate = estimate
+                        status = "Confira o envio e o custo estimado antes de continuar."
+
                     case .install: status = "Analisador preparado. Escolha um DOCX e clique em Analisar."
                     case .diagnose: status = "Instalação verificada. O analisador está disponível."
                     }
@@ -497,5 +591,65 @@ final class ReviewStore: ObservableObject {
     }
     func openLog() {
         if let url = logURL { NSWorkspace.shared.open(url) }
+    }
+}
+
+/// Estimativa do motor (`coerencia-estimar`) antes de qualquer envio à API.
+struct CoherenceEstimate: Decodable {
+    let modelo: String
+    let capitulos: Int
+    let aEnviar: Int
+    let titulosAEnviar: [String]
+    let caracteres: Int
+    let custoEstimadoUsd: Double
+    let custoMaximoUsd: Double
+
+    enum CodingKeys: String, CodingKey {
+        case modelo, capitulos, caracteres
+        case aEnviar = "a_enviar", titulosAEnviar = "titulos_a_enviar"
+        case custoEstimadoUsd = "custo_estimado_usd", custoMaximoUsd = "custo_maximo_usd"
+    }
+
+    var summary: String {
+        guard aEnviar > 0 else {
+            return "Nenhum capítulo mudou desde a última análise: nada será enviado e não há custo. As contradições já encontradas voltam ao relatório."
+        }
+        let lista = titulosAEnviar.prefix(6).joined(separator: ", ") + (titulosAEnviar.count > 6 ? "…" : "")
+        return String(format: "%d de %d capítulos serão enviados à Anthropic (%@).\nCusto estimado: US$ %.2f (até US$ %.2f).\nOs demais capítulos não são enviados.",
+                      aEnviar, capitulos, lista, custoEstimadoUsd, custoMaximoUsd)
+    }
+}
+
+/// Chave da API nas Chaves do macOS, no mesmo serviço usado pelo Coerencia no terminal.
+enum AnthropicKey {
+    static let service = "coerencia-anthropic"
+
+    /// Consulta só atributos: não lê o segredo nem pede permissão ao abrir o app.
+    static func exists() -> Bool {
+        let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service,
+                                    kSecReturnAttributes as String: true, kSecMatchLimit as String: kSecMatchLimitOne]
+        return SecItemCopyMatching(query as CFDictionary, nil) == errSecSuccess
+    }
+
+    static func read() -> String? {
+        let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service,
+                                    kSecReturnData as String: true, kSecMatchLimit as String: kSecMatchLimitOne]
+        var item: CFTypeRef?
+        guard SecItemCopyMatching(query as CFDictionary, &item) == errSecSuccess, let data = item as? Data else { return nil }
+        return String(data: data, encoding: .utf8)
+    }
+
+    static func save(_ key: String) throws {
+        delete()
+        let item: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service,
+                                   kSecAttrAccount as String: NSUserName(), kSecValueData as String: Data(key.utf8)]
+        let status = SecItemAdd(item as CFDictionary, nil)
+        guard status == errSecSuccess else {
+            throw FonteError.message("Não foi possível guardar a chave nas Chaves do macOS (código \(status)).")
+        }
+    }
+
+    static func delete() {
+        SecItemDelete([kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service] as CFDictionary)
     }
 }

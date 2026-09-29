@@ -24,8 +24,15 @@ import re
 from .analise import (SISTEMA_JUIZ, ESQUEMA_JUIZ, confirmada, ler_cena, mesma_contradicao, normalizar, pares_candidatos,
                       pedido_juiz, registro, relevantes, verificar)
 from .leitura import cenas
+from .modelo import ErroModelo
 
 ESTADOS = ("aberta", "corrigida", "intencional", "resolvida_por_edicao")
+# Custo = parte proporcional ao texto + parte fixa por cena (instruções e raciocínio
+# de cada chamada). Calibrado com Sonnet 5.5 em duas medições reais: Hikari
+# (79.984 caracteres, 29 cenas, US$ 0,77) e um texto de 2 cenas (US$ 0,013).
+CUSTO_POR_CARACTERE = 7.45e-6
+CUSTO_POR_CENA = 0.006
+FATOR_MODELO = {"claude-sonnet-5-5": 1.0, "claude-opus-5-5": 2.0, "claude-haiku-4-5": 0.5}
 
 
 class Capitulo:
@@ -94,6 +101,9 @@ class Projeto:
 
     # ---- rodada ------------------------------------------------------------------------------
     def atualizar(self, documento, paragrafos, modelo, maximo=3500, registrar=print, reler=False):
+        """Uma rodada. Se o teto de gasto for atingido, o que já foi lido fica salvo:
+        capítulos não lidos seguem na próxima rodada, e fatos cujos pares ainda não
+        foram julgados ficam marcados para reavaliação (sem nova leitura)."""
         caps = capitulos(paragrafos)
         guardados = self.estado["capitulos"]
         alterados = [c for c in caps if reler or guardados.get(c.id, {}).get("hash") != c.hash
@@ -101,75 +111,126 @@ class Projeto:
         ids_alterados = {c.id for c in alterados}
         tokens_antes = _tokens(modelo.chamadas)
         chamadas_antes = len(modelo.chamadas)
+        por_id = {c.id: c for c in caps}
+        por_paragrafo = {p.numero: c for c in caps for p in c.paragrafos}
 
-        # Memória: fatos dos capítulos inalterados, com a posição de hoje.
-        memoria = []
+        # Memória: fatos dos capítulos inalterados, com a posição de hoje. Os
+        # marcados para reavaliação voltam a formar pares como fatos novos.
+        memoria, sugestoes = [], []
         for cap in caps:
             if cap.id in ids_alterados:
                 continue
+            reavaliar = guardados[cap.id].get("reavaliar", False)
             for fato in guardados[cap.id]["fatos"]:
-                memoria.append({**fato, "paragrafo": cap.inicio + fato["rel"], "capitulo": cap.id, "novo": False})
+                memoria.append({**fato, "paragrafo": cap.inicio + fato["rel"], "capitulo": cap.id, "novo": reavaliar})
+            if reavaliar:
+                sugestoes += self._sugestoes_de(guardados[cap.id].get("sugestoes", []), por_id)
         poupados = sum(guardados[c.id].get("tokens", 0) for c in caps if c.id not in ids_alterados)
 
         registrar(f"{len(caps)} capítulos: {len(alterados)} a enviar, {len(caps) - len(alterados)} sem alteração (não enviados).")
-        sugestoes = []
+        parada = None
+        enviados = 0
         for cap in alterados:
             antes = _tokens(modelo.chamadas)
             fatos_cap, sugestoes_cap = [], []
-            for cena in cenas(cap.paragrafos, maximo):
-                cena.capitulo = cap.titulo
-                bruto = ler_cena(modelo, cena, relevantes(memoria, cena))
-                fatos, sug, descartes = verificar(paragrafos, cena, bruto)
-                for fato in fatos:
-                    fato.update(id=f"{cap.ordem}.{len(fatos_cap) + 1}", capitulo=cap.id,
-                                rel=fato["paragrafo"] - cap.inicio, novo=True)
-                    fatos_cap.append(fato)
-                memoria += fatos
-                sugestoes_cap += sug
-                (self.pasta / "cenas" / f"{cap.id}-{cena.numero:02d}.json").write_text(json.dumps(
-                    {"capitulo": cap.titulo, "cena": cena.numero, "resposta": bruto, "descartes": descartes},
-                    ensure_ascii=False, indent=2), encoding="utf-8")
+            try:
+                for cena in cenas(cap.paragrafos, maximo):
+                    cena.capitulo = cap.titulo
+                    bruto = ler_cena(modelo, cena, relevantes(memoria + fatos_cap, cena))
+                    fatos, sug, descartes = verificar(paragrafos, cena, bruto)
+                    for fato in fatos:
+                        fato.update(id=f"{cap.ordem}.{len(fatos_cap) + 1}", capitulo=cap.id,
+                                    rel=fato["paragrafo"] - cap.inicio, novo=True)
+                        fatos_cap.append(fato)
+                    sugestoes_cap += sug
+                    (self.pasta / "cenas" / f"{cap.id}-{cena.numero:02d}.json").write_text(json.dumps(
+                        {"capitulo": cap.titulo, "cena": cena.numero, "resposta": bruto, "descartes": descartes},
+                        ensure_ascii=False, indent=2), encoding="utf-8")
+            except ErroModelo as erro:
+                if "Teto" not in str(erro):
+                    raise
+                parada = str(erro)
+                registrar(f"  {cap.titulo}: interrompido pelo teto; será lido na próxima rodada.")
+                break
+            memoria += fatos_cap
             sugestoes += sugestoes_cap
+            enviados += 1
             gasto = _tokens(modelo.chamadas) - antes
             guardados[cap.id] = {"titulo": cap.titulo, "ordem": cap.ordem, "hash": cap.hash, "modelo": modelo.modelo,
-                                 "tokens": gasto, "lido_em": _agora(),
+                                 "tokens": gasto, "lido_em": _agora(), "reavaliar": True,
+                                 "sugestoes": self._guardar_sugestoes(sugestoes_cap, por_paragrafo),
                                  "fatos": [{k: v for k, v in f.items() if k not in ("paragrafo", "novo", "capitulo")}
                                            for f in fatos_cap]}
+            self.salvar()  # capítulo pago não se perde se algo falhar depois
             registrar(f"  {cap.titulo}: {len(fatos_cap)} fatos, {gasto} tokens")
         for antigo in set(guardados) - {c.id for c in caps}:
             del guardados[antigo]
         self.estado["documento"] = documento
 
-        self._reconciliar(caps, ids_alterados)
+        self._reconciliar(caps, {c.id for c in alterados[:enviados]})
 
         # Juiz: só pares com algum fato novo; o que já foi julgado sai do cache.
         pares = pares_candidatos(memoria, sugestoes, novo=lambda f: f["novo"])
-        de_cache = 0
-        por_paragrafo = {p.numero: c for c in caps for p in c.paragrafos}
+        de_cache = julgados = 0
         for n, par in enumerate(pares, 1):
             pedido = pedido_juiz(paragrafos, par)
             chave_cache = hashlib.sha256((modelo.modelo + "\n" + pedido).encode("utf-8")).hexdigest()
             if chave_cache in self.cache:
                 veredito, de_cache = self.cache[chave_cache]["veredito"], de_cache + 1
                 poupados += self.cache[chave_cache].get("tokens", 0)
+            elif parada:
+                continue
             else:
                 antes = _tokens(modelo.chamadas)
-                veredito = modelo.json(SISTEMA_JUIZ, pedido, ESQUEMA_JUIZ, f"juiz {n}")
+                try:
+                    veredito = modelo.json(SISTEMA_JUIZ, pedido, ESQUEMA_JUIZ, f"juiz {n}")
+                except ErroModelo as erro:
+                    if "Teto" not in str(erro):
+                        raise
+                    parada = str(erro)
+                    continue
                 self.cache[chave_cache] = {"veredito": veredito, "tokens": _tokens(modelo.chamadas) - antes}
+            julgados += 1
             julgamento = registro(par, veredito)
             if confirmada(julgamento):
                 self._registrar_pendencia(julgamento, por_paragrafo)
-        registrar(f"  {len(pares)} pares avaliados ({de_cache} do cache).")
+        registrar(f"  {julgados}/{len(pares)} pares avaliados ({de_cache} do cache).")
+        if not parada:
+            for cap in caps:
+                guardados.get(cap.id, {}).pop("reavaliar", None)
 
         self._atualizar_estados(caps)
         gasto = _tokens(modelo.chamadas) - tokens_antes
         custo = round(sum(c.get("custo_usd", 0) for c in modelo.chamadas[chamadas_antes:]), 6)
-        rodada = {"data": _agora(), "modelo": modelo.modelo, "capitulos": len(caps), "enviados": len(alterados),
-                  "tokens_gastos": gasto, "custo_usd": custo, "tokens_poupados_estimados": poupados, "pares": len(pares),
-                  "pares_do_cache": de_cache, "pendencias_abertas": sum(p["status"] == "aberta" for p in self.pendencias)}
+        rodada = {"data": _agora(), "modelo": modelo.modelo, "capitulos": len(caps), "enviados": enviados,
+                  "a_enviar": len(alterados), "tokens_gastos": gasto, "custo_usd": custo,
+                  "tokens_poupados_estimados": poupados, "pares": len(pares), "pares_julgados": julgados,
+                  "pares_do_cache": de_cache, "pendencias_abertas": sum(p["status"] == "aberta" for p in self.pendencias),
+                  "interrompida": parada}
         self.rodadas.append(rodada)
         self.salvar()
         return rodada
+
+    @staticmethod
+    def _guardar_sugestoes(sugestoes, por_paragrafo):
+        """Conflitos sugeridos com posição relativa ao capítulo, para retomar o julgamento."""
+        guardadas = []
+        for s in sugestoes:
+            ca, cb = por_paragrafo.get(s["paragrafo_anterior"]), por_paragrafo.get(s["paragrafo"])
+            if ca and cb:
+                guardadas.append({"a": [ca.id, s["paragrafo_anterior"] - ca.inicio, s["trecho_anterior"]],
+                                  "b": [cb.id, s["paragrafo"] - cb.inicio, s["trecho"]], "explicacao": s["explicacao"]})
+        return guardadas
+
+    @staticmethod
+    def _sugestoes_de(guardadas, por_id):
+        resultado = []
+        for s in guardadas:
+            ca, cb = por_id.get(s["a"][0]), por_id.get(s["b"][0])
+            if ca and cb and 0 <= s["a"][1] < len(ca.paragrafos) and 0 <= s["b"][1] < len(cb.paragrafos):
+                resultado.append({"origem": "extracao", "paragrafo_anterior": ca.inicio + s["a"][1], "trecho_anterior": s["a"][2],
+                                  "paragrafo": cb.inicio + s["b"][1], "trecho": s["b"][2], "explicacao": s["explicacao"]})
+        return resultado
 
     def _reconciliar(self, caps, alterados):
         """Pendências que tocam capítulos alterados ou removidos: se o trecho sumiu, encerra."""
@@ -222,7 +283,24 @@ class Projeto:
     def _atualizar_estados(self, caps):
         abertas = {lado["capitulo"] for p in self.pendencias if p["status"] == "aberta" for lado in (p["a"], p["b"])}
         for cap in caps:
-            self.estado["capitulos"][cap.id]["situacao"] = "com_pendencias" if cap.id in abertas else "sem_pendencias"
+            if cap.id in self.estado["capitulos"]:  # capítulo ainda não lido (teto) fica sem situação
+                self.estado["capitulos"][cap.id]["situacao"] = "com_pendencias" if cap.id in abertas else "sem_pendencias"
+
+    def estimar(self, paragrafos, modelo, reler=False):
+        """Quanto a próxima rodada enviaria, sem chamar a API. A calibração vem de
+        medições reais e o custo varia com o texto; por isso devolve também uma faixa."""
+        caps = capitulos(paragrafos)
+        guardados = self.estado["capitulos"]
+        enviar = [c for c in caps if reler or guardados.get(c.id, {}).get("hash") != c.hash
+                  or guardados.get(c.id, {}).get("modelo") != modelo]
+        caracteres = sum(len(p.texto) for c in enviar for p in c.paragrafos)
+        quantas_cenas = sum(len(cenas(c.paragrafos)) for c in enviar)
+        estimado = (caracteres * CUSTO_POR_CARACTERE + quantas_cenas * CUSTO_POR_CENA) * FATOR_MODELO.get(modelo, 1.0)
+        return {"modelo": modelo, "capitulos": len(caps), "a_enviar": len(enviar),
+                "titulos_a_enviar": [c.titulo for c in enviar], "caracteres": caracteres, "cenas": quantas_cenas,
+                "custo_estimado_usd": round(estimado, 4), "custo_minimo_usd": round(estimado * .5, 4),
+                "custo_maximo_usd": round(estimado * 1.6, 4),
+                "reavaliacao_pendente": any(g.get("reavaliar") for g in guardados.values())}
 
     # ---- consulta e decisões -------------------------------------------------------------------
     def decidir(self, ident, status):

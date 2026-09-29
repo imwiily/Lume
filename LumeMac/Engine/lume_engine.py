@@ -91,9 +91,13 @@ def health():
         assert meta['stages'][-1]['state'] == 'not_implemented', 'Auditoria indevidamente anunciada'
         grammar, _, _ = run([Block(1, 'Ela entregou o livro a professora.')], model, tense='passado')
         assert any(f.get('rule') == 'crase' for f in grammar), 'Regras gramaticais ausentes'
+        from fonte.coerencia_ia import estimar
+        estimativa = estimar([Block(1, 'Capítulo 1', 'Capítulo 1', heading=True), Block(2, 'Lia tinha olhos verdes.', 'Capítulo 1')],
+                             Path(temporary) / 'coerencia')
+        assert estimativa['a_enviar'] == 1 and estimativa['custo_estimado_usd'] > 0, 'Coerência com IA ausente'
     from fonte.languagetool import available
     return {'api_version': 1, 'report_schema': 1, 'decision_schema': 1,
-            'engine_version': __version__, 'healthy': True, 'grammar_checker': available()}
+            'engine_version': __version__, 'healthy': True, 'grammar_checker': available(), 'coherence_ai': True}
 
 
 def main():

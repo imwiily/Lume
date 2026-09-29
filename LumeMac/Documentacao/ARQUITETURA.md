@@ -11,6 +11,7 @@ Os manuscritos são somente lidos. A sequência Linguístico → Morfossintátic
 | `linguistic.py`, `analysis.py`, `temporal.py`, `editorial/` | Regras linguísticas, temporais e editoriais |
 | `grammar.py` | Crase, homófonos, concordância, regência e vírgula entre sujeito e verbo (etapa Morfossintática) |
 | `languagetool.py` | Corretor gramatical LanguageTool local: filtros, falas e servidor embutido |
+| `coerencia_ia.py` | Coerência com IA: projeto incremental do Coerencia (`../LumeCoerencia/`) na etapa Coerência global |
 | `narrative*.py`, `semantic*.py`, `generic_facts.py` | Cenas, identidades, falantes, referências, eventos, fatos e comparações |
 | `Engine/` | Entrada portátil, inventário, instalação atômica e reversão |
 | `Scripts/build_engine.py` | Motor PyInstaller com teste após relocação |
@@ -104,6 +105,18 @@ Analisador/.venv/bin/python -m fonte revisar manuscrito.docx --modo ambas --temp
 O texto das falas é enviado ao corretor. Regras de estilo e registro ficam fora para não formalizar a voz. Maiúscula após travessão de inciso e grafia de nomes próprios (palavras com inicial maiúscula fora do início de frase, mais `ignored_names`) são descartadas; itálicos marcados como pensamento não recebem alertas de grafia. Um alerta do corretor sobre o mesmo trecho de uma regra FONTE é omitido. As regras de `grammar.py` revisam crase e homófonos também em falas; concordância, regência e vírgula entre sujeito e verbo só na narração. Regência é `editorial_attention`, porque a forma com ‘em’ é corrente no português brasileiro.
 
 Consulte o [histórico](HISTORICO.md) para evolução dos contratos, a [validação](VALIDACAO.md) para evidências e a [visão](VISAO.md) para objetivos ainda não integralmente implementados.
+
+## Coerência com IA
+
+`revisar --coerencia-ia --coerencia-projeto P [--coerencia-modelo M] [--coerencia-teto T]` roda
+o projeto incremental do Coerencia na etapa Coerência global e desliga, nessa análise, a
+memória narrativa heurística. Pendências abertas viram ocorrências `rule=coerencia_ia`,
+`severity=possible_inconsistency`: o trecho posterior é a ocorrência e o anterior vai em
+`related`; o ID inclui as duas evidências. `metadata.coerencia_ia` registra capítulos
+enviados, tokens, custo e interrupção por teto. Ao atingir o teto, capítulos lidos ficam
+salvos e o restante segue na próxima análise (aviso no relatório). `coerencia-estimar`
+devolve uma linha `LUME_ESTIMATIVA {json}` com capítulos a enviar e custo estimado, sem
+chamar a API. A chave vem de `ANTHROPIC_API_KEY` ou das Chaves do macOS.
 
 ## Persistência seletiva no motor 0.9.5
 

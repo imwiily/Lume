@@ -16,6 +16,23 @@ A entrega deste hotfix está em `Saida/hotfix-0.11.4/Pacote/`, com aplicativo, Z
 
 A seleção de motores instalados anteriormente é preservada. Se **Motor de análise** mostrar uma versão anterior, use **Restaurar embutido** para ativar **FONTE 0.9.4**. Relatórios, decisões e preferências continuam na pasta `~/Library/Application Support/FONTE/`.
 
+## Coerência com IA (Claude)
+
+Opção da etapa Coerência global, desligada por padrão. Com ela ligada, contradições
+narrativas (características, idades, vida/morte, objetos, quantidades, clima, horário)
+são analisadas pelo motor Coerencia (`../LumeCoerencia/`, embutido no motor FONTE) com a
+API do Claude, no lugar da memória narrativa local.
+
+- **Chave:** em *Coerência com IA → Configurar chave…*; fica nas Chaves do macOS (serviço
+  `coerencia-anthropic`), e o app a entrega ao motor por variável de ambiente.
+- **Confirmação:** antes de enviar, o Lume mostra quais capítulos vão à Anthropic e o custo
+  estimado; nada é enviado sem confirmar. Teto padrão: US$ 1,00 por análise.
+- **Economia:** capítulos sem alteração não são reenviados (projeto por manuscrito em
+  `~/Library/Application Support/FONTE/Coerencia/`); julgamentos repetidos saem do cache.
+- **Modelo:** Sonnet 5.5 por padrão; Opus 5.5 como opção (custa o dobro).
+- **Privacidade:** o texto enviado fica nos servidores da Anthropic por até 30 dias pela
+  política atual da API e não é usado para treino por padrão.
+
 ## Estrutura do projeto
 
 | Pasta/arquivo | Conteúdo |

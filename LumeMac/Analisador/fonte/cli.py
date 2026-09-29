@@ -23,6 +23,12 @@ def load_model():
         raise ValueError("Modelo português ausente. Execute: python -m spacy download pt_core_news_sm (com o ambiente do projeto ativado).") from exc
 
 
+def coherence_options(command):
+    command.add_argument("--coerencia-projeto", type=Path, help="Pasta de projeto da Coerência com IA deste manuscrito")
+    command.add_argument("--coerencia-modelo", default="claude-sonnet-5-5",
+                         help="Modelo do Claude (claude-sonnet-5-5, claude-opus-5-5, claude-haiku-4-5)")
+
+
 def parser():
     root = argparse.ArgumentParser(description="FONTE — triagem editorial local, sem corrigir o manuscrito.")
     root.add_argument("--version", action="version", version=__version__)
@@ -40,8 +46,34 @@ def parser():
     review.add_argument("--porta-lt", type=int,
                         help="Porta de um servidor LanguageTool já ativo (ignora o embutido; padrão 8081 quando não há embutido)")
     review.add_argument("--abrir", action="store_true", help="Abrir relatório no navegador")
+    review.add_argument("--coerencia-ia", action="store_true",
+                        help="Contradições narrativas com a API do Claude (envia os capítulos alterados à Anthropic)")
+    coherence_options(review)
+    review.add_argument("--coerencia-teto", type=float, default=1.0, help="Gasto máximo em US$ nesta análise")
+    review.add_argument("--coerencia-esforco", default="medium", choices=["low", "medium", "high", "xhigh", "max"])
+    estimate = commands.add_parser("coerencia-estimar",
+                                   help="Estimar capítulos e custo da Coerência com IA, sem chamar a API")
+    coherence_options(estimate)
+    estimate.add_argument("arquivo", type=Path)
+    estimate.add_argument("--config", type=Path)
     commands.add_parser("diagnostico", help="Conferir Python e modelo instalado")
     return root
+
+
+def estimate_coherence(args):
+    """Uma linha JSON para o app: capítulos a enviar e custo estimado. Não chama a API."""
+    from .settings import load as load_settings, validate as validate_settings
+    from .coerencia_ia import estimar
+    path = args.arquivo.expanduser().resolve()
+    if not path.is_file():
+        raise ValueError("Arquivo não encontrado.")
+    if not args.coerencia_projeto:
+        raise ValueError("Informe a pasta de projeto (--coerencia-projeto).")
+    settings = load_settings(args.config) if args.config else validate_settings({})
+    blocks, _ = read_docx(path, settings)
+    result = estimar(blocks, args.coerencia_projeto.expanduser().resolve(), args.coerencia_modelo)
+    print("LUME_ESTIMATIVA " + json.dumps(result, ensure_ascii=False), flush=True)
+    return 0
 
 
 def main(argv=None):
@@ -58,6 +90,8 @@ def main(argv=None):
                   else "não embutido; use um servidor LanguageTool local separado."))
             print("Pronto para análise narrativa.")
             return 0
+        if args.command == "coerencia-estimar":
+            return estimate_coherence(args)
         path = args.arquivo.expanduser().resolve()
         if not path.is_file():
             raise ValueError("Arquivo não encontrado. Arraste um .docx para o Terminal para inserir o caminho.")
@@ -71,6 +105,8 @@ def main(argv=None):
         blocks, warnings = read_docx(path, settings)
         if args.original and args.modo == "linguistica":
             raise ValueError("A comparação com original exige o modo editorial ou ambas.")
+        if args.coerencia_ia and (args.modo == "linguistica" or not args.coerencia_projeto):
+            raise ValueError("A Coerência com IA exige o modo editorial ou ambas e uma pasta de projeto (--coerencia-projeto).")
         if args.languagetool and args.modo == "editorial":
             raise ValueError("LanguageTool exige o modo linguistica ou ambas.")
         print(f"Lendo {len(blocks)} parágrafos não vazios. Modo: {args.modo}…", flush=True)
@@ -100,7 +136,10 @@ def main(argv=None):
             findings, extra_warnings, metadata = run_pipeline(
                 blocks, load_model, settings=settings, tense=args.tempo, mode=args.modo,
                 original=original_blocks, languagetool=args.languagetool, port=port,
-                progress=progress)
+                progress=progress, coerencia=dict(
+                    pasta=args.coerencia_projeto.expanduser().resolve(), documento=path.name,
+                    modelo=args.coerencia_modelo, teto=args.coerencia_teto, esforco=args.coerencia_esforco)
+                if args.coerencia_ia else None)
         metadata.update(original_metadata)
         warnings.extend(extra_warnings)
         if args.config and not any(settings['rules'].values()) and not args.languagetool:

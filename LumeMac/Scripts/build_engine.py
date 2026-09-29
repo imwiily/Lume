@@ -18,11 +18,14 @@ def freeze_command(work):
     command = [sys.executable, '-m', 'PyInstaller', '--noconfirm', '--clean', '--onedir', '--noupx',
                '--name', 'lume-engine',
                '--distpath', str(work / 'dist'), '--workpath', str(work / 'work'), '--specpath', str(work),
-               '--paths', str(ROOT / 'Analisador'), '--paths', str(ROOT / 'Engine')]
-    for module in ('fonte', 'spacy', 'thinc', 'pt_core_news_sm', 'srsly', 'cymem', 'preshed', 'murmurhash', 'blis'):
+               '--paths', str(ROOT / 'Analisador'), '--paths', str(ROOT / 'Engine'),
+               # Coerência com IA: fonte única em LumeCoerencia/, embutida no motor.
+               '--paths', str(ROOT.parent / 'LumeCoerencia')]
+    for module in ('fonte', 'spacy', 'thinc', 'pt_core_news_sm', 'srsly', 'cymem', 'preshed', 'murmurhash', 'blis',
+                   'coerencia', 'anthropic'):
         command += ['--collect-all', module]
     command += ['--collect-data', 'docx', '--recursive-copy-metadata', 'spacy',
-                '--copy-metadata', 'pt-core-news-sm', '--copy-metadata', 'fonte-revisor']
+                '--copy-metadata', 'pt-core-news-sm', '--copy-metadata', 'fonte-revisor', '--copy-metadata', 'anthropic']
     for module in ('torch', 'tensorflow', 'cupy', 'jax', 'matplotlib', 'pytest'):
         command += ['--exclude-module', module]
     command.append(str(ROOT / 'Engine/lume_engine.py'))

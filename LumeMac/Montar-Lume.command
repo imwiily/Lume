@@ -19,6 +19,8 @@ fi
 fonte_python="$PWD/Analisador/.venv/bin/python"
 "$fonte_python" -c 'import platform; assert platform.machine() == "arm64", "Use um ambiente Python arm64 nativo"'
 "$fonte_python" -m pip install --upgrade ./Analisador
+# Coerência com IA (Claude): instalada em modo editável; o motor congelado usa os fontes de ../LumeCoerencia.
+"$fonte_python" -m pip install -e ../LumeCoerencia
 # Caches copiados com datas futuras podem fazer setuptools reutilizar código antigo.
 "$fonte_python" - <<'PYVERIFY'
 from pathlib import Path

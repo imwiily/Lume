@@ -122,3 +122,45 @@ class RelatorioTests(unittest.TestCase):
         from coerencia.relatorio import avulso, destacar
         self.assertEqual(destacar("Ela disse “olá”, Ana.", "disse olá"), "Ela <mark>disse “olá</mark>”, Ana.")
         self.assertIn("Nenhuma contradição", avulso("t.docx", "m", [], [], 0))
+
+
+class TetoTests(unittest.TestCase):
+    def test_budget_stop_keeps_paid_chapters_and_resumes_judging(self):
+        from coerencia.modelo import ErroModelo
+
+        class LeitorComTeto(LeitorFalso):
+            def __init__(self, limite):
+                super().__init__()
+                self.limite = limite
+
+            def json(self, sistema, usuario, esquema, etapa):
+                if len(self.chamadas) >= self.limite:
+                    raise ErroModelo("Teto de gasto atingido (teste).")
+                return super().json(sistema, usuario, esquema, etapa)
+
+        texto = livro(["Lia tinha olhos verdes."], ["Lia piscou os olhos castanhos."])
+        with tempfile.TemporaryDirectory() as pasta:
+            primeira = Projeto(pasta).atualizar("livro.docx", texto, LeitorComTeto(2), registrar=lambda *_: None)
+            self.assertEqual((primeira["enviados"], primeira["a_enviar"]), (2, 3))
+            self.assertTrue(primeira["interrompida"])
+            self.assertEqual(Projeto(pasta).pendencias, [])  # juiz não chegou a rodar
+            segundo = LeitorFalso()
+            Projeto(pasta).atualizar("livro.docx", texto, segundo, registrar=lambda *_: None)
+            lidas = [c["etapa"] for c in segundo.chamadas if c["etapa"].startswith("cena")]
+            self.assertEqual(len(lidas), 1)  # só o capítulo que faltava
+            self.assertEqual([p["status"] for p in Projeto(pasta).pendencias], ["aberta"])  # par retomado
+            self.assertFalse(any(c.get("reavaliar") for c in Projeto(pasta).estado["capitulos"].values()))
+
+
+class EstimativaTests(unittest.TestCase):
+    def test_estimate_counts_only_changed_chapters_without_calling_the_model(self):
+        texto = livro(["Lia tinha olhos verdes."], ["Lia piscou os olhos castanhos."])
+        with tempfile.TemporaryDirectory() as pasta:
+            antes = Projeto(pasta).estimar(texto, "claude-sonnet-5-5")
+            self.assertEqual(antes["a_enviar"], 3)
+            self.assertGreater(antes["custo_estimado_usd"], 0)
+            Projeto(pasta).atualizar("livro.docx", texto, LeitorFalso(), registrar=lambda *_: None)
+            depois = Projeto(pasta).estimar(texto, "falso:1b")
+            self.assertEqual((depois["a_enviar"], depois["caracteres"]), (0, 0))
+            alterado = livro(["Lia tinha olhos verdes."], ["Lia piscou os olhos verdes."])
+            self.assertEqual(Projeto(pasta).estimar(alterado, "falso:1b")["titulos_a_enviar"], ["Capítulo 2"])
