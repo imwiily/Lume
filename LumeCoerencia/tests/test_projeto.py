@@ -104,3 +104,21 @@ class ProjetoTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class RelatorioTests(unittest.TestCase):
+    def test_project_report_highlights_both_excerpts(self):
+        from coerencia.relatorio import de_projeto
+        with tempfile.TemporaryDirectory() as pasta:
+            paragrafos = livro(["Lia tinha olhos verdes."], ["Lia piscou os olhos castanhos <b>."])
+            Projeto(pasta).atualizar("livro.docx", paragrafos, LeitorFalso(), registrar=lambda *_: None)
+            html = de_projeto(Projeto(pasta), capitulos(paragrafos), pasta)
+            self.assertIn("C001", html)
+            self.assertIn("<mark>olhos verdes</mark>", html)
+            self.assertIn("<mark>olhos castanhos</mark> &lt;b&gt;.", html)  # texto do livro é escapado
+            self.assertIn("coerencia decidir C001", html)
+
+    def test_single_report_and_empty_state(self):
+        from coerencia.relatorio import avulso, destacar
+        self.assertEqual(destacar("Ela disse “olá”, Ana.", "disse olá"), "Ela <mark>disse “olá</mark>”, Ana.")
+        self.assertIn("Nenhuma contradição", avulso("t.docx", "m", [], [], 0))

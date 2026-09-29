@@ -142,7 +142,11 @@ class AgrupamentoTests(unittest.TestCase):
                 "confianca": "media", "explicacao": "idade de novo"}
         outro = {"a": {"paragrafo": 3, "trecho": "olhos verdes"}, "b": {"paragrafo": 9, "trecho": "olhos azuis"},
                  "confianca": "alta", "explicacao": "cor"}
-        grupos = agrupar([dois, um, outro])
+        mesmo_par = {"a": {"paragrafo": 3, "trecho": "a casa verde"}, "b": {"paragrafo": 9, "trecho": "voltou para casa"},
+                     "confianca": "media", "explicacao": "mesmo trecho visto de outro jeito"}
+        grupos = agrupar([dois, um, outro, mesmo_par])
         self.assertEqual(len(grupos), 2)
         self.assertEqual(grupos[0]["explicacao"], "idade")
         self.assertEqual(len(grupos[0]["relacionadas"]), 1)
+        self.assertEqual(grupos[1]["explicacao"], "cor")
+        self.assertEqual(len(grupos[1]["relacionadas"]), 1)

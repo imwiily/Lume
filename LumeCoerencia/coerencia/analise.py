@@ -263,6 +263,10 @@ def _sobrepoe(x, y):
 
 
 def mesma_contradicao(x, y):
+    """Mesmo ponto do texto: trechos sobrepostos, ou o mesmo par de parágrafos distintos."""
+    par_x = {x["a"]["paragrafo"], x["b"]["paragrafo"]}
+    if len(par_x) == 2 and par_x == {y["a"]["paragrafo"], y["b"]["paragrafo"]}:
+        return True
     return any(_sobrepoe(x[i], y[j]) for i in ("a", "b") for j in ("a", "b"))
 
 

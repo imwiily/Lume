@@ -64,7 +64,8 @@ def analisar_projeto(args, caminho, antes):
     modelo.verificar()
     print(f"Coerencia {__version__} · projeto {projeto.pasta} · modelo {args.modelo}")
     inicio = time.monotonic()
-    rodada = projeto.atualizar(caminho.name, ler_docx(caminho), modelo, args.cena, reler=args.reler)
+    paragrafos = ler_docx(caminho)
+    rodada = projeto.atualizar(caminho.name, paragrafos, modelo, args.cena, reler=args.reler)
     if sha256(caminho) != antes:
         raise SystemExit("O manuscrito mudou durante a análise. Rode novamente sobre a versão atual.")
     mostrar_capitulos(projeto)
@@ -72,6 +73,11 @@ def analisar_projeto(args, caminho, antes):
     print(f"\nRodada: {rodada['enviados']}/{rodada['capitulos']} capítulos enviados · "
           f"{rodada['tokens_gastos']} tokens gastos (US$ {rodada['custo_usd']:.4f}) · ~{rodada['tokens_poupados_estimados']} poupados · "
           f"{time.monotonic() - inicio:.0f} s · manuscrito preservado.")
+    from .projeto import capitulos
+    from .relatorio import de_projeto
+    relatorio = projeto.pasta / "relatorio.html"
+    relatorio.write_text(de_projeto(projeto, capitulos(paragrafos), args.projeto), encoding="utf-8")
+    print("Relatório: " + str(relatorio))
     print("Marque cada pendência com: coerencia decidir <ID> corrigida|intencional --projeto " + str(args.projeto))
 
 
@@ -100,10 +106,18 @@ def analisar(args):
     mostrar(contradicoes)
     custo = sum(c.get("custo_usd", 0) for c in modelo.chamadas)
     print(f"\nTempo: {segundos:.0f} s · {len(modelo.chamadas)} chamadas ao modelo · US$ {custo:.4f} · manuscrito preservado.")
+    from .relatorio import avulso
+    (pasta / "relatorio.html").write_text(avulso(caminho.name, args.modelo, contradicoes, paragrafos, custo), encoding="utf-8")
+    print("Relatório: " + str(pasta / "relatorio.html"))
     print("Memória e julgamentos em " + str(pasta))
 
 
 def casa(deteccao, gabarito):
+    """A detecção, ou algum alerta agrupado com ela, corresponde ao gabarito?"""
+    return any(_casa(d, gabarito) for d in [deteccao, *deteccao.get("relacionadas", [])])
+
+
+def _casa(deteccao, gabarito):
     pa, pb = deteccao["a"]["paragrafo"], deteccao["b"]["paragrafo"]
     if gabarito["p"] not in (pa, pb):
         return False
