@@ -211,8 +211,9 @@ struct ContentView: View {
                 Picker("Tempo da narrativa", selection: $store.tense) {
                     Text("Passado").tag("passado")
                     Text("Presente").tag("presente")
-                    Text("Automático").tag("auto")
                 }.labelsHidden().pickerStyle(.segmented).frame(maxWidth: .infinity)
+                Text("Escolha o tempo em que o livro é narrado. Um tempo diferente do texto gera muitos alertas falsos de tempo verbal.")
+                    .font(.caption).foregroundStyle(LumeTheme.secondary).fixedSize(horizontal: false, vertical: true)
             }.disabled(store.analysisMode == "editorial")
             Divider()
             Text("Critérios do manuscrito").font(.headline)

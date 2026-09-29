@@ -50,6 +50,11 @@ struct EmbeddedEngine {
             if let id = object["active"] as? String, id.count == 32,
                id.allSatisfy({ "0123456789abcdef".contains($0) }),
                let engine = read(support.appendingPathComponent("Engines/" + id), updated: true) {
+                // Um motor instalado só substitui o embutido se for de versão mais nova. Com versão
+                // igual ou anterior, o app usa o embutido, que acompanha esta interface.
+                guard engine.version.compare(base.version, options: .numeric) == .orderedDescending else {
+                    return (base, "O Lume passou a usar o motor embutido FONTE \(base.version); o motor instalado (\(engine.version)) não é mais novo que ele.")
+                }
                 return (engine, nil)
             }
         }

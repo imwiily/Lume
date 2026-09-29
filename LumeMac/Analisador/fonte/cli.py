@@ -39,7 +39,9 @@ def parser():
     review.add_argument("--config", type=Path, help="Configuração JSON das verificações e estrutura do manuscrito")
     review.add_argument("--modo", choices=["linguistica", "editorial", "ambas"], default="linguistica")
     review.add_argument("--original", type=Path, help="DOCX original opcional para procurar cicatrizes de edição")
-    review.add_argument("--tempo", choices=["auto", "passado", "presente"], default="auto")
+    # Sem detecção automática: o tempo da narração é informado (passado ou presente).
+    review.add_argument("--tempo", choices=["passado", "presente"], default="passado",
+                        help="Tempo em que o livro é narrado (padrão: passado)")
     review.add_argument("--incluir-italico", action="store_true", help="Analisar também itálicos na narração")
     review.add_argument("--languagetool", action="store_true",
                         help="Usar o corretor gramatical local: o embutido, se existir; senão, um servidor já ativo. Nenhum serviço na nuvem")

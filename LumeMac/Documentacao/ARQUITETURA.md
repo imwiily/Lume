@@ -26,7 +26,7 @@ Caminhos de módulos Python são relativos a `Analisador/fonte/`; os demais, a `
 
 Pacote, API, relatório e decisões usam schema 1; memória narrativa usa schema 2. As extensões são aditivas. `manifest.json` declara versão, arquitetura, macOS mínimo, executável e inventário SHA-256. Links simbólicos devem resolver dentro do pacote. A assinatura atual é local (ad hoc); o hash assegura integridade, não identidade do publicador.
 
-O app procura `Contents/Resources/Engine.lumemotor`. A seleção persistida de um motor instalado tem prioridade. **Restaurar embutido** seleciona o motor incluído nesta versão. O app conserva `br.fonte.editorial` e `~/Library/Application Support/FONTE/`: relatórios, decisões e configuração de motores permanecem compatíveis. IDs/evidências novos não recebem decisões antigas por aproximação.
+O app procura `Contents/Resources/Engine.lumemotor`. Um motor instalado só é usado se for de versão mais nova que o embutido; com versão igual ou anterior, o app usa o embutido e avisa. **Restaurar embutido** seleciona o motor incluído nesta versão. O app conserva `br.fonte.editorial` e `~/Library/Application Support/FONTE/`: relatórios, decisões e configuração de motores permanecem compatíveis. IDs/evidências novos não recebem decisões antigas por aproximação.
 
 ## Contrato de ocorrências
 
@@ -98,7 +98,7 @@ Os dois manuscritos e os testes foram usados no desenvolvimento. Não constituem
 Analisador/.venv/bin/python -m fonte revisar manuscrito.docx --modo ambas --tempo passado --saida Saida/revisao-nova
 ```
 
-`--config busca.json` recebe a configuração exportada pelo Lume. `--original original.docx` acrescenta comparação editorial com uma versão anterior. A saída deve ser nova. Nenhum desses argumentos autoriza alterar o manuscrito. O modo geral limita as camadas executadas; configurações antigas com tudo desligado permanecem desligadas.
+`--tempo passado|presente` informa o tempo da narração (padrão: passado); não há mais detecção automática, que se mostrou pouco confiável. `--config busca.json` recebe a configuração exportada pelo Lume. `--original original.docx` acrescenta comparação editorial com uma versão anterior. A saída deve ser nova. Nenhum desses argumentos autoriza alterar o manuscrito. O modo geral limita as camadas executadas; configurações antigas com tudo desligado permanecem desligadas.
 
 `--languagetool` ativa o corretor gramatical local. Se o motor tiver o corretor embutido (`languagetool/` ao lado de `runtime/` no pacote, `Analisador/.languagetool` nos fontes ou `FONTE_LANGUAGETOOL`), a CLI inicia o servidor numa porta livre de 127.0.0.1, com o Java do pacote, e o encerra ao terminar. Sem corretor embutido, ou com `--porta-lt`, usa um servidor já ativo (padrão 8081). `metadata.languagetool_origem` registra `embutido` ou `externo`. Sem a flag, a CLI não usa o corretor; o app a envia quando **Corretor gramatical local** está ligado, o que agora é o padrão.
 
