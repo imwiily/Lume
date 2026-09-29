@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "descricao": "Contradições anotadas. p = parágrafo onde a contradição aparece; contra = parágrafo com o fato anterior (igual a p quando está no mesmo parágrafo); trecho = trecho em p. Numeração: parágrafos não vazios a partir de 1, títulos incluídos.",
+  "casos": [
+    {"id": "farol", "corpus": "LumeCoerencia/avaliacao/textos.json", "texto": "farol", "contradicoes": [
+      {"p": 19, "contra": 7, "trecho": "capa vermelha"},
+      {"p": 20, "contra": 7, "trecho": "três termômetros"}]},
+    {"id": "restaurante", "corpus": "LumeCoerencia/avaliacao/textos.json", "texto": "restaurante", "contradicoes": [
+      {"p": 20, "contra": 13, "trecho": "sessenta e cinco anos"},
+      {"p": 21, "contra": 6, "trecho": "no ano passado"},
+      {"p": 22, "contra": 13, "trecho": "lenço azul"}]},
+    {"id": "mudanca", "corpus": "LumeCoerencia/avaliacao/textos.json", "texto": "mudanca", "contradicoes": [
+      {"p": 16, "contra": 7, "trecho": "vinte e dois anos"},
+      {"p": 21, "contra": 20, "trecho": "o primeiro objeto que coloquei no caminhão"}]},
+    {"id": "oficina", "corpus": "LumeCoerencia/avaliacao/textos.json", "texto": "oficina", "contradicoes": [
+      {"p": 18, "contra": 10, "trecho": "o pai de Joaquim arrumava"},
+      {"p": 10, "contra": 2, "trecho": "desde então ele cuidava da oficina"}]},
+    {"id": "viagem", "corpus": "LumeCoerencia/avaliacao/textos.json", "texto": "viagem", "contradicoes": [
+      {"p": 16, "contra": 11, "trecho": "Clara"},
+      {"p": 17, "contra": 15, "trecho": "sol forte"}]},
+    {"id": "dev-estacao-trem", "corpus": "LumeMac/Analisador/tests/corpus/deteccao/desenvolvimento.json", "texto": "dev-estacao-trem", "contradicoes": [
+      {"p": 16, "contra": 12, "trecho": "olhos castanhos"},
+      {"p": 15, "contra": 8, "trecho": "não tinha guarda-chuva"},
+      {"p": 21, "contra": 12, "trecho": "mala preta"},
+      {"p": 19, "contra": 19, "trecho": "a mãe deles preparou o café"}]},
+    {"id": "dev-estacao-espacial", "corpus": "LumeMac/Analisador/tests/corpus/deteccao/desenvolvimento.json", "texto": "dev-estacao-espacial", "contradicoes": [
+      {"p": 22, "contra": 16, "trecho": "meu pai entrou"},
+      {"p": 23, "contra": 19, "trecho": "olhos azuis"}]},
+    {"id": "dev-ferreiro", "corpus": "LumeMac/Analisador/tests/corpus/deteccao/desenvolvimento.json", "texto": "dev-ferreiro", "contradicoes": [
+      {"p": 20, "contra": 19, "trecho": "baú de pinho"}]},
+    {"id": "val-detetive", "corpus": "LumeMac/Analisador/tests/corpus/deteccao/validacao.json", "texto": "val-detetive", "contradicoes": [
+      {"p": 23, "contra": 7, "trecho": "tinha apenas doze anos"}]},
+    {"id": "val-padaria", "corpus": "LumeMac/Analisador/tests/corpus/deteccao/validacao.json", "texto": "val-padaria", "contradicoes": [
+      {"p": 19, "contra": 4, "trecho": "Seu Jorge está atrás do balcão"},
+      {"p": 20, "contra": 20, "trecho": "cinco anos mais velha"}]},
+    {"id": "val-princesa", "corpus": "LumeMac/Analisador/tests/corpus/deteccao/validacao.json", "texto": "val-princesa", "contradicoes": [
+      {"p": 12, "contra": 6, "trecho": "capa azul"}]},
+    {"id": "controle-costureira", "corpus": "LumeMac/Analisador/tests/corpus/deteccao/desenvolvimento.json", "texto": "dev-controle-costureira", "contradicoes": []},
+    {"id": "controle-trem", "corpus": "LumeMac/Analisador/tests/corpus/deteccao/validacao.json", "texto": "val-controle-trem", "contradicoes": []}
+  ]
+}
