@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fonte-revisor"
+version = "0.6.0"
+description = "Triagem editorial local de manuscritos em português"
+requires-python = ">=3.10,<3.14"
+dependencies = ["python-docx==1.2.0", "spacy==3.8.16"]
+
+[project.scripts]
+fonte = "fonte.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["fonte*"]
+
+[tool.setuptools.package-data]
+fonte = ["*.html", "data/*.gz", "data/*.json", "data/*.txt", "data/*.md"]

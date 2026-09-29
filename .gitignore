@@ -1,0 +1,15 @@
+.DS_Store
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+build/
+dist/
+DerivedData/
+xcuserdata/
+LumeMac/Saida/
+.env
+.env.*
+!.env.example

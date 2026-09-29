@@ -1,0 +1,19 @@
+{
+  "name": "PortiLexicon-UD",
+  "commit": "315e063da1f89c89e2097c6e72428ebefb9ab1d1",
+  "source": "https://github.com/LuceleneL/PortiLexicon-UD",
+  "entries": 857387,
+  "derived_sha256": "e6624be6b5d873c466ffb6308d23eb09edc7af80812cb55c5458a93e2778ef1e",
+  "malformed_source_rows_skipped": [
+    {
+      "file": "WORDmaster.txt",
+      "line": 846508,
+      "text": "vassour\u00e1sse"
+    }
+  ],
+  "inputs": {
+    "WORDmaster.txt": "915115367871509add8caa64e23138b2147466f359bd4e1aa32fc3ed5b85efc3",
+    "VERB.tsv": "3c3ccbf94e0c6e7a1673722f6adceb36e75fde7a70fd5a1dc0edc5b7bcc69342",
+    "AUX.tsv": "e900b15509b1a54752173e45f1d16e1a397a888f957865c2905e33a6a4568a11"
+  }
+}

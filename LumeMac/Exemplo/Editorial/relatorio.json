@@ -1,0 +1,1108 @@
+{
+  "schema_version": 1,
+  "document": "Manuscrito-editorial.docx",
+  "sha256": "1379b28fb99fff9d71212178570b4a64409b1a7a285ca8b30726809845b9a00c",
+  "created": "2026-09-30T01:32:16.721990+00:00",
+  "metadata": {
+    "tempo": "passado",
+    "paragrafos": 13,
+    "modelo": "core_news_sm",
+    "versao_modelo": "3.8.0",
+    "modo": "ambas",
+    "contagem_verbos": {
+      "passado": 9,
+      "presente": 2
+    },
+    "excluir_italico": true,
+    "confirmacao_lexical": "PortiLexicon-UD",
+    "segunda_leitura_estrutura": true,
+    "temporal_relations": [
+      "conditional_future",
+      "simultaneous_present",
+      "ambiguous_simultaneity",
+      "coordinated_past_present"
+    ],
+    "stages": [
+      {
+        "module": "linguistic",
+        "title": "Revisão linguística",
+        "state": "completed",
+        "finding_count": 0,
+        "coverage": "partial",
+        "detail": "Padrões determinísticos; pontuação e interrogação também em falas/pensamentos. LanguageTool opcional.",
+        "duration_ms": 4
+      },
+      {
+        "module": "morphosyntactic",
+        "title": "Análise morfossintática",
+        "state": "completed",
+        "finding_count": 2,
+        "coverage": "partial",
+        "detail": "Tempo predominante, estrutura, quatro relações temporais locais, acentuação verbal contextual, crase, homófonos, concordância, regência e vírgula entre sujeito e verbo. Cobertura parcial; homógrafos permanecem dúvidas.",
+        "duration_ms": 805
+      },
+      {
+        "module": "editorial",
+        "title": "Contexto curto",
+        "state": "completed",
+        "finding_count": 3,
+        "coverage": "partial",
+        "detail": "Diálogo, repetições, gerundismo e referências em janelas curtas.",
+        "duration_ms": 16
+      },
+      {
+        "module": "global_coherence",
+        "title": "Coerência global",
+        "state": "completed",
+        "finding_count": 3,
+        "coverage": "partial",
+        "detail": "Variações de nomes e prazos; contradições narrativas com a Coerência com IA, quando ligada. Cobertura parcial.",
+        "duration_ms": 0
+      },
+      {
+        "module": "audit",
+        "title": "Auditoria final",
+        "state": "not_implemented",
+        "finding_count": 0,
+        "coverage": "not_implemented",
+        "detail": "Auditor editorial independente ainda não implementado; nenhuma busca adicional foi realizada."
+      }
+    ],
+    "pipeline_version": 2,
+    "occurrence_schema_version": 1,
+    "text_index": {
+      "unit": "unicode_codepoint",
+      "separator": "\n",
+      "scope": "nonempty_body_paragraphs_and_tables",
+      "length": 453,
+      "sha256": "e49386642583a0ccd53b1f8c37eab8125f632acfb8e7783d5fc8c925ba47ecf7",
+      "paragraphs": [
+        {
+          "paragraph": 1,
+          "start": 0,
+          "end": 11
+        },
+        {
+          "paragraph": 2,
+          "start": 12,
+          "end": 47
+        },
+        {
+          "paragraph": 3,
+          "start": 48,
+          "end": 81
+        },
+        {
+          "paragraph": 4,
+          "start": 82,
+          "end": 117
+        },
+        {
+          "paragraph": 5,
+          "start": 118,
+          "end": 169
+        },
+        {
+          "paragraph": 6,
+          "start": 170,
+          "end": 208
+        },
+        {
+          "paragraph": 7,
+          "start": 209,
+          "end": 251
+        },
+        {
+          "paragraph": 8,
+          "start": 252,
+          "end": 277
+        },
+        {
+          "paragraph": 9,
+          "start": 278,
+          "end": 321
+        },
+        {
+          "paragraph": 10,
+          "start": 322,
+          "end": 365
+        },
+        {
+          "paragraph": 11,
+          "start": 366,
+          "end": 403
+        },
+        {
+          "paragraph": 12,
+          "start": 404,
+          "end": 417
+        },
+        {
+          "paragraph": 13,
+          "start": 418,
+          "end": 453
+        }
+      ]
+    },
+    "confidence_semantics": "rule_strength_not_calibrated_probability",
+    "search_settings": null,
+    "chapters": [
+      {
+        "paragraph": 1,
+        "title": "Capítulo um"
+      },
+      {
+        "paragraph": 12,
+        "title": "Capítulo dois"
+      }
+    ],
+    "document_structure": [
+      {
+        "paragraph": 1,
+        "role": "heading"
+      },
+      {
+        "paragraph": 12,
+        "role": "heading"
+      }
+    ],
+    "languagetool": false,
+    "languagetool_origem": null,
+    "versao_fonte": "1.0.0"
+  },
+  "warnings": [
+    "Escopo: corpo do documento e tabelas. Cabeçalhos, rodapés, notas, comentários, caixas de texto e imagens não são analisados. A localização usa parágrafos, não páginas.",
+    "Revisão linguística sem o corretor gramatical local (LanguageTool): ortografia geral e boa parte da concordância não foram verificadas. As regras do FONTE cobrem apenas classes específicas.",
+    "Análise editorial experimental: regras locais de duração/adiamento, repetições, grafias próximas de nomes e referências em construções específicas. Não detecta todas as inconsistências nem interpreta o cânone, o registro de personagem ou a causalidade do enredo.",
+    "Confiança baixa/média/alta descreve a força do indício da regra, não a probabilidade de existir um erro. Mesmo alertas de confiança alta exigem leitura humana.",
+    "As regras de continuidade e referências examinam também falas e itálicos. Repetições seguem as áreas de busca configuradas.",
+    "Auditoria editorial independente ainda não implementada. Etapa concluída significa apenas que as regras disponíveis terminaram."
+  ],
+  "findings": [
+    {
+      "id": "506024ea46077587",
+      "category": "Possível repetição próxima",
+      "priority": "Explorar",
+      "paragraph": 2,
+      "chapter": "Capítulo um",
+      "text": "🌿 Era melhor eu me preparar melhor.",
+      "start": 6,
+      "end": 34,
+      "reason": "“melhor” aparece duas vezes em uma janela curta. A repetição pode ser necessária ou expressiva; confira se há redundância.",
+      "source": "FONTE Editorial · palavra_proxima",
+      "layer": "editorial",
+      "rule": "palavra_proxima",
+      "confidence": "baixa",
+      "related": [],
+      "context": [
+        {
+          "paragraph": 1,
+          "chapter": "Capítulo um",
+          "text": "Capítulo um",
+          "start": 0,
+          "end": 11,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 0,
+            "end": 11
+          },
+          "excerpt": "Capítulo um"
+        },
+        {
+          "paragraph": 2,
+          "chapter": "Capítulo um",
+          "text": "🌿 Era melhor eu me preparar melhor.",
+          "start": 0,
+          "end": 35,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 12,
+            "end": 47
+          },
+          "excerpt": "🌿 Era melhor eu me preparar melhor."
+        },
+        {
+          "paragraph": 3,
+          "chapter": "Capítulo um",
+          "text": "A reunião foi adiada para amanhã.",
+          "start": 0,
+          "end": 33,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 48,
+            "end": 81
+          },
+          "excerpt": "A reunião foi adiada para amanhã."
+        },
+        {
+          "paragraph": 4,
+          "chapter": "Capítulo um",
+          "text": "Ganhei mais dois dias para revisar.",
+          "start": 0,
+          "end": 35,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 82,
+            "end": 117
+          },
+          "excerpt": "Ganhei mais dois dias para revisar."
+        }
+      ],
+      "module": "editorial",
+      "severity": "editorial_attention",
+      "confidence_score": 0.4,
+      "category_code": "palavra_proxima",
+      "range": {
+        "start": 18,
+        "end": 46
+      },
+      "excerpt": "melhor eu me preparar melhor",
+      "message": "“melhor” aparece duas vezes em uma janela curta. A repetição pode ser necessária ou expressiva; confira se há redundância.",
+      "suggestion": null,
+      "evidence": [
+        {
+          "paragraph": 2,
+          "chapter": "Capítulo um",
+          "text": "🌿 Era melhor eu me preparar melhor.",
+          "start": 6,
+          "end": 34,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 18,
+            "end": 46
+          },
+          "excerpt": "melhor eu me preparar melhor"
+        }
+      ]
+    },
+    {
+      "id": "90c24dc29aab496b",
+      "category": "Possível inconsistência temporal",
+      "priority": "Explorar",
+      "paragraph": 3,
+      "chapter": "Capítulo um",
+      "text": "A reunião foi adiada para amanhã.",
+      "start": 14,
+      "end": 32,
+      "reason": "O adiamento é para amanhã, mas há menção a mais 2 dias no contexto próximo. Se a atividade seria hoje, o ganho seria de um dia. Verifique a data original e se os trechos se referem ao mesmo evento.",
+      "source": "FONTE Editorial · adiamento_amanha",
+      "layer": "editorial",
+      "rule": "adiamento_amanha",
+      "confidence": "média",
+      "related": [
+        {
+          "paragraph": 4,
+          "chapter": "Capítulo um",
+          "text": "Ganhei mais dois dias para revisar.",
+          "start": 7,
+          "end": 21,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 89,
+            "end": 103
+          },
+          "excerpt": "mais dois dias"
+        }
+      ],
+      "context": [
+        {
+          "paragraph": 1,
+          "chapter": "Capítulo um",
+          "text": "Capítulo um",
+          "start": 0,
+          "end": 11,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 0,
+            "end": 11
+          },
+          "excerpt": "Capítulo um"
+        },
+        {
+          "paragraph": 2,
+          "chapter": "Capítulo um",
+          "text": "🌿 Era melhor eu me preparar melhor.",
+          "start": 0,
+          "end": 35,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 12,
+            "end": 47
+          },
+          "excerpt": "🌿 Era melhor eu me preparar melhor."
+        },
+        {
+          "paragraph": 3,
+          "chapter": "Capítulo um",
+          "text": "A reunião foi adiada para amanhã.",
+          "start": 0,
+          "end": 33,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 48,
+            "end": 81
+          },
+          "excerpt": "A reunião foi adiada para amanhã."
+        },
+        {
+          "paragraph": 4,
+          "chapter": "Capítulo um",
+          "text": "Ganhei mais dois dias para revisar.",
+          "start": 0,
+          "end": 35,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 82,
+            "end": 117
+          },
+          "excerpt": "Ganhei mais dois dias para revisar."
+        },
+        {
+          "paragraph": 5,
+          "chapter": "Capítulo um",
+          "text": "Você não treina amanhã nem nos três dias seguintes.",
+          "start": 0,
+          "end": 51,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 118,
+            "end": 169
+          },
+          "excerpt": "Você não treina amanhã nem nos três dias seguintes."
+        }
+      ],
+      "module": "global_coherence",
+      "severity": "possible_inconsistency",
+      "confidence_score": 0.65,
+      "category_code": "adiamento_amanha",
+      "range": {
+        "start": 62,
+        "end": 80
+      },
+      "excerpt": "adiada para amanhã",
+      "message": "O adiamento é para amanhã, mas há menção a mais 2 dias no contexto próximo. Se a atividade seria hoje, o ganho seria de um dia. Verifique a data original e se os trechos se referem ao mesmo evento.",
+      "suggestion": null,
+      "evidence": [
+        {
+          "paragraph": 3,
+          "chapter": "Capítulo um",
+          "text": "A reunião foi adiada para amanhã.",
+          "start": 14,
+          "end": 32,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 62,
+            "end": 80
+          },
+          "excerpt": "adiada para amanhã"
+        },
+        {
+          "paragraph": 4,
+          "chapter": "Capítulo um",
+          "text": "Ganhei mais dois dias para revisar.",
+          "start": 7,
+          "end": 21,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 89,
+            "end": 103
+          },
+          "excerpt": "mais dois dias"
+        }
+      ]
+    },
+    {
+      "id": "2913e63dfcdd2d6e",
+      "category": "Possível inconsistência temporal",
+      "priority": "Verificar",
+      "paragraph": 5,
+      "chapter": "Capítulo um",
+      "text": "Você não treina amanhã nem nos três dias seguintes.",
+      "start": 16,
+      "end": 50,
+      "reason": "A expressão inclui amanhã e mais 3 dias, totalizando 4. O trecho relacionado informa 3 dias. Confira se ambos tratam da mesma pessoa, punição e contagem (dias corridos ou letivos).",
+      "source": "FONTE Editorial · duracao_suspensao",
+      "layer": "editorial",
+      "rule": "duracao_suspensao",
+      "confidence": "alta",
+      "related": [
+        {
+          "paragraph": 6,
+          "chapter": "Capítulo um",
+          "text": "O jogador está suspenso por três dias.",
+          "start": 15,
+          "end": 37,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 185,
+            "end": 207
+          },
+          "excerpt": "suspenso por três dias"
+        }
+      ],
+      "context": [
+        {
+          "paragraph": 3,
+          "chapter": "Capítulo um",
+          "text": "A reunião foi adiada para amanhã.",
+          "start": 0,
+          "end": 33,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 48,
+            "end": 81
+          },
+          "excerpt": "A reunião foi adiada para amanhã."
+        },
+        {
+          "paragraph": 4,
+          "chapter": "Capítulo um",
+          "text": "Ganhei mais dois dias para revisar.",
+          "start": 0,
+          "end": 35,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 82,
+            "end": 117
+          },
+          "excerpt": "Ganhei mais dois dias para revisar."
+        },
+        {
+          "paragraph": 5,
+          "chapter": "Capítulo um",
+          "text": "Você não treina amanhã nem nos três dias seguintes.",
+          "start": 0,
+          "end": 51,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 118,
+            "end": 169
+          },
+          "excerpt": "Você não treina amanhã nem nos três dias seguintes."
+        },
+        {
+          "paragraph": 6,
+          "chapter": "Capítulo um",
+          "text": "O jogador está suspenso por três dias.",
+          "start": 0,
+          "end": 38,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 170,
+            "end": 208
+          },
+          "excerpt": "O jogador está suspenso por três dias."
+        },
+        {
+          "paragraph": 7,
+          "chapter": "Capítulo um",
+          "text": "Lívia entrou na sala. Lívia abriu o livro.",
+          "start": 0,
+          "end": 42,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 209,
+            "end": 251
+          },
+          "excerpt": "Lívia entrou na sala. Lívia abriu o livro."
+        }
+      ],
+      "module": "global_coherence",
+      "severity": "possible_inconsistency",
+      "confidence_score": 0.9,
+      "category_code": "duracao_suspensao",
+      "range": {
+        "start": 134,
+        "end": 168
+      },
+      "excerpt": "amanhã nem nos três dias seguintes",
+      "message": "A expressão inclui amanhã e mais 3 dias, totalizando 4. O trecho relacionado informa 3 dias. Confira se ambos tratam da mesma pessoa, punição e contagem (dias corridos ou letivos).",
+      "suggestion": null,
+      "evidence": [
+        {
+          "paragraph": 5,
+          "chapter": "Capítulo um",
+          "text": "Você não treina amanhã nem nos três dias seguintes.",
+          "start": 16,
+          "end": 50,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 134,
+            "end": 168
+          },
+          "excerpt": "amanhã nem nos três dias seguintes"
+        },
+        {
+          "paragraph": 6,
+          "chapter": "Capítulo um",
+          "text": "O jogador está suspenso por três dias.",
+          "start": 15,
+          "end": 37,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 185,
+            "end": 207
+          },
+          "excerpt": "suspenso por três dias"
+        }
+      ]
+    },
+    {
+      "id": "545635a8680e693a",
+      "category": "Tempo verbal",
+      "priority": "Verificar",
+      "paragraph": 6,
+      "chapter": "Capítulo um",
+      "text": "O jogador está suspenso por três dias.",
+      "start": 10,
+      "end": 14,
+      "reason": "O modelo e o léxico sustentam uma leitura no presente, em texto configurado/inferido como passado. Isso não confirma erro: pensamento, comentário do narrador, presente geral e mudanças deliberadas de plano temporal precisam ser avaliados no contexto.",
+      "source": "Regras FONTE + spaCy + PortiLexicon-UD",
+      "module": "morphosyntactic",
+      "severity": "editorial_attention",
+      "confidence": "média",
+      "confidence_score": 0.65,
+      "category_code": "narrative_tense",
+      "range": {
+        "start": 180,
+        "end": 184
+      },
+      "excerpt": "está",
+      "message": "O modelo e o léxico sustentam uma leitura no presente, em texto configurado/inferido como passado. Isso não confirma erro: pensamento, comentário do narrador, presente geral e mudanças deliberadas de plano temporal precisam ser avaliados no contexto.",
+      "layer": "linguistica",
+      "suggestion": null,
+      "evidence": [
+        {
+          "paragraph": 6,
+          "chapter": "Capítulo um",
+          "text": "O jogador está suspenso por três dias.",
+          "start": 10,
+          "end": 14,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 180,
+            "end": 184
+          },
+          "excerpt": "está"
+        }
+      ],
+      "context": [
+        {
+          "paragraph": 4,
+          "chapter": "Capítulo um",
+          "text": "Ganhei mais dois dias para revisar.",
+          "start": 0,
+          "end": 35,
+          "document": "atual"
+        },
+        {
+          "paragraph": 5,
+          "chapter": "Capítulo um",
+          "text": "Você não treina amanhã nem nos três dias seguintes.",
+          "start": 0,
+          "end": 51,
+          "document": "atual"
+        },
+        {
+          "paragraph": 6,
+          "chapter": "Capítulo um",
+          "text": "O jogador está suspenso por três dias.",
+          "start": 0,
+          "end": 38,
+          "document": "atual"
+        },
+        {
+          "paragraph": 7,
+          "chapter": "Capítulo um",
+          "text": "Lívia entrou na sala. Lívia abriu o livro.",
+          "start": 0,
+          "end": 42,
+          "document": "atual"
+        },
+        {
+          "paragraph": 8,
+          "chapter": "Capítulo um",
+          "text": "Lívya voltou para a mesa.",
+          "start": 0,
+          "end": 25,
+          "document": "atual"
+        }
+      ]
+    },
+    {
+      "id": "cd47e79c27b09c54",
+      "category": "Possível variação de nome",
+      "priority": "Explorar",
+      "paragraph": 7,
+      "chapter": "Capítulo um",
+      "text": "Lívia entrou na sala. Lívia abriu o livro.",
+      "start": 0,
+      "end": 5,
+      "reason": "“Lívia” (2 ocorrências) e “Lívya” (1) têm grafias próximas. Podem ser nomes distintos. Confirme a grafia com o autor; nenhuma variante foi escolhida automaticamente.",
+      "source": "FONTE Editorial · variacao_nome",
+      "layer": "editorial",
+      "rule": "variacao_nome",
+      "confidence": "média",
+      "related": [
+        {
+          "paragraph": 8,
+          "chapter": "Capítulo um",
+          "text": "Lívya voltou para a mesa.",
+          "start": 0,
+          "end": 5,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 252,
+            "end": 257
+          },
+          "excerpt": "Lívya"
+        }
+      ],
+      "context": [
+        {
+          "paragraph": 5,
+          "chapter": "Capítulo um",
+          "text": "Você não treina amanhã nem nos três dias seguintes.",
+          "start": 0,
+          "end": 51,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 118,
+            "end": 169
+          },
+          "excerpt": "Você não treina amanhã nem nos três dias seguintes."
+        },
+        {
+          "paragraph": 6,
+          "chapter": "Capítulo um",
+          "text": "O jogador está suspenso por três dias.",
+          "start": 0,
+          "end": 38,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 170,
+            "end": 208
+          },
+          "excerpt": "O jogador está suspenso por três dias."
+        },
+        {
+          "paragraph": 7,
+          "chapter": "Capítulo um",
+          "text": "Lívia entrou na sala. Lívia abriu o livro.",
+          "start": 0,
+          "end": 42,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 209,
+            "end": 251
+          },
+          "excerpt": "Lívia entrou na sala. Lívia abriu o livro."
+        },
+        {
+          "paragraph": 8,
+          "chapter": "Capítulo um",
+          "text": "Lívya voltou para a mesa.",
+          "start": 0,
+          "end": 25,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 252,
+            "end": 277
+          },
+          "excerpt": "Lívya voltou para a mesa."
+        },
+        {
+          "paragraph": 9,
+          "chapter": "Capítulo um",
+          "text": "Ele começou a me explicar o mapa da região.",
+          "start": 0,
+          "end": 43,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 278,
+            "end": 321
+          },
+          "excerpt": "Ele começou a me explicar o mapa da região."
+        }
+      ],
+      "module": "global_coherence",
+      "severity": "editorial_attention",
+      "confidence_score": 0.65,
+      "category_code": "variacao_nome",
+      "range": {
+        "start": 209,
+        "end": 214
+      },
+      "excerpt": "Lívia",
+      "message": "“Lívia” (2 ocorrências) e “Lívya” (1) têm grafias próximas. Podem ser nomes distintos. Confirme a grafia com o autor; nenhuma variante foi escolhida automaticamente.",
+      "suggestion": null,
+      "evidence": [
+        {
+          "paragraph": 7,
+          "chapter": "Capítulo um",
+          "text": "Lívia entrou na sala. Lívia abriu o livro.",
+          "start": 0,
+          "end": 5,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 209,
+            "end": 214
+          },
+          "excerpt": "Lívia"
+        },
+        {
+          "paragraph": 8,
+          "chapter": "Capítulo um",
+          "text": "Lívya voltou para a mesa.",
+          "start": 0,
+          "end": 5,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 252,
+            "end": 257
+          },
+          "excerpt": "Lívya"
+        }
+      ]
+    },
+    {
+      "id": "08ce86c8d39ef1d0",
+      "category": "Possível repetição de frase",
+      "priority": "Verificar",
+      "paragraph": 10,
+      "chapter": "Capítulo um",
+      "text": "Ele começou a me explicar o mapa da região.",
+      "start": 0,
+      "end": 43,
+      "reason": "Esta frase repete uma frase próxima. Confira se é refrão, retomada deliberada ou duplicação de edição.",
+      "source": "FONTE Editorial · frase_duplicada",
+      "layer": "editorial",
+      "rule": "frase_duplicada",
+      "confidence": "alta",
+      "related": [
+        {
+          "paragraph": 9,
+          "chapter": "Capítulo um",
+          "text": "Ele começou a me explicar o mapa da região.",
+          "start": 0,
+          "end": 43,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 278,
+            "end": 321
+          },
+          "excerpt": "Ele começou a me explicar o mapa da região."
+        }
+      ],
+      "context": [
+        {
+          "paragraph": 8,
+          "chapter": "Capítulo um",
+          "text": "Lívya voltou para a mesa.",
+          "start": 0,
+          "end": 25,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 252,
+            "end": 277
+          },
+          "excerpt": "Lívya voltou para a mesa."
+        },
+        {
+          "paragraph": 9,
+          "chapter": "Capítulo um",
+          "text": "Ele começou a me explicar o mapa da região.",
+          "start": 0,
+          "end": 43,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 278,
+            "end": 321
+          },
+          "excerpt": "Ele começou a me explicar o mapa da região."
+        },
+        {
+          "paragraph": 10,
+          "chapter": "Capítulo um",
+          "text": "Ele começou a me explicar o mapa da região.",
+          "start": 0,
+          "end": 43,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 322,
+            "end": 365
+          },
+          "excerpt": "Ele começou a me explicar o mapa da região."
+        },
+        {
+          "paragraph": 11,
+          "chapter": "Capítulo um",
+          "text": "Clara abriu a janela e observa a rua.",
+          "start": 0,
+          "end": 37,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 366,
+            "end": 403
+          },
+          "excerpt": "Clara abriu a janela e observa a rua."
+        }
+      ],
+      "module": "editorial",
+      "severity": "editorial_attention",
+      "confidence_score": 0.9,
+      "category_code": "frase_duplicada",
+      "range": {
+        "start": 322,
+        "end": 365
+      },
+      "excerpt": "Ele começou a me explicar o mapa da região.",
+      "message": "Esta frase repete uma frase próxima. Confira se é refrão, retomada deliberada ou duplicação de edição.",
+      "suggestion": null,
+      "evidence": [
+        {
+          "paragraph": 10,
+          "chapter": "Capítulo um",
+          "text": "Ele começou a me explicar o mapa da região.",
+          "start": 0,
+          "end": 43,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 322,
+            "end": 365
+          },
+          "excerpt": "Ele começou a me explicar o mapa da região."
+        },
+        {
+          "paragraph": 9,
+          "chapter": "Capítulo um",
+          "text": "Ele começou a me explicar o mapa da região.",
+          "start": 0,
+          "end": 43,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 278,
+            "end": 321
+          },
+          "excerpt": "Ele começou a me explicar o mapa da região."
+        }
+      ]
+    },
+    {
+      "id": "c6b28e28cdd746bd",
+      "category": "Coerência temporal entre orações",
+      "priority": "Verificar",
+      "paragraph": 11,
+      "chapter": "Capítulo um",
+      "text": "Clara abriu a janela e observa a rua.",
+      "start": 23,
+      "end": 30,
+      "reason": "A análise liga ‘observa’ (presente) a uma oração coordenada sob ‘abriu’ (passado). Confira se a descrição continua no mesmo momento ou se passa ao presente do narrador. Consequências que continuam válidas e mudanças intencionais podem justificar a alternância.",
+      "source": "FONTE Morfossintático · coordinated_past_present",
+      "rule": "coerencia_temporal",
+      "category_code": "temporal_consistency",
+      "relation": "coordinated_past_present",
+      "severity": "editorial_attention",
+      "confidence": "média",
+      "confidence_score": 0.65,
+      "suggestion": "observava",
+      "suggestion_kind": "possible",
+      "related": [
+        {
+          "paragraph": 11,
+          "chapter": "Capítulo um",
+          "text": "Clara abriu a janela e observa a rua.",
+          "start": 6,
+          "end": 11,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 372,
+            "end": 377
+          },
+          "excerpt": "abriu"
+        }
+      ],
+      "temporal_evidence": {
+        "anchor": "abriu",
+        "anchor_form": "past",
+        "target": "observa",
+        "target_form": "present"
+      },
+      "module": "morphosyntactic",
+      "range": {
+        "start": 389,
+        "end": 396
+      },
+      "excerpt": "observa",
+      "message": "A análise liga ‘observa’ (presente) a uma oração coordenada sob ‘abriu’ (passado). Confira se a descrição continua no mesmo momento ou se passa ao presente do narrador. Consequências que continuam válidas e mudanças intencionais podem justificar a alternância.",
+      "layer": "linguistica",
+      "evidence": [
+        {
+          "paragraph": 11,
+          "chapter": "Capítulo um",
+          "text": "Clara abriu a janela e observa a rua.",
+          "start": 23,
+          "end": 30,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 389,
+            "end": 396
+          },
+          "excerpt": "observa"
+        },
+        {
+          "paragraph": 11,
+          "chapter": "Capítulo um",
+          "text": "Clara abriu a janela e observa a rua.",
+          "start": 6,
+          "end": 11,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 372,
+            "end": 377
+          },
+          "excerpt": "abriu"
+        }
+      ],
+      "context": [
+        {
+          "paragraph": 9,
+          "chapter": "Capítulo um",
+          "text": "Ele começou a me explicar o mapa da região.",
+          "start": 0,
+          "end": 43,
+          "document": "atual"
+        },
+        {
+          "paragraph": 10,
+          "chapter": "Capítulo um",
+          "text": "Ele começou a me explicar o mapa da região.",
+          "start": 0,
+          "end": 43,
+          "document": "atual"
+        },
+        {
+          "paragraph": 11,
+          "chapter": "Capítulo um",
+          "text": "Clara abriu a janela e observa a rua.",
+          "start": 0,
+          "end": 37,
+          "document": "atual"
+        }
+      ]
+    },
+    {
+      "id": "a8da07ec0f2a2f21",
+      "category": "Possível repetição próxima",
+      "priority": "Explorar",
+      "paragraph": 13,
+      "chapter": "Capítulo dois",
+      "text": "— Era melhor eu me preparar melhor.",
+      "start": 6,
+      "end": 34,
+      "reason": "“melhor” aparece duas vezes em uma janela curta. A repetição pode ser necessária ou expressiva; confira se há redundância.",
+      "source": "FONTE Editorial · palavra_proxima",
+      "layer": "editorial",
+      "rule": "palavra_proxima",
+      "confidence": "baixa",
+      "related": [],
+      "context": [
+        {
+          "paragraph": 12,
+          "chapter": "Capítulo dois",
+          "text": "Capítulo dois",
+          "start": 0,
+          "end": 13,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 404,
+            "end": 417
+          },
+          "excerpt": "Capítulo dois"
+        },
+        {
+          "paragraph": 13,
+          "chapter": "Capítulo dois",
+          "text": "— Era melhor eu me preparar melhor.",
+          "start": 0,
+          "end": 35,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 418,
+            "end": 453
+          },
+          "excerpt": "— Era melhor eu me preparar melhor."
+        }
+      ],
+      "module": "editorial",
+      "severity": "editorial_attention",
+      "confidence_score": 0.4,
+      "category_code": "palavra_proxima",
+      "range": {
+        "start": 424,
+        "end": 452
+      },
+      "excerpt": "melhor eu me preparar melhor",
+      "message": "“melhor” aparece duas vezes em uma janela curta. A repetição pode ser necessária ou expressiva; confira se há redundância.",
+      "suggestion": null,
+      "evidence": [
+        {
+          "paragraph": 13,
+          "chapter": "Capítulo dois",
+          "text": "— Era melhor eu me preparar melhor.",
+          "start": 6,
+          "end": 34,
+          "document": "atual",
+          "type": "text_evidence",
+          "range": {
+            "start": 424,
+            "end": 452
+          },
+          "excerpt": "melhor eu me preparar melhor"
+        }
+      ]
+    }
+  ]
+}

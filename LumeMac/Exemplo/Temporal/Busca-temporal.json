@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "rules": {
+    "tempo_verbal": false,
+    "estrutura": false,
+    "pontuacao_dialogo": false,
+    "palavra_consecutiva": false,
+    "palavra_proxima": false,
+    "frase_duplicada": false,
+    "variacao_nome": false,
+    "duracao_suspensao": false,
+    "adiamento_amanha": false,
+    "referente_proximidade": false,
+    "pronome_apos_corte": false,
+    "construcao_invalida": false,
+    "pontuacao_duplicada": true,
+    "espacamento": false,
+    "virgula_que_nao": false,
+    "que_tonico_interrogativo": true,
+    "coerencia_temporal": true,
+    "acentuacao_contextual": true
+  },
+  "tense_scopes": [
+    "narracao"
+  ],
+  "repetition_scopes": [
+    "narracao",
+    "dialogo",
+    "pensamento"
+  ],
+  "word_distance": 8,
+  "repetition_boundary": "trecho",
+  "duplicate_across_paragraphs": true,
+  "duplicate_similarity": 1.0,
+  "dialogue_dashes": true,
+  "quotes_role": "dialogo",
+  "italic_thoughts": true,
+  "ignored_names": [],
+  "chapter_titles": [],
+  "chapter_styles": [],
+  "chapter_auto": true
+}

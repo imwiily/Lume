@@ -1,0 +1,886 @@
+{
+  "schema_version": 1,
+  "document": "Manuscrito-temporal.docx",
+  "sha256": "498a7d7d01a049310f76d1f9ab41299eca770e4ce94935e60efba84abc4e70f1",
+  "created": "2026-09-29T01:37:38.459744+00:00",
+  "metadata": {
+    "tempo": "passado",
+    "paragrafos": 12,
+    "modelo": "core_news_sm",
+    "versao_modelo": "3.8.0",
+    "modo": "ambas",
+    "temporal_relations": [
+      "conditional_future",
+      "simultaneous_present",
+      "ambiguous_simultaneity",
+      "coordinated_past_present"
+    ],
+    "stages": [
+      {
+        "module": "linguistic",
+        "title": "Revisão linguística",
+        "state": "completed",
+        "finding_count": 2,
+        "coverage": "partial",
+        "detail": "Padrões determinísticos; pontuação e interrogação também em falas/pensamentos. LanguageTool opcional.",
+        "duration_ms": 8
+      },
+      {
+        "module": "morphosyntactic",
+        "title": "Análise morfossintática",
+        "state": "completed",
+        "finding_count": 7,
+        "coverage": "partial",
+        "detail": "Tempo predominante, estrutura, quatro relações temporais locais e acentuação verbal contextual. Cobertura parcial; homógrafos permanecem dúvidas.",
+        "duration_ms": 1725
+      },
+      {
+        "module": "editorial",
+        "title": "Contexto curto",
+        "state": "skipped",
+        "finding_count": 0,
+        "coverage": "partial",
+        "detail": "Diálogo por aspas, repetições e referências específicas; interpretação de cenas ainda pendente."
+      },
+      {
+        "module": "global_coherence",
+        "title": "Coerência global",
+        "state": "skipped",
+        "finding_count": 0,
+        "coverage": "partial",
+        "detail": "Grafias de nomes na obra e dois padrões locais de cronologia. Banco semântico de fatos ainda pendente."
+      },
+      {
+        "module": "audit",
+        "title": "Auditoria final",
+        "state": "not_implemented",
+        "finding_count": 0,
+        "coverage": "not_implemented",
+        "detail": "Auditor editorial independente ainda não implementado; nenhuma busca adicional foi realizada."
+      }
+    ],
+    "pipeline_version": 1,
+    "occurrence_schema_version": 1,
+    "text_index": {
+      "unit": "unicode_codepoint",
+      "separator": "\n",
+      "scope": "nonempty_body_paragraphs_and_tables",
+      "length": 480,
+      "sha256": "981e88cb871a1376bd820fbc1d6f2ff9a982b11ae9a280c9d0db81fa9bdd61ad",
+      "paragraphs": [
+        {
+          "paragraph": 1,
+          "start": 0,
+          "end": 10
+        },
+        {
+          "paragraph": 2,
+          "start": 11,
+          "end": 62
+        },
+        {
+          "paragraph": 3,
+          "start": 63,
+          "end": 114
+        },
+        {
+          "paragraph": 4,
+          "start": 115,
+          "end": 179
+        },
+        {
+          "paragraph": 5,
+          "start": 180,
+          "end": 225
+        },
+        {
+          "paragraph": 6,
+          "start": 226,
+          "end": 267
+        },
+        {
+          "paragraph": 7,
+          "start": 268,
+          "end": 298
+        },
+        {
+          "paragraph": 8,
+          "start": 299,
+          "end": 334
+        },
+        {
+          "paragraph": 9,
+          "start": 335,
+          "end": 367
+        },
+        {
+          "paragraph": 10,
+          "start": 368,
+          "end": 418
+        },
+        {
+          "paragraph": 11,
+          "start": 419,
+          "end": 441
+        },
+        {
+          "paragraph": 12,
+          "start": 442,
+          "end": 480
+        }
+      ]
+    },
+    "confidence_semantics": "rule_strength_not_calibrated_probability",
+    "search_settings": {
+      "schema_version": 1,
+      "rules": {
+        "tempo_verbal": false,
+        "estrutura": false,
+        "pontuacao_dialogo": false,
+        "palavra_consecutiva": false,
+        "palavra_proxima": false,
+        "frase_duplicada": false,
+        "variacao_nome": false,
+        "duracao_suspensao": false,
+        "adiamento_amanha": false,
+        "referente_proximidade": false,
+        "pronome_apos_corte": false,
+        "construcao_invalida": false,
+        "pontuacao_duplicada": true,
+        "espacamento": false,
+        "virgula_que_nao": false,
+        "que_tonico_interrogativo": true,
+        "coerencia_temporal": true,
+        "acentuacao_contextual": true
+      },
+      "tense_scopes": [
+        "narracao"
+      ],
+      "repetition_scopes": [
+        "narracao",
+        "dialogo",
+        "pensamento"
+      ],
+      "word_distance": 8,
+      "repetition_boundary": "trecho",
+      "duplicate_across_paragraphs": true,
+      "duplicate_similarity": 1.0,
+      "dialogue_dashes": true,
+      "quotes_role": "dialogo",
+      "italic_thoughts": true,
+      "ignored_names": [],
+      "chapter_titles": [],
+      "chapter_styles": [],
+      "chapter_auto": true
+    },
+    "chapters": [
+      {
+        "paragraph": 1,
+        "title": "Capítulo 1"
+      }
+    ],
+    "languagetool": false,
+    "versao_fonte": "0.6.0"
+  },
+  "warnings": [
+    "Escopo: corpo do documento e tabelas. Cabeçalhos, rodapés, notas, comentários, caixas de texto e imagens não são analisados. A localização usa parágrafos, não páginas.",
+    "Revisão linguística: conjunto inicial de padrões determinísticos. Ortografia, concordância e regência gerais dependem do LanguageTool local opcional; não há cobertura completa.",
+    "Coerência global sem banco semântico de fatos; auditoria editorial independente ainda não implementada. Etapa concluída significa apenas que as regras disponíveis terminaram.",
+    "Filtros aplicados antes da busca. Falas/pensamentos são separados pelas marcações configuradas; pensamentos implícitos e diálogos ambíguos podem ser classificados incorretamente. Estrutura e acentuação contextual são verificadas na narração; pontuação duplicada, espaçamento e quê final também em falas/pensamentos. LanguageTool mantém sua proteção própria de falas/itálicos."
+  ],
+  "findings": [
+    {
+      "id": "21c09c0ebd11e244",
+      "category": "Coerência temporal entre orações",
+      "priority": "Verificar",
+      "paragraph": 2,
+      "chapter": "Capítulo 1",
+      "text": "O artesão fabricaria um vaso que receberá pinturas.",
+      "start": 33,
+      "end": 41,
+      "reason": "‘fabricaria’ estabelece uma hipótese ou projeção no futuro do pretérito; ‘receberá’, em oração dependente, está no futuro do presente. Se as duas ações compartilham a mesma projeção temporal, confira a uniformidade. Uma referência futura própria pode justificar a alternância.",
+      "source": "FONTE Morfossintático · conditional_future",
+      "rule": "coerencia_temporal",
+      "category_code": "temporal_consistency",
+      "relation": "conditional_future",
+      "severity": "probable_error",
+      "confidence": "média",
+      "confidence_score": 0.82,
+      "suggestion": "receberia",
+      "related": [
+        {
+          "paragraph": 2,
+          "chapter": "Capítulo 1",
+          "text": "O artesão fabricaria um vaso que receberá pinturas.",
+          "start": 10,
+          "end": 20,
+          "document": "atual"
+        }
+      ],
+      "temporal_evidence": {
+        "anchor": "fabricaria",
+        "anchor_form": "conditional",
+        "target": "receberá",
+        "target_form": "future"
+      },
+      "module": "morphosyntactic",
+      "range": {
+        "start": 44,
+        "end": 52
+      },
+      "excerpt": "receberá",
+      "message": "‘fabricaria’ estabelece uma hipótese ou projeção no futuro do pretérito; ‘receberá’, em oração dependente, está no futuro do presente. Se as duas ações compartilham a mesma projeção temporal, confira a uniformidade. Uma referência futura própria pode justificar a alternância.",
+      "layer": "linguistica",
+      "context": [
+        {
+          "paragraph": 1,
+          "chapter": "Capítulo 1",
+          "text": "Capítulo 1",
+          "start": 0,
+          "end": 10,
+          "document": "atual"
+        },
+        {
+          "paragraph": 2,
+          "chapter": "Capítulo 1",
+          "text": "O artesão fabricaria um vaso que receberá pinturas.",
+          "start": 0,
+          "end": 51,
+          "document": "atual"
+        },
+        {
+          "paragraph": 3,
+          "chapter": "Capítulo 1",
+          "text": "Nós construiríamos uma ponte que ligará as margens.",
+          "start": 0,
+          "end": 51,
+          "document": "atual"
+        },
+        {
+          "paragraph": 4,
+          "chapter": "Capítulo 1",
+          "text": "A enfermeira explicava o procedimento enquanto os alunos anotam.",
+          "start": 0,
+          "end": 64,
+          "document": "atual"
+        }
+      ]
+    },
+    {
+      "id": "086be43b638e8209",
+      "category": "Coerência temporal entre orações",
+      "priority": "Verificar",
+      "paragraph": 3,
+      "chapter": "Capítulo 1",
+      "text": "Nós construiríamos uma ponte que ligará as margens.",
+      "start": 33,
+      "end": 39,
+      "reason": "‘construiríamos’ estabelece uma hipótese ou projeção no futuro do pretérito; ‘ligará’, em oração dependente, está no futuro do presente. Se as duas ações compartilham a mesma projeção temporal, confira a uniformidade. Uma referência futura própria pode justificar a alternância.",
+      "source": "FONTE Morfossintático · conditional_future",
+      "rule": "coerencia_temporal",
+      "category_code": "temporal_consistency",
+      "relation": "conditional_future",
+      "severity": "probable_error",
+      "confidence": "média",
+      "confidence_score": 0.82,
+      "suggestion": "ligaria",
+      "related": [
+        {
+          "paragraph": 3,
+          "chapter": "Capítulo 1",
+          "text": "Nós construiríamos uma ponte que ligará as margens.",
+          "start": 4,
+          "end": 18,
+          "document": "atual"
+        }
+      ],
+      "temporal_evidence": {
+        "anchor": "construiríamos",
+        "anchor_form": "conditional",
+        "target": "ligará",
+        "target_form": "future"
+      },
+      "module": "morphosyntactic",
+      "range": {
+        "start": 96,
+        "end": 102
+      },
+      "excerpt": "ligará",
+      "message": "‘construiríamos’ estabelece uma hipótese ou projeção no futuro do pretérito; ‘ligará’, em oração dependente, está no futuro do presente. Se as duas ações compartilham a mesma projeção temporal, confira a uniformidade. Uma referência futura própria pode justificar a alternância.",
+      "layer": "linguistica",
+      "context": [
+        {
+          "paragraph": 1,
+          "chapter": "Capítulo 1",
+          "text": "Capítulo 1",
+          "start": 0,
+          "end": 10,
+          "document": "atual"
+        },
+        {
+          "paragraph": 2,
+          "chapter": "Capítulo 1",
+          "text": "O artesão fabricaria um vaso que receberá pinturas.",
+          "start": 0,
+          "end": 51,
+          "document": "atual"
+        },
+        {
+          "paragraph": 3,
+          "chapter": "Capítulo 1",
+          "text": "Nós construiríamos uma ponte que ligará as margens.",
+          "start": 0,
+          "end": 51,
+          "document": "atual"
+        },
+        {
+          "paragraph": 4,
+          "chapter": "Capítulo 1",
+          "text": "A enfermeira explicava o procedimento enquanto os alunos anotam.",
+          "start": 0,
+          "end": 64,
+          "document": "atual"
+        },
+        {
+          "paragraph": 5,
+          "chapter": "Capítulo 1",
+          "text": "O guia esperou enquanto atravessamos a ponte.",
+          "start": 0,
+          "end": 45,
+          "document": "atual"
+        }
+      ]
+    },
+    {
+      "id": "c74008a02c876d71",
+      "category": "Coerência temporal entre orações",
+      "priority": "Verificar",
+      "paragraph": 4,
+      "chapter": "Capítulo 1",
+      "text": "A enfermeira explicava o procedimento enquanto os alunos anotam.",
+      "start": 57,
+      "end": 63,
+      "reason": "‘explicava’ situa a ação no passado, enquanto ‘anotam’ está no presente. O conectivo ‘enquanto’ pode ligar ações simultâneas: se esse for o sentido, confira o tempo da oração subordinada. Uso contrastivo e mudança deliberada de perspectiva são possíveis.",
+      "source": "FONTE Morfossintático · simultaneous_present",
+      "rule": "coerencia_temporal",
+      "category_code": "temporal_consistency",
+      "relation": "simultaneous_present",
+      "severity": "probable_error",
+      "confidence": "média",
+      "confidence_score": 0.8,
+      "suggestion": "anotavam",
+      "related": [
+        {
+          "paragraph": 4,
+          "chapter": "Capítulo 1",
+          "text": "A enfermeira explicava o procedimento enquanto os alunos anotam.",
+          "start": 13,
+          "end": 22,
+          "document": "atual"
+        }
+      ],
+      "temporal_evidence": {
+        "anchor": "explicava",
+        "anchor_form": "past",
+        "target": "anotam",
+        "target_form": "present"
+      },
+      "module": "morphosyntactic",
+      "range": {
+        "start": 172,
+        "end": 178
+      },
+      "excerpt": "anotam",
+      "message": "‘explicava’ situa a ação no passado, enquanto ‘anotam’ está no presente. O conectivo ‘enquanto’ pode ligar ações simultâneas: se esse for o sentido, confira o tempo da oração subordinada. Uso contrastivo e mudança deliberada de perspectiva são possíveis.",
+      "layer": "linguistica",
+      "context": [
+        {
+          "paragraph": 2,
+          "chapter": "Capítulo 1",
+          "text": "O artesão fabricaria um vaso que receberá pinturas.",
+          "start": 0,
+          "end": 51,
+          "document": "atual"
+        },
+        {
+          "paragraph": 3,
+          "chapter": "Capítulo 1",
+          "text": "Nós construiríamos uma ponte que ligará as margens.",
+          "start": 0,
+          "end": 51,
+          "document": "atual"
+        },
+        {
+          "paragraph": 4,
+          "chapter": "Capítulo 1",
+          "text": "A enfermeira explicava o procedimento enquanto os alunos anotam.",
+          "start": 0,
+          "end": 64,
+          "document": "atual"
+        },
+        {
+          "paragraph": 5,
+          "chapter": "Capítulo 1",
+          "text": "O guia esperou enquanto atravessamos a ponte.",
+          "start": 0,
+          "end": 45,
+          "document": "atual"
+        },
+        {
+          "paragraph": 6,
+          "chapter": "Capítulo 1",
+          "text": "O objeto parecia intacto e está quebrado.",
+          "start": 0,
+          "end": 41,
+          "document": "atual"
+        }
+      ]
+    },
+    {
+      "id": "4b95d7d0b30bb288",
+      "category": "Coerência temporal entre orações",
+      "priority": "Verificar",
+      "paragraph": 5,
+      "chapter": "Capítulo 1",
+      "text": "O guia esperou enquanto atravessamos a ponte.",
+      "start": 24,
+      "end": 36,
+      "reason": "‘atravessamos’ admite tanto presente quanto pretérito perfeito; a grafia não decide. ‘esperou’ está no passado e ‘enquanto’ pode indicar simultaneidade. Confira se a segunda ação descreve um processo em curso, que pode pedir o imperfeito, ou um intervalo concluído, em que o perfeito pode ser legítimo. Não há erro confirmado.",
+      "source": "FONTE Morfossintático · ambiguous_simultaneity",
+      "rule": "coerencia_temporal",
+      "category_code": "temporal_consistency",
+      "relation": "ambiguous_simultaneity",
+      "severity": "editorial_attention",
+      "confidence": "baixa",
+      "confidence_score": 0.5,
+      "suggestion": null,
+      "related": [
+        {
+          "paragraph": 5,
+          "chapter": "Capítulo 1",
+          "text": "O guia esperou enquanto atravessamos a ponte.",
+          "start": 7,
+          "end": 14,
+          "document": "atual"
+        }
+      ],
+      "temporal_evidence": {
+        "anchor": "esperou",
+        "anchor_form": "past",
+        "target": "atravessamos",
+        "target_form": "ambiguous_past_present"
+      },
+      "module": "morphosyntactic",
+      "range": {
+        "start": 204,
+        "end": 216
+      },
+      "excerpt": "atravessamos",
+      "message": "‘atravessamos’ admite tanto presente quanto pretérito perfeito; a grafia não decide. ‘esperou’ está no passado e ‘enquanto’ pode indicar simultaneidade. Confira se a segunda ação descreve um processo em curso, que pode pedir o imperfeito, ou um intervalo concluído, em que o perfeito pode ser legítimo. Não há erro confirmado.",
+      "layer": "linguistica",
+      "context": [
+        {
+          "paragraph": 3,
+          "chapter": "Capítulo 1",
+          "text": "Nós construiríamos uma ponte que ligará as margens.",
+          "start": 0,
+          "end": 51,
+          "document": "atual"
+        },
+        {
+          "paragraph": 4,
+          "chapter": "Capítulo 1",
+          "text": "A enfermeira explicava o procedimento enquanto os alunos anotam.",
+          "start": 0,
+          "end": 64,
+          "document": "atual"
+        },
+        {
+          "paragraph": 5,
+          "chapter": "Capítulo 1",
+          "text": "O guia esperou enquanto atravessamos a ponte.",
+          "start": 0,
+          "end": 45,
+          "document": "atual"
+        },
+        {
+          "paragraph": 6,
+          "chapter": "Capítulo 1",
+          "text": "O objeto parecia intacto e está quebrado.",
+          "start": 0,
+          "end": 41,
+          "document": "atual"
+        },
+        {
+          "paragraph": 7,
+          "chapter": "Capítulo 1",
+          "text": "Os operários construiam casas.",
+          "start": 0,
+          "end": 30,
+          "document": "atual"
+        }
+      ]
+    },
+    {
+      "id": "688a2795aec484f4",
+      "category": "Coerência temporal entre orações",
+      "priority": "Verificar",
+      "paragraph": 6,
+      "chapter": "Capítulo 1",
+      "text": "O objeto parecia intacto e está quebrado.",
+      "start": 27,
+      "end": 31,
+      "reason": "A análise liga ‘está’ (presente) a uma oração coordenada sob ‘parecia’ (passado). Confira se a descrição continua no mesmo momento ou se passa ao presente do narrador. Consequências que continuam válidas e mudanças intencionais podem justificar a alternância.",
+      "source": "FONTE Morfossintático · coordinated_past_present",
+      "rule": "coerencia_temporal",
+      "category_code": "temporal_consistency",
+      "relation": "coordinated_past_present",
+      "severity": "editorial_attention",
+      "confidence": "média",
+      "confidence_score": 0.65,
+      "suggestion": "estava",
+      "related": [
+        {
+          "paragraph": 6,
+          "chapter": "Capítulo 1",
+          "text": "O objeto parecia intacto e está quebrado.",
+          "start": 9,
+          "end": 16,
+          "document": "atual"
+        }
+      ],
+      "temporal_evidence": {
+        "anchor": "parecia",
+        "anchor_form": "past",
+        "target": "está",
+        "target_form": "present"
+      },
+      "module": "morphosyntactic",
+      "range": {
+        "start": 253,
+        "end": 257
+      },
+      "excerpt": "está",
+      "message": "A análise liga ‘está’ (presente) a uma oração coordenada sob ‘parecia’ (passado). Confira se a descrição continua no mesmo momento ou se passa ao presente do narrador. Consequências que continuam válidas e mudanças intencionais podem justificar a alternância.",
+      "layer": "linguistica",
+      "context": [
+        {
+          "paragraph": 4,
+          "chapter": "Capítulo 1",
+          "text": "A enfermeira explicava o procedimento enquanto os alunos anotam.",
+          "start": 0,
+          "end": 64,
+          "document": "atual"
+        },
+        {
+          "paragraph": 5,
+          "chapter": "Capítulo 1",
+          "text": "O guia esperou enquanto atravessamos a ponte.",
+          "start": 0,
+          "end": 45,
+          "document": "atual"
+        },
+        {
+          "paragraph": 6,
+          "chapter": "Capítulo 1",
+          "text": "O objeto parecia intacto e está quebrado.",
+          "start": 0,
+          "end": 41,
+          "document": "atual"
+        },
+        {
+          "paragraph": 7,
+          "chapter": "Capítulo 1",
+          "text": "Os operários construiam casas.",
+          "start": 0,
+          "end": 30,
+          "document": "atual"
+        },
+        {
+          "paragraph": 8,
+          "chapter": "Capítulo 1",
+          "text": "As crianças distribuiam brinquedos.",
+          "start": 0,
+          "end": 35,
+          "document": "atual"
+        }
+      ]
+    },
+    {
+      "id": "f94033688a16c77e",
+      "category": "Acentuação verbal no contexto",
+      "priority": "Verificar",
+      "paragraph": 7,
+      "chapter": "Capítulo 1",
+      "text": "Os operários construiam casas.",
+      "start": 13,
+      "end": 23,
+      "reason": "No eixo passado configurado/inferido, ‘construíam’ é uma leitura possível deste predicado. O léxico confirma essa forma acentuada; ‘construiam’ pode ter outro uso ou uma análise incerta. Confira o modo verbal e a intenção antes de alterar a acentuação.",
+      "source": "FONTE Morfossintático · acentuacao_contextual",
+      "rule": "acentuacao_contextual",
+      "category_code": "contextual_accentuation",
+      "severity": "probable_error",
+      "confidence": "média",
+      "confidence_score": 0.8,
+      "suggestion": "construíam",
+      "related": [
+        {
+          "paragraph": 7,
+          "chapter": "Capítulo 1",
+          "text": "Os operários construiam casas.",
+          "start": 3,
+          "end": 12,
+          "document": "atual"
+        }
+      ],
+      "module": "morphosyntactic",
+      "range": {
+        "start": 281,
+        "end": 291
+      },
+      "excerpt": "construiam",
+      "message": "No eixo passado configurado/inferido, ‘construíam’ é uma leitura possível deste predicado. O léxico confirma essa forma acentuada; ‘construiam’ pode ter outro uso ou uma análise incerta. Confira o modo verbal e a intenção antes de alterar a acentuação.",
+      "layer": "linguistica",
+      "context": [
+        {
+          "paragraph": 5,
+          "chapter": "Capítulo 1",
+          "text": "O guia esperou enquanto atravessamos a ponte.",
+          "start": 0,
+          "end": 45,
+          "document": "atual"
+        },
+        {
+          "paragraph": 6,
+          "chapter": "Capítulo 1",
+          "text": "O objeto parecia intacto e está quebrado.",
+          "start": 0,
+          "end": 41,
+          "document": "atual"
+        },
+        {
+          "paragraph": 7,
+          "chapter": "Capítulo 1",
+          "text": "Os operários construiam casas.",
+          "start": 0,
+          "end": 30,
+          "document": "atual"
+        },
+        {
+          "paragraph": 8,
+          "chapter": "Capítulo 1",
+          "text": "As crianças distribuiam brinquedos.",
+          "start": 0,
+          "end": 35,
+          "document": "atual"
+        },
+        {
+          "paragraph": 9,
+          "chapter": "Capítulo 1",
+          "text": "Talvez os estudantes saiam cedo.",
+          "start": 0,
+          "end": 32,
+          "document": "atual"
+        }
+      ]
+    },
+    {
+      "id": "06bfd796d94ef3cb",
+      "category": "Acentuação verbal no contexto",
+      "priority": "Verificar",
+      "paragraph": 8,
+      "chapter": "Capítulo 1",
+      "text": "As crianças distribuiam brinquedos.",
+      "start": 12,
+      "end": 23,
+      "reason": "No eixo passado configurado/inferido, ‘distribuíam’ é uma leitura possível deste predicado. O léxico confirma essa forma acentuada; ‘distribuiam’ pode ter outro uso ou uma análise incerta. Confira o modo verbal e a intenção antes de alterar a acentuação.",
+      "source": "FONTE Morfossintático · acentuacao_contextual",
+      "rule": "acentuacao_contextual",
+      "category_code": "contextual_accentuation",
+      "severity": "probable_error",
+      "confidence": "média",
+      "confidence_score": 0.8,
+      "suggestion": "distribuíam",
+      "related": [
+        {
+          "paragraph": 8,
+          "chapter": "Capítulo 1",
+          "text": "As crianças distribuiam brinquedos.",
+          "start": 3,
+          "end": 11,
+          "document": "atual"
+        }
+      ],
+      "module": "morphosyntactic",
+      "range": {
+        "start": 311,
+        "end": 322
+      },
+      "excerpt": "distribuiam",
+      "message": "No eixo passado configurado/inferido, ‘distribuíam’ é uma leitura possível deste predicado. O léxico confirma essa forma acentuada; ‘distribuiam’ pode ter outro uso ou uma análise incerta. Confira o modo verbal e a intenção antes de alterar a acentuação.",
+      "layer": "linguistica",
+      "context": [
+        {
+          "paragraph": 6,
+          "chapter": "Capítulo 1",
+          "text": "O objeto parecia intacto e está quebrado.",
+          "start": 0,
+          "end": 41,
+          "document": "atual"
+        },
+        {
+          "paragraph": 7,
+          "chapter": "Capítulo 1",
+          "text": "Os operários construiam casas.",
+          "start": 0,
+          "end": 30,
+          "document": "atual"
+        },
+        {
+          "paragraph": 8,
+          "chapter": "Capítulo 1",
+          "text": "As crianças distribuiam brinquedos.",
+          "start": 0,
+          "end": 35,
+          "document": "atual"
+        },
+        {
+          "paragraph": 9,
+          "chapter": "Capítulo 1",
+          "text": "Talvez os estudantes saiam cedo.",
+          "start": 0,
+          "end": 32,
+          "document": "atual"
+        },
+        {
+          "paragraph": 10,
+          "chapter": "Capítulo 1",
+          "text": "O cientista explicou que a água ferve a cem graus.",
+          "start": 0,
+          "end": 50,
+          "document": "atual"
+        }
+      ]
+    },
+    {
+      "id": "44788440e4496063",
+      "category": "Acento em ‘quê’ interrogativo",
+      "priority": "Verificar",
+      "paragraph": 11,
+      "chapter": "Capítulo 1",
+      "text": "— O que? Tô surpreso..",
+      "start": 4,
+      "end": 7,
+      "reason": "O ‘que’ está no fim de uma pergunta ou exclamação, posição em que costuma ser tônico: ‘quê’. Confira se a grafia sem acento foi intencional.",
+      "source": "FONTE Linguístico · que_tonico_interrogativo",
+      "rule": "que_tonico_interrogativo",
+      "category_code": "que_tonico_interrogativo",
+      "severity": "probable_error",
+      "confidence": "alta",
+      "confidence_score": 0.95,
+      "suggestion": "quê",
+      "module": "linguistic",
+      "range": {
+        "start": 423,
+        "end": 426
+      },
+      "excerpt": "que",
+      "message": "O ‘que’ está no fim de uma pergunta ou exclamação, posição em que costuma ser tônico: ‘quê’. Confira se a grafia sem acento foi intencional.",
+      "layer": "linguistica",
+      "context": [
+        {
+          "paragraph": 9,
+          "chapter": "Capítulo 1",
+          "text": "Talvez os estudantes saiam cedo.",
+          "start": 0,
+          "end": 32,
+          "document": "atual"
+        },
+        {
+          "paragraph": 10,
+          "chapter": "Capítulo 1",
+          "text": "O cientista explicou que a água ferve a cem graus.",
+          "start": 0,
+          "end": 50,
+          "document": "atual"
+        },
+        {
+          "paragraph": 11,
+          "chapter": "Capítulo 1",
+          "text": "— O que? Tô surpreso..",
+          "start": 0,
+          "end": 22,
+          "document": "atual"
+        },
+        {
+          "paragraph": 12,
+          "chapter": "Capítulo 1",
+          "text": "— Tô aqui... Cê vem pra casa, maninho?",
+          "start": 0,
+          "end": 38,
+          "document": "atual"
+        }
+      ]
+    },
+    {
+      "id": "07f3453878e1e762",
+      "category": "Dois pontos finais",
+      "priority": "Verificar",
+      "paragraph": 11,
+      "chapter": "Capítulo 1",
+      "text": "— O que? Tô surpreso..",
+      "start": 20,
+      "end": 22,
+      "reason": "Foram encontrados dois pontos finais seguidos. Confira se a intenção é um ponto final ou reticências (três pontos).",
+      "source": "FONTE Linguístico · pontuacao_duplicada",
+      "rule": "pontuacao_duplicada",
+      "category_code": "pontuacao_duplicada",
+      "severity": "probable_error",
+      "confidence": "alta",
+      "confidence_score": 0.9,
+      "suggestion": null,
+      "module": "linguistic",
+      "range": {
+        "start": 439,
+        "end": 441
+      },
+      "excerpt": "..",
+      "message": "Foram encontrados dois pontos finais seguidos. Confira se a intenção é um ponto final ou reticências (três pontos).",
+      "layer": "linguistica",
+      "context": [
+        {
+          "paragraph": 9,
+          "chapter": "Capítulo 1",
+          "text": "Talvez os estudantes saiam cedo.",
+          "start": 0,
+          "end": 32,
+          "document": "atual"
+        },
+        {
+          "paragraph": 10,
+          "chapter": "Capítulo 1",
+          "text": "O cientista explicou que a água ferve a cem graus.",
+          "start": 0,
+          "end": 50,
+          "document": "atual"
+        },
+        {
+          "paragraph": 11,
+          "chapter": "Capítulo 1",
+          "text": "— O que? Tô surpreso..",
+          "start": 0,
+          "end": 22,
+          "document": "atual"
+        },
+        {
+          "paragraph": 12,
+          "chapter": "Capítulo 1",
+          "text": "— Tô aqui... Cê vem pra casa, maninho?",
+          "start": 0,
+          "end": 38,
+          "document": "atual"
+        }
+      ]
+    }
+  ]
+}

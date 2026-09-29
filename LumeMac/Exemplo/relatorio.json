@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "document": "Manuscrito-exemplo.docx",
+  "sha256": "aa4dcc1589f8adb0900bdb2b0fc4fc60348386395a72e6bc96beb717765df71f",
+  "created": "2026-09-28T21:22:09.818926+00:00",
+  "metadata": {
+    "tempo": "passado",
+    "contagem_verbos": {
+      "passado": 4,
+      "presente": 1
+    },
+    "modelo": "core_news_sm",
+    "versao_modelo": "3.8.0",
+    "paragrafos": 5,
+    "excluir_italico": true,
+    "confirmacao_lexical": "PortiLexicon-UD",
+    "segunda_leitura_estrutura": true,
+    "languagetool": false,
+    "versao_fonte": "0.2.1"
+  },
+  "warnings": [
+    "Escopo: corpo do documento e tabelas. Cabeçalhos, rodapés, notas, comentários, caixas de texto e imagens não são analisados. A localização usa parágrafos, não páginas.",
+    "Ortografia, concordância e regência: não verificadas por um corretor gramatical. Ative a integração opcional com LanguageTool local para essa etapa.",
+    "Falas entre aspas/travessões e itálicos protegidos são excluídos das regras narrativas e do LanguageTool. A regra de diálogo examina apenas a ligação por vírgula após aspas. Pensamentos sem marcação, aspas aninhadas e travessões ambíguos podem ser interpretados incorretamente.",
+    "Confirmação lexical ativa: formas ambíguas entre presente e passado, como 'passamos', não recebem alerta temporal pela grafia. A consulta reduz enganos morfológicos, mas pode omitir erros; não reconhece com segurança pensamento, presente geral ou escolhas do narrador."
+  ],
+  "findings": [
+    {
+      "id": "0569427bbf2f1b0f",
+      "category": "Tempo verbal",
+      "priority": "Verificar",
+      "paragraph": 2,
+      "chapter": "Capítulo 1",
+      "text": "🌿 Café. Clara abriu a janela e observa a rua.",
+      "start": 32,
+      "end": 39,
+      "reason": "O modelo e o léxico sustentam uma leitura no presente, em texto configurado/inferido como passado. Isso não confirma erro: pensamento, comentário do narrador, presente geral e mudanças deliberadas de plano temporal precisam ser avaliados no contexto.",
+      "source": "Regras FONTE + spaCy + PortiLexicon-UD"
+    },
+    {
+      "id": "a0f1bfc57e020960",
+      "category": "Estrutura da frase",
+      "priority": "Explorar",
+      "paragraph": 3,
+      "chapter": "Capítulo 1",
+      "text": "Uma velha cadeira de madeira no canto da sala.",
+      "start": 0,
+      "end": 45,
+      "reason": "Após consulta ao léxico e uma segunda leitura do segmento, não foi identificado verbo finito com segurança. Uma frase nominal ou um fragmento intencional pode ser válido; confira o contexto. O analisador ainda pode falhar.",
+      "source": "Regras FONTE + spaCy + PortiLexicon-UD"
+    }
+  ]
+}
