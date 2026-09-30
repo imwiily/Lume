@@ -11,37 +11,31 @@ struct ContentView: View {
     @State private var showKeySheet = false
 
     var body: some View {
-        HStack(spacing: 0) {
+        // Padrão do Mac: a barra lateral sobe até os botões da janela e o título,
+        // o subtítulo e as ações ficam numa única barra de ferramentas nativa.
+        NavigationSplitView {
             NightRail(showEngine: $showEngine)
+                .navigationSplitViewColumnWidth(min: 88, ideal: 88, max: 88)
+                .modifier(HideSidebarToggle())
+        } detail: {
             VStack(spacing: 0) {
                 if store.screen == .preparation {
                     HomeView(showSearchSettings: $showSearchSettings, showKeySheet: $showKeySheet)
                 } else {
-                    ReadingDesk(showCoverage: $showCoverage)
+                    ReadingDesk()
                 }
                 StatusLine()
             }
+            .background(LumeTheme.canvas)
+            .navigationTitle(windowTitle)
+            .navigationSubtitle(windowSubtitle)
+            .toolbar { toolbarContent }
+            .toolbarBackground(LumeTheme.paper, for: .windowToolbar)
+            .toolbarBackground(.visible, for: .windowToolbar)
         }
+        .navigationSplitViewStyle(.prominentDetail)
         .tint(LumeTheme.accent)
         .foregroundStyle(LumeTheme.ink)
-        .background(LumeTheme.canvas)
-        .toolbar {
-            ToolbarItemGroup {
-                Button { store.chooseReport() } label: { Label("Abrir relatório", systemImage: "book.closed") }
-                    .help("Abrir um relatório JSON salvo").disabled(store.isBusy)
-                if store.report != nil {
-                    Button { store.exportDecisions() } label: { Label("Exportar decisões", systemImage: "square.and.arrow.up") }
-                        .help("Exportar suas avaliações").disabled(store.isBusy)
-                    Menu {
-                        Button("Importar decisões…") { store.importDecisions() }
-                        Divider()
-                        Button("Mostrar relatório no Finder") { store.revealReport() }
-                        Button("Abrir relatório HTML") { store.openHTML() }
-                    } label: { Label("Mais opções", systemImage: "ellipsis.circle") }
-                        .disabled(store.isBusy)
-                }
-            }
-        }
         .sheet(isPresented: $showSearchSettings) { SearchSettingsView().environmentObject(store) }
         .sheet(isPresented: $showCoverage) { CoverageSheet().environmentObject(store) }
         .sheet(isPresented: $showKeySheet) { KeySheet().environmentObject(store) }
@@ -56,6 +50,71 @@ struct ContentView: View {
                                             set: { if !$0 { store.errorText = nil } })) {
             Button("OK", role: .cancel) { store.errorText = nil }
         } message: { Text(store.errorText ?? "") }
+    }
+
+    private var documentName: String {
+        let name = store.isAnalyzing ? (store.documentURL?.lastPathComponent ?? store.report?.document)
+                                     : (store.report?.document ?? store.documentURL?.lastPathComponent)
+        return (name ?? "Lume").replacingOccurrences(of: ".docx", with: "", options: [.caseInsensitive, .anchored, .backwards])
+    }
+
+    private var windowTitle: String {
+        store.screen == .preparation ? "Nova leitura" : documentName
+    }
+
+    private var windowSubtitle: String {
+        if store.screen == .preparation {
+            return store.documentURL.map { $0.deletingPathExtension().lastPathComponent } ?? "Nenhum manuscrito escolhido"
+        }
+        if store.isAnalyzing { return "Lendo agora…" }
+        if store.analysisFailed { return "Leitura interrompida" }
+        guard let report = store.report else { return "Mesa de leitura" }
+        let total = report.findings.count
+        return "Mesa de leitura · \(total - store.pendingCount) de \(total) avaliados"
+    }
+
+    @ToolbarContentBuilder
+    private var toolbarContent: some ToolbarContent {
+        if store.screen == .review, let report = store.report, !store.isAnalyzing, !store.analysisFailed {
+            ToolbarItemGroup(placement: .primaryAction) {
+                if let chapters = report.metadata.chapters {
+                    Menu {
+                        if chapters.isEmpty { Text("Nenhum título identificado") }
+                        ForEach(Array(chapters.enumerated()), id: \.offset) { _, chapter in
+                            Text("§ \(chapter.paragraph) · \(chapter.title)")
+                        }
+                    } label: { Label("Capítulos", systemImage: "list.bullet") }
+                        .help("Capítulos identificados (\(chapters.count))")
+                }
+                Button { showCoverage = true } label: { Label("Etapas e alcance", systemImage: "chart.bar.doc.horizontal") }
+                    .help("Etapas e alcance da leitura")
+            }
+        }
+        ToolbarItemGroup(placement: .primaryAction) {
+            Button { store.chooseReport() } label: { Label("Abrir relatório", systemImage: "folder") }
+                .help("Abrir um relatório JSON salvo").disabled(store.isBusy)
+            if store.report != nil {
+                Button { store.exportDecisions() } label: { Label("Exportar decisões", systemImage: "square.and.arrow.up") }
+                    .help("Exportar suas avaliações").disabled(store.isBusy)
+                Menu {
+                    Button("Importar decisões…") { store.importDecisions() }
+                    Divider()
+                    Button("Mostrar relatório no Finder") { store.revealReport() }
+                    Button("Abrir relatório HTML") { store.openHTML() }
+                } label: { Label("Mais opções", systemImage: "ellipsis.circle") }
+                    .help("Mais opções").disabled(store.isBusy)
+            }
+        }
+    }
+}
+
+private struct HideSidebarToggle: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(macOS 14, *) {
+            content.toolbar(removing: .sidebarToggle)
+        } else {
+            content
+        }
     }
 }
 
@@ -82,7 +141,7 @@ private struct NightRail: View {
 
     var body: some View {
         VStack(spacing: 18) {
-            LumeMark(size: 40, glowing: store.isAnalyzing).padding(.top, 14)
+            LumeMark(size: 40, glowing: store.isAnalyzing).padding(.top, 6)
                 .help("Lume")
             item("Início", symbol: "sun.horizon", active: store.screen == .preparation) { store.showPreparation() }
                 .disabled(store.isBusy)
@@ -98,8 +157,9 @@ private struct NightRail: View {
                         .background(LumeTheme.paper)
                 }
                 .padding(.bottom, 16)
-        }.frame(width: 78).frame(maxHeight: .infinity)
-            .background(LinearGradient(colors: [LumeTheme.night, LumeTheme.nightDeep], startPoint: .top, endPoint: .bottom))
+        }.frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(LinearGradient(colors: [LumeTheme.night, LumeTheme.nightDeep], startPoint: .top, endPoint: .bottom)
+                .ignoresSafeArea())
     }
 }
 
@@ -381,17 +441,9 @@ private struct HomeView: View {
 @MainActor
 private struct ReadingDesk: View {
     @EnvironmentObject private var store: ReviewStore
-    @Binding var showCoverage: Bool
-
-    private var documentName: String {
-        let name = store.isAnalyzing ? (store.documentURL?.lastPathComponent ?? store.report?.document)
-                                     : (store.report?.document ?? store.documentURL?.lastPathComponent)
-        return name ?? "Leitura"
-    }
 
     var body: some View {
         VStack(spacing: 0) {
-            header
             if store.isAnalyzing {
                 ReadingInProgress()
             } else if store.analysisFailed {
@@ -409,38 +461,6 @@ private struct ReadingDesk: View {
                 }
             }
         }.frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
-    private var header: some View {
-        HStack(spacing: 18) {
-            VStack(alignment: .leading, spacing: 4) {
-                Kicker(title: store.isAnalyzing ? "Lendo agora" : "Mesa de leitura")
-                Text(documentName).font(LumeFont.display(22)).lineLimit(1).help(documentName)
-            }
-            Spacer(minLength: 12)
-            if let report = store.report, !store.isAnalyzing, !store.analysisFailed {
-                let total = report.findings.count
-                let done = total - store.pendingCount
-                HStack(spacing: 10) {
-                    LightRing(value: total == 0 ? 1 : Double(done) / Double(total), size: 30)
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text("\(done) de \(total)").font(LumeFont.ui(13, weight: .semibold)).monospacedDigit()
-                        Text("avaliados").font(LumeFont.ui(10)).foregroundStyle(LumeTheme.secondary)
-                    }
-                }.accessibilityElement(children: .combine)
-                if let chapters = report.metadata.chapters {
-                    Menu {
-                        if chapters.isEmpty { Text("Nenhum título identificado") }
-                        ForEach(Array(chapters.enumerated()), id: \.offset) { _, chapter in
-                            Text("§ \(chapter.paragraph) · \(chapter.title)")
-                        }
-                    } label: { Label("Capítulos · \(chapters.count)", systemImage: "list.bullet") }
-                        .menuStyle(.borderlessButton).fixedSize()
-                }
-                Button("Etapas e alcance") { showCoverage = true }.buttonStyle(LumeButtonStyle(kind: .soft))
-            }
-        }.padding(.horizontal, 28).padding(.vertical, 16).background(LumeTheme.paper)
-            .overlay(alignment: .bottom) { Rectangle().fill(LumeTheme.line).frame(height: 1) }
     }
 
     private var recovery: some View {

@@ -85,8 +85,11 @@ do mesmo modo. Vela sobre Noite (e o inverso) chega a 9,5:1. Cada decisão tem c
    - à esquerda, os pontos de atenção em cartões, com busca e filtros num popover;
    - à direita, a página: o trecho com luz rosada ao fundo, a nota de margem “Por que
      acendemos esta luz” com a sugestão (trecho → proposta) e as seis decisões em cartões.
-4. **Trilho noturno**: Início, Leitura, Registro e Motor (um popover com a instalação
-   e as atualizações do FONTE).
+4. **Trilho noturno**: barra lateral nativa que sobe até os botões da janela, com
+   Início, Leitura, Registro e Motor (um popover com a instalação e as atualizações do FONTE).
+5. **Barra de ferramentas**: uma só, no padrão do Mac. Título e subtítulo mostram o
+   manuscrito e o andamento (“Mesa de leitura · 12 de 286 avaliados”). À direita ficam
+   os ícones de Capítulos, Etapas e alcance, Abrir relatório, Exportar e Mais opções.
 
 ## Prévias
 

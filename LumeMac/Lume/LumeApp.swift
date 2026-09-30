@@ -47,18 +47,24 @@ struct LumeApp: App {
 @MainActor
 enum Snapshot {
     static func render(_ store: ReviewStore, name: String, dark: Bool, into folder: URL) async {
-        let view = NSHostingView(rootView: ContentView().environmentObject(store))
-        view.appearance = NSAppearance(named: dark ? .darkAqua : .aqua)
-        view.frame = NSRect(x: 0, y: 0, width: 1280, height: 820)
-        let window = NSWindow(contentRect: view.frame, styleMask: [.borderless], backing: .buffered, defer: false)
-        window.contentView = view
-        window.appearance = view.appearance
-        try? await Task.sleep(nanoseconds: 700_000_000)
-        view.layoutSubtreeIfNeeded()
-        guard let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) else { return }
-        view.cacheDisplay(in: view.bounds, to: rep)
+        // Janela real, com barra de ferramentas, para conferir também o topo.
+        let controller = NSHostingController(rootView: ContentView().environmentObject(store))
+        if #available(macOS 14, *) { controller.sceneBridgingOptions = [.toolbars, .title] }
+        let window = NSWindow(contentRect: NSRect(x: 40, y: 40, width: 1280, height: 820),
+                              styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
+                              backing: .buffered, defer: false)
+        window.contentViewController = controller
+        window.toolbarStyle = .unified
+        window.appearance = NSAppearance(named: dark ? .darkAqua : .aqua)
+        window.setContentSize(NSSize(width: 1280, height: 820))
+        window.orderFrontRegardless()
+        try? await Task.sleep(nanoseconds: 1_200_000_000)
+        guard let frame = window.contentView?.superview,
+              let rep = frame.bitmapImageRepForCachingDisplay(in: frame.bounds) else { return }
+        frame.cacheDisplay(in: frame.bounds, to: rep)
         try? rep.representation(using: .png, properties: [:])?
             .write(to: folder.appendingPathComponent("\(name)-\(dark ? "escuro" : "claro").png"))
+        window.orderOut(nil)
     }
 
     static func run(into folder: URL) async {
