@@ -64,6 +64,10 @@ aprovam um patch novo.
   alterações por conveniência.
 - Delimitar uma mudança verificável. Para funcionalidades complexas, contratos,
   refactors ou alterações entre módulos, manter um ExecPlan conforme `.agent/PLANS.md`.
+- O repositório é público. Nunca versionar trechos, nomes de personagens ou adaptações
+  próximas de manuscritos reais (em testes, corpus, exemplos, documentos, imagens ou
+  mensagens de commit). Relatórios reais servem só para descobrir a classe do problema;
+  o caso de teste é escrito do zero, com outras palavras e outros nomes.
 - Para correções de detecção, escrever primeiro o caso esperado, demonstrar a falha e
   implementar a menor correção genérica, com positivos, negativos e ambiguidades.
   Casos novos entram também no corpus de `fonte/tests/corpus/deteccao/`

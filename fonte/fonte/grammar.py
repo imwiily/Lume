@@ -302,7 +302,7 @@ def agreement(block, doc, emit):
             continue
         if any(c.dep_ == "conj" for c in subject.children) or verb.lemma_.casefold() in {"haver", "fazer"}:
             continue
-        # “Fechou os olhos respirou fundo”: um verbo finito antes, na mesma
+        # “Abriu a porta saiu correndo”: um verbo finito antes, na mesma
         # oração, indica que o sintagma é objeto dele, não sujeito.
         left = min(t.i for t in subject.subtree)
         clause = []

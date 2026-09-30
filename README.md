@@ -24,7 +24,7 @@ Versão atual: **Lume 1.0 · FONTE 1.0.0 · Coerencia 1.0.0** — novidades no [
 | [`scripts/`](scripts/) | Montagem do motor e do app, preparação do LanguageTool e avaliações |
 | [`tests/`](tests/) | Contratos Python/Swift, empacotamento e verificações do relatório HTML |
 | [`examples/`](examples/) | Manuscritos sintéticos, configurações e relatórios de referência |
-| [`docs/`](docs/) | [Arquitetura](docs/arquitetura.md), [validação](docs/validacao.md), [visão](docs/visao.md), [identidade visual](docs/identidade/), produto, testes e análises |
+| [`docs/`](docs/) | [Arquitetura](docs/arquitetura.md), [validação](docs/validacao.md), [visão](docs/visao.md), [identidade visual](docs/identidade/), produto e testes |
 | `.agent/` | ExecPlans (`PLANS.md`) e planos de cada tarefa |
 | `build/` | Entregas, logs e intermediários locais (fora do Git) |
 

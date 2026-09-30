@@ -26,11 +26,11 @@ def health():
         assert '__REPORT_DATA__' not in render({'findings': findings}), 'Template HTML ausente'
         from fonte.editorial import analyze as editorial
         from fonte.reader import Block
-        editorial_findings, _ = editorial([Block(1, 'Não virá amanhã nem nos três dias seguintes. Está suspenso por três dias.')])
+        editorial_findings, _ = editorial([Block(1, 'Não treina amanhã nem nos três dias seguintes. Está suspenso por três dias.')])
         assert any(f['rule'] == 'duracao_suspensao' for f in editorial_findings), 'Análise editorial ausente'
         from fonte.settings import validate as search_settings
         settings = search_settings({'rules': {'duracao_suspensao': False}})
-        filtered, _ = editorial([Block(1, 'Não virá amanhã nem nos três dias seguintes. Está suspenso por três dias.')], settings=settings)
+        filtered, _ = editorial([Block(1, 'Não treina amanhã nem nos três dias seguintes. Está suspenso por três dias.')], settings=settings)
         assert not any(f['rule'] == 'duracao_suspensao' for f in filtered), 'Filtro editorial falhou'
         from fonte.pipeline import run
         from fonte.settings import NEW_RULES, validate

@@ -50,7 +50,14 @@ def nominal_context(token, value):
     # gênero e número), mesmo quando o modelo a marca como verbo principal.
     if value & NONVERB and token.i > 0 and token.text[:1].islower():
         previous = token.doc[token.i - 1]
-        if previous.pos_ == 'NOUN' and not (previous.head == token and previous.dep_.startswith('nsubj')):
+        # O modelo às vezes toma o substantivo como sujeito e liga a forma a outro verbo
+        # sem conjunção, subordinante nem pontuação (“passou a tarde inteira discutindo”):
+        # essa leitura verbal não tem apoio sintático.
+        head = token.head
+        solta = (token.dep_ in {'conj', 'advcl', 'parataxis', 'xcomp', 'ccomp'} and head.i < previous.i
+                 and not any(c.dep_ in {'cc', 'mark'} for c in token.children)
+                 and not any(t.is_punct for t in token.doc[head.i + 1:token.i]))
+        if previous.pos_ == 'NOUN' and (solta or not (previous.head == token and previous.dep_.startswith('nsubj'))):
             word = token.lower_
             plural = word.endswith('s')
             gender = previous.morph.get('Gender')

@@ -4,6 +4,12 @@ As seções antigas descrevem a cobertura e os resultados de cada entrega, não 
 
 ## Não lançado
 
+- Trechos, nomes e adaptações próximas de manuscritos reais removidos de testes, exemplos,
+  prévias e documentos (inclusive do histórico do Git); substituídos por textos sintéticos.
+  Os relatórios de exemplo Mestre, Editorial e Temporal foram regenerados pelo FONTE 1.0.0
+  com as mesmas contagens. Removido o diagnóstico da memória narrativa (módulo já retirado).
+- Adjetivo posposto (“a tarde inteira”) não é mais lido como verbo quando o modelo o liga a
+  outro verbo sem conjunção nem pontuação.
 - Licença MIT para o código do Lume (app, FONTE e Coerencia); componentes de terceiros
   mantêm as próprias licenças, listadas em **Sobre o Lume**.
 - Repositório reorganizado no padrão do GitHub: `app/` (SwiftUI e Xcode), `fonte/` (motor

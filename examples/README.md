@@ -38,11 +38,11 @@ Use uma pasta de saída nova a cada execução. O teste `tests/check_memory_111_
 
 `Manuscrito-modular.docx` é uma amostra sintética pequena. Não é uma análise do manuscrito completo de Hikari No Sekai.
 
-Abra o documento no Lume 0.8, escolha Ambas, Passado e configuração padrão. Os relatórios incluídos foram produzidos por FONTE 0.6.0 com spaCy 3.8.16 / pt_core_news_sm 3.8.0.
+Abra o documento, escolha Ambas, Passado e configuração padrão. O relatório incluído foi regenerado pelo FONTE 1.0.0 (spaCy 3.8.16 / pt_core_news_sm 3.8.0), com textos sintéticos.
 
 Resultado observado: 11 alertas — 3 linguísticos, 3 morfossintáticos, 3 de contexto curto e 2 de coerência global limitada. O auditor está indisponível. Uma ocorrência pode ser uma escolha legítima: “São” e “Está”, por exemplo, continuam como atenção editorial, não erro confirmado.
 
-Confira “Além de disso”, “que, não” e “..”. A fala “Tô aqui, cê vem pra casa, maninho?” e as reticências “...” devem permanecer preservadas pelas novas regras determinísticas. Filtre por módulo e classificação e registre uma decisão sem alterar o DOCX.
+Confira “Além de disso”, “que, não” e “..”. A fala “Tô aqui, cê vem pro jantar, primo?” e as reticências “...” devem permanecer preservadas pelas novas regras determinísticas. Filtre por módulo e classificação e registre uma decisão sem alterar o DOCX.
 
 `relatorio.html` abre diretamente no navegador e permite experimentar os filtros antes de compilar o aplicativo.
 
@@ -56,7 +56,7 @@ A suíte `test_fact_quality.py` verifica adicionalmente os papéis, os fatos, o 
 
 ## Temporal
 
-Amostra sintética para o Lume 0.8 / FONTE 0.6.0, com spaCy 3.8.16 e pt_core_news_sm 3.8.0. Não contém personagens nem depende do enredo de Hikari No Sekai.
+Amostra sintética; relatório regenerado pelo FONTE 1.0.0, com spaCy 3.8.16 e pt_core_news_sm 3.8.0. Não contém personagens nem depende do enredo de Hikari No Sekai.
 
 Abra `Manuscrito-temporal.docx`, importe `Busca-temporal.json` e selecione **Ambas / Passado**. A configuração isola coerência temporal, acentuação contextual, quê final e pontuação duplicada; as demais regras ficam desligadas. Restaure o padrão antes de uma revisão geral.
 
