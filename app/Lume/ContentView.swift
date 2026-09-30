@@ -55,7 +55,9 @@ struct ContentView: View {
     private var documentName: String {
         let name = store.isAnalyzing ? (store.documentURL?.lastPathComponent ?? store.report?.document)
                                      : (store.report?.document ?? store.documentURL?.lastPathComponent)
-        return (name ?? "Lume").replacingOccurrences(of: ".docx", with: "", options: [.caseInsensitive, .anchored, .backwards])
+        return ReviewStore.manuscriptExtensions.reduce(name ?? "Lume") {
+            $0.replacingOccurrences(of: "." + $1, with: "", options: [.caseInsensitive, .anchored, .backwards])
+        }
     }
 
     private var windowTitle: String {
@@ -263,11 +265,11 @@ private struct HomeView: View {
                     if let url = store.documentURL {
                         Kicker(title: "Manuscrito")
                         Text(url.deletingPathExtension().lastPathComponent).font(LumeFont.display(24)).lineLimit(2)
-                        Text("Clique ou arraste outro .docx para trocar. O arquivo original nunca é alterado.")
+                        Text("Clique ou arraste outro manuscrito para trocar. O arquivo original nunca é alterado.")
                             .font(LumeFont.ui(12)).foregroundStyle(LumeTheme.secondary)
                     } else {
                         Text("Traga seu manuscrito").font(LumeFont.display(24))
-                        Text("Arraste um arquivo Word (.docx) até aqui, ou clique para escolher. No Pages, exporte uma cópia para Word.")
+                        Text("Arraste um arquivo Word (.docx) ou Pages (.pages) até aqui, ou clique para escolher.")
                             .font(LumeFont.ui(13)).foregroundStyle(LumeTheme.secondary).fixedSize(horizontal: false, vertical: true)
                     }
                 }
@@ -721,8 +723,45 @@ private struct ReadingPage: View {
     @EnvironmentObject private var store: ReviewStore
     @AppStorage("lumeReadingSize") private var readingSize = 21.0
     let finding: Finding
+    @State private var correction = ""
 
     private var textSize: CGFloat { CGFloat(min(28, max(17, readingSize))) }
+
+    /// Correção do trecho destacado, gravada no documento do Pages a pedido do autor.
+    @ViewBuilder private var correctionView: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Corrigir no manuscrito").font(LumeFont.display(22))
+            if let edit = store.appliedEdit(for: finding) {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Image(systemName: "checkmark.circle.fill").foregroundStyle(LumeTheme.sage)
+                    Text(edit.before.isEmpty ? "inserção" : edit.before).strikethrough(!edit.before.isEmpty, color: LumeTheme.rose)
+                        .foregroundStyle(LumeTheme.secondary)
+                    Image(systemName: "arrow.right").font(.system(size: 11)).foregroundStyle(LumeTheme.secondary)
+                    Text(edit.after.isEmpty ? "trecho removido" : edit.after).italic(edit.after.isEmpty).bold()
+                }.font(LumeFont.display(16)).textSelection(.enabled)
+                Text("Gravado no arquivo. O texto acima é o da análise; analise novamente para ver o manuscrito atualizado.")
+                    .font(LumeFont.ui(11)).foregroundStyle(LumeTheme.secondary)
+                Button { store.revealBackup() } label: { Label("Mostrar a cópia anterior às correções", systemImage: "clock.arrow.circlepath") }
+                    .buttonStyle(.borderless).font(LumeFont.ui(11))
+            } else {
+                HStack(spacing: 10) {
+                    TextField("Texto que substitui o trecho destacado (vazio remove o trecho)", text: $correction)
+                        .textFieldStyle(.roundedBorder).font(LumeFont.display(16))
+                        .accessibilityLabel("Correção para o trecho destacado")
+                    Button { store.applyCorrection(correction, for: finding) } label: {
+                        Label("Corrigir", systemImage: "pencil.line")
+                    }.buttonStyle(LumeButtonStyle()).disabled(store.isBusy || correction == finding.segments.marked)
+                        .help("Troca o trecho destacado no documento do Pages")
+                }
+                Text(store.editCount(inParagraph: finding.paragraph) > 0
+                     ? "Este parágrafo já recebeu correções; o texto acima é o da análise. A troca vale só para o trecho destacado."
+                     : "Troca só o trecho destacado, no próprio arquivo do Pages. Uma cópia do original é guardada antes da primeira correção.")
+                    .font(LumeFont.ui(11)).foregroundStyle(LumeTheme.secondary)
+            }
+        }.padding(22).frame(maxWidth: .infinity, alignment: .leading)
+            .background(RoundedRectangle(cornerRadius: 20, style: .continuous).fill(LumeTheme.wash.opacity(0.6)))
+            .task(id: finding.id) { correction = finding.suggestion ?? finding.segments.marked }
+    }
     private var severity: FindingSeverity? { finding.severity.flatMap(FindingSeverity.init(rawValue:)) }
     private var currentIndex: Int? { store.filteredFindings.firstIndex { $0.id == finding.id } }
     private func move(_ offset: Int) {
@@ -840,6 +879,8 @@ private struct ReadingPage: View {
                         }.padding(.top, 12)
                     }.font(LumeFont.ui(13))
                 }
+
+                if store.canEditManuscript { correctionView }
 
                 // Decisão.
                 VStack(alignment: .leading, spacing: 14) {

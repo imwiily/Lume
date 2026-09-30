@@ -2,16 +2,16 @@
 
 **Revisão editorial para manuscritos em português, no Mac.** Uma luz acesa ao lado de quem escreve.
 
-O Lume lê manuscritos DOCX sem alterá-los e aponta:
+O Lume lê manuscritos do Word (.docx) e do Pages (.pages) e aponta:
 - ortografia e gramática: LanguageTool embutido e regras próprias de crase, homófonos, concordância, regência e vírgula;
 - tempo verbal da narração (passado ou presente);
 - repetições, diálogos, variações de nomes e prazos.
 
-Contradições narrativas são verificadas pela **Coerência com IA** (Claude), opcional. Sugestões e decisões ficam nos relatórios; o texto continua sendo do autor.
+Contradições narrativas são verificadas pela **Coerência com IA** (Claude), opcional. Sugestões e decisões ficam nos relatórios; o texto continua sendo do autor. A análise nunca altera o arquivo. Em documentos do Pages, o autor pode gravar a correção de um alerta no próprio arquivo (**Corrigir no manuscrito**): o Lume guarda antes uma cópia em `~/Library/Application Support/FONTE/Copias/`, usa o Pages para trocar só o trecho destacado e confere o resultado.
 
 ![Início do Lume](docs/identidade/previa-inicio-claro.png)
 
-Versão atual: **Lume 1.0.1 · FONTE 1.0.1 · Coerencia 1.0.0** — novidades no [CHANGELOG](CHANGELOG.md).
+Versão atual: **Lume 1.1 · FONTE 1.1.0 · Coerencia 1.0.0** — novidades no [CHANGELOG](CHANGELOG.md).
 
 ## Estrutura
 
@@ -71,7 +71,7 @@ Para compilar só a interface e reaproveitar um motor já produzido nesta versã
 
 ```sh
 xcodebuild -project app/Lume.xcodeproj -scheme Lume -configuration Release -derivedDataPath build/nova-montagem/DerivedData ARCHS=arm64 build
-fonte/.venv/bin/python scripts/package_app.py --app build/nova-montagem/DerivedData/Build/Products/Release/Lume.app --engine /caminho/fonte-1.0.1.lumemotor --output build/nova-montagem/Pacote
+fonte/.venv/bin/python scripts/package_app.py --app build/nova-montagem/DerivedData/Build/Products/Release/Lume.app --engine /caminho/fonte-1.1.0.lumemotor --output build/nova-montagem/Pacote
 ```
 
 O empacotador:

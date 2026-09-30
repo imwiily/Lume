@@ -1,13 +1,13 @@
-# Arquitetura e limites — Lume 1.0.1 / FONTE 1.0.1
+# Arquitetura e limites — Lume 1.1 / FONTE 1.1.0
 
-Os manuscritos são somente lidos. A sequência Linguístico → Morfossintático → Editorial → Coerência Global usa uma captura imutável do documento. Antes de gravar o relatório, a CLI confere novamente o SHA-256 do DOCX. Falha numa etapa impede as seguintes. O Auditor Final continua indisponível.
+Os manuscritos são somente lidos. A sequência Linguístico → Morfossintático → Editorial → Coerência Global usa uma captura imutável do documento. Antes de gravar o relatório, a CLI confere novamente o SHA-256 do arquivo (DOCX ou Pages). Falha numa etapa impede as seguintes. O Auditor Final continua indisponível.
 
 ## Organização
 
 | Local | Responsabilidade |
 | --- | --- |
 | `Lume/` | Interface SwiftUI, relatórios, decisões e seleção do motor |
-| `fonte/fonte/reader.py`, `contracts.py`, `pipeline.py` | Leitura DOCX, índices Unicode, contratos e execução sequencial |
+| `fonte/fonte/reader.py`, `pages.py`, `contracts.py`, `pipeline.py` | Leitura de DOCX e Pages, índices Unicode, contratos e execução sequencial |
 | `linguistic.py`, `analysis.py`, `temporal.py`, `editorial/` | Regras linguísticas, temporais e editoriais |
 | `grammar.py` | Crase, homófonos, concordância, regência e vírgula entre sujeito e verbo (etapa Morfossintática) |
 | `languagetool.py` | Corretor gramatical LanguageTool local: filtros, falas e servidor embutido |
@@ -20,6 +20,45 @@ Os manuscritos são somente lidos. A sequência Linguístico → Morfossintátic
 | `scripts/avaliar_deteccao.py` | Avaliação cega da detecção no corpus anotado `fonte/tests/corpus/deteccao/` |
 
 Caminhos de módulos Python são relativos a `fonte/fonte/`; os demais, à raiz do repositório.
+
+## Documentos do Pages
+
+`pages.py` lê o `.pages` diretamente, sem abrir o Pages e sem dependências novas: o arquivo é
+um ZIP com `Index/*.iwa` (blocos Snappy com mensagens protobuf). São lidos o texto do corpo, o
+nome do estilo de cada parágrafo (variações sem nome usam o do estilo de origem) e o itálico
+(estilo de caractere, com herança, ou estilo do parágrafo). `reader.py` aplica aos parágrafos
+as mesmas regras de capítulos e front matter do DOCX; `read_manuscript` escolhe o leitor pela
+extensão. O relatório não muda de formato: `document` traz o nome do arquivo e `sha256`, o
+hash do `.pages`.
+
+Limites: o formato não é documentado pela Apple e pode mudar entre versões do Pages (leitura
+conferida com o Pages 15.3). Tabelas, caixas de texto, cabeçalhos, rodapés, notas e
+comentários não são analisados; o nível de tópico não é lido (títulos vêm do nome do estilo
+ou do texto). Documento com senha, salvo como pacote (pasta) ou do Pages ’09 é recusado com
+orientação. O aviso de alterações controladas depende de campos não conferidos com um
+documento real; texto excluído com o controle ligado pode ser lido como texto.
+
+## Correção no manuscrito (Pages)
+
+A correção é pedida pelo autor em cada alerta e vale só para `.pages`; o DOCX continua
+somente leitura. `ReviewStore.applyCorrection` segue esta ordem:
+
+1. confere que o SHA-256 do arquivo é o do relatório (ou o da última correção);
+2. `ManuscriptEditor.plan` traduz o trecho do relatório para o parágrafo atual, somando as
+   correções já gravadas nele; trecho que toca uma correção anterior é recusado;
+3. na primeira correção, confirma com o autor e copia o arquivo para
+   `Copias/<sha256 do relatório>/`;
+4. o Pages (AppleScript via `osascript`) confere o texto do parágrafo e troca o trecho, um
+   caractere por vez, preservando a formatação; documento aberto com alterações não salvas
+   ou parágrafo diferente do esperado interrompem sem gravar;
+5. o motor (`conferir-edicao`, só leitura) confirma que apenas aquele parágrafo mudou e
+   devolve `LUME_EDICAO {"sha256": …}`; se falhar, o arquivo anterior é restaurado;
+6. `Edicoes/<sha256 do relatório>.json` registra origem, hash atual, cópia e correções.
+
+O relatório aberto não é reescrito: ele continua mostrando o texto analisado. Ao analisar de
+novo o arquivo corrigido, os alertas de ID idêntico (mesmo parágrafo, texto, regra e trecho)
+recebem a decisão anterior; nada é herdado por aproximação. A análise continua sendo refeita
+por inteiro. Exige o Pages instalado e a permissão de Automação do macOS.
 
 ## Pacotes e compatibilidade
 

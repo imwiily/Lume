@@ -11,7 +11,7 @@ import webbrowser
 
 from . import __version__
 from .pipeline import run as run_pipeline
-from .reader import read_docx
+from .reader import read_manuscript
 from .report import render
 
 
@@ -33,12 +33,12 @@ def parser():
     root = argparse.ArgumentParser(description="FONTE — triagem editorial local, sem corrigir o manuscrito.")
     root.add_argument("--version", action="version", version=__version__)
     commands = root.add_subparsers(dest="command", required=True)
-    review = commands.add_parser("revisar", help="Ler DOCX e gerar HTML + JSON")
+    review = commands.add_parser("revisar", help="Ler DOCX ou Pages e gerar HTML + JSON")
     review.add_argument("arquivo", type=Path)
     review.add_argument("--saida", type=Path, help="Pasta nova para os relatórios (nunca sobrescreve)")
     review.add_argument("--config", type=Path, help="Configuração JSON das verificações e estrutura do manuscrito")
     review.add_argument("--modo", choices=["linguistica", "editorial", "ambas"], default="linguistica")
-    review.add_argument("--original", type=Path, help="DOCX original opcional para procurar cicatrizes de edição")
+    review.add_argument("--original", type=Path, help="DOCX ou Pages original opcional para procurar cicatrizes de edição")
     # Sem detecção automática: o tempo da narração é informado (passado ou presente).
     review.add_argument("--tempo", choices=["passado", "presente"], default="passado",
                         help="Tempo em que o livro é narrado (padrão: passado)")
@@ -58,6 +58,12 @@ def parser():
     coherence_options(estimate)
     estimate.add_argument("arquivo", type=Path)
     estimate.add_argument("--config", type=Path)
+    check = commands.add_parser("conferir-edicao",
+                                help="Conferir que uma correção alterou só o parágrafo indicado; não grava nada")
+    check.add_argument("antes", type=Path, help="Cópia do manuscrito antes da correção")
+    check.add_argument("depois", type=Path, help="Manuscrito depois da correção")
+    check.add_argument("--paragrafo", type=int, required=True)
+    check.add_argument("--esperado", type=Path, required=True, help="Arquivo UTF-8 com o texto esperado do parágrafo")
     commands.add_parser("diagnostico", help="Conferir Python e modelo instalado")
     return root
 
@@ -72,9 +78,21 @@ def estimate_coherence(args):
     if not args.coerencia_projeto:
         raise ValueError("Informe a pasta de projeto (--coerencia-projeto).")
     settings = load_settings(args.config) if args.config else validate_settings({})
-    blocks, _ = read_docx(path, settings)
+    blocks, _ = read_manuscript(path, settings)
     result = estimar(blocks, args.coerencia_projeto.expanduser().resolve(), args.coerencia_modelo)
     print("LUME_ESTIMATIVA " + json.dumps(result, ensure_ascii=False), flush=True)
+    return 0
+
+
+def check_edit(args):
+    """Uma linha JSON para o app com o hash do manuscrito corrigido. Só lê os dois arquivos."""
+    from .reader import verify_edit
+    before, after = (p.expanduser().resolve() for p in (args.antes, args.depois))
+    if not before.is_file() or not after.is_file():
+        raise ValueError("Arquivo não encontrado.")
+    digest = hashlib.sha256(after.read_bytes()).hexdigest()
+    verify_edit(before, after, args.paragrafo, args.esperado.read_text(encoding="utf-8"))
+    print("LUME_EDICAO " + json.dumps({"sha256": digest}), flush=True)
     return 0
 
 
@@ -94,17 +112,21 @@ def main(argv=None):
             return 0
         if args.command == "coerencia-estimar":
             return estimate_coherence(args)
+        if args.command == "conferir-edicao":
+            return check_edit(args)
         path = args.arquivo.expanduser().resolve()
+        if path.is_dir() and path.suffix.lower() == ".pages":
+            raise ValueError("Este documento do Pages está salvo como pacote (pasta). No Pages: Arquivo → Avançado → Alterar Tipo de Arquivo → Arquivo Único.")
         if not path.is_file():
-            raise ValueError("Arquivo não encontrado. Arraste um .docx para o Terminal para inserir o caminho.")
+            raise ValueError("Arquivo não encontrado. Arraste um .docx ou .pages para o Terminal para inserir o caminho.")
         if path.stat().st_size > 50_000_000:
-            raise ValueError("Limite desta versão: DOCX de até 50 MB.")
+            raise ValueError("Limite desta versão: manuscrito de até 50 MB.")
         if args.saida and args.saida.expanduser().resolve().exists():
             raise ValueError("A pasta de saída já existe. Escolha uma pasta nova para preservar relatórios anteriores.")
         digest = hashlib.sha256(path.read_bytes()).hexdigest()
         from .settings import load as load_settings, validate as validate_settings
         settings=load_settings(args.config) if args.config else validate_settings({})
-        blocks, warnings = read_docx(path, settings)
+        blocks, warnings = read_manuscript(path, settings)
         if args.original and args.modo == "linguistica":
             raise ValueError("A comparação com original exige o modo editorial ou ambas.")
         if args.coerencia_ia and (args.modo == "linguistica" or not args.coerencia_projeto):
@@ -118,7 +140,7 @@ def main(argv=None):
             original_path = args.original.expanduser().resolve()
             if not original_path.is_file() or original_path.stat().st_size > 50_000_000:
                 raise ValueError("Original ausente ou maior que 50 MB.")
-            original_blocks, original_warnings = read_docx(original_path, settings)
+            original_blocks, original_warnings = read_manuscript(original_path, settings)
             warnings.extend("Original: " + w for w in original_warnings)
             original_metadata = {"original": original_path.name,
                                  "original_sha256": hashlib.sha256(original_path.read_bytes()).hexdigest()}

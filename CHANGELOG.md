@@ -2,6 +2,22 @@
 
 As seções antigas descrevem a cobertura e os resultados de cada entrega, não o estado atual. Nas seções anteriores à 1.0, caminhos citados são da antiga pasta `LumeMac/`; a correspondência com a estrutura atual está em [README.md](README.md#estrutura).
 
+## Lume 1.1 / FONTE 1.1.0 — 30/09/2026
+
+Documentos do Pages: leitura direta e correção no próprio arquivo. O Coerencia continua na 1.0.0.
+
+- Leitura direta de documentos do Pages (`.pages`), sem exportar para Word e sem abrir o
+  Pages: texto do corpo, capítulos (pelo nome do estilo ou pelo texto) e itálicos. O arquivo
+  continua intocado e o relatório registra o SHA-256 do `.pages`. Tabelas e caixas de texto
+  do Pages não são analisadas; documentos com senha ou salvos como pacote são recusados com
+  orientação. A comparação com o original também aceita `.pages`.
+- **Corrigir no manuscrito** (só `.pages`): em cada alerta, o autor pode gravar a sugestão ou
+  um texto próprio no lugar do trecho destacado, no próprio arquivo. O Lume guarda uma cópia
+  antes da primeira correção, usa o Pages para a troca (formatação preservada), confere pelo
+  motor que só aquele parágrafo mudou e desfaz se não conferir. Ao analisar de novo, as
+  decisões dos alertas que não mudaram são mantidas. O invariante do manuscrito imutável
+  passa a valer para a análise; a correção é sempre um pedido explícito do autor.
+
 ## Lume 1.0.1 / FONTE 1.0.1 — 29/09/2026
 
 Manutenção da 1.0: repositório reorganizado e aberto sob licença MIT, dados de manuscritos

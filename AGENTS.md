@@ -37,8 +37,12 @@ aprovam um patch novo.
 
 ## Invariantes
 
-1. O manuscrito é imutável. Analisar uma captura de leitura; manter bytes, hash,
+1. A análise nunca altera o manuscrito. Analisar uma captura de leitura; manter bytes, hash,
    parágrafos, trechos e índices Unicode. Sugestões e decisões ficam em relatórios.
+   Única exceção: a correção que o autor pede no app, alerta por alerta, num documento do
+   Pages. Ela troca só o trecho destacado, guarda antes uma cópia do arquivo, é conferida
+   pelo motor (só aquele parágrafo mudou) e é desfeita se a conferência falhar. Nenhuma
+   correção é aplicada automaticamente ou em lote.
 2. Preservar o pipeline modular. Etapas posteriores consomem resultados anteriores
    sem reescrevê-los; uma falha interrompe as etapas dependentes.
 3. Swift cuida da interface, navegação, decisões, progresso, relatórios, seleção do

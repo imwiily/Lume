@@ -10,7 +10,9 @@ relatórios, decisões editoriais, progresso e escolha/execução do motor.
 - Exibir evidências e limitações do motor. Diferenciar confiança heurística,
   severidade e decisão humana; etapa concluída não significa cobertura completa.
 - Preservar seleção de motor, relatórios e decisões existentes. IDs/evidências
-  novos não herdam decisões antigas por aproximação. Nunca modificar manuscrito.
+  novos não herdam decisões antigas por aproximação. O manuscrito só muda pela correção
+  pedida pelo autor (`ManuscriptEditor.swift`, invariante 1 da raiz): conferir hash antes,
+  guardar cópia, conferir pelo motor depois e restaurar em caso de falha.
 - Respeitar índices Unicode Python na apresentação Swift. Validar emoji e acentos
   combinados; destaque não pode mudar ou truncar texto.
 - Para mudanças de contrato, executar `../../tests/ContractCheck.swift` conforme

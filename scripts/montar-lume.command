@@ -74,6 +74,8 @@ if ! xcodebuild -project app/Lume.xcodeproj -scheme Lume -configuration Release 
 fi
 swiftc app/Lume/Models.swift app/Lume/PythonRunner.swift tests/ContractCheck.swift -o "$fonte_output/contrato-swift"
 "$fonte_output/contrato-swift" examples/Mestre/relatorio.json "$fonte_python"
+swiftc app/Lume/Models.swift app/Lume/ManuscriptEditor.swift tests/EditCheck.swift -o "$fonte_output/edicao-swift"
+"$fonte_output/edicao-swift"
 "$fonte_python" scripts/package_app.py \
   --app "$fonte_output/DerivedData/Build/Products/Release/Lume.app" \
   --engine "$fonte_engine" --output "$fonte_output/Pacote"

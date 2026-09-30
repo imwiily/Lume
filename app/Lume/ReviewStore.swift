@@ -62,6 +62,8 @@ final class ReviewStore: ObservableObject {
     @Published var errorText: String?
     @Published var logURL: URL?
     @Published var hasUnsavedDecisions = false
+    /// Correções gravadas no manuscrito a partir do relatório aberto.
+    @Published private(set) var editLog: EditLog?
 
     private enum Job: Equatable { case analyze, install, diagnose, estimate }
     private let runner = PythonRunner.shared
@@ -132,11 +134,16 @@ final class ReviewStore: ObservableObject {
                               : "Motor FONTE selecionado. Clique em Preparar para instalar as dependências."
     }
 
+    /// Formatos que o motor lê: Word e Pages.
+    static let manuscriptExtensions = ["docx", "pages"]
+    static var manuscriptTypes: [UTType] { manuscriptExtensions.map { UTType(filenameExtension: $0) ?? .data } }
+    static func isManuscript(_ url: URL) -> Bool { manuscriptExtensions.contains(url.pathExtension.lowercased()) }
+
     func chooseDocument() {
         guard !isBusy else { return }
         let panel = NSOpenPanel()
         panel.title = "Escolher manuscrito"
-        panel.allowedContentTypes = [UTType(filenameExtension: "docx") ?? .data]
+        panel.allowedContentTypes = Self.manuscriptTypes
         panel.allowsMultipleSelection = false
         guard panel.runModal() == .OK, let url = panel.url else { return }
         openDocument(url)
@@ -145,8 +152,8 @@ final class ReviewStore: ObservableObject {
     /// Mesmo caminho para o painel e para arrastar o arquivo até a janela.
     func openDocument(_ url: URL) {
         guard !isBusy else { return }
-        guard url.pathExtension.lowercased() == "docx" else {
-            errorText = "Escolha um DOCX. No Pages, use Arquivo → Exportar Para → Word."
+        guard Self.isManuscript(url) else {
+            errorText = "Escolha um arquivo Word (.docx) ou um documento do Pages (.pages)."
             return
         }
         guard mayReplaceReport() else { return }
@@ -155,7 +162,7 @@ final class ReviewStore: ObservableObject {
         documentURL = url
         restoreSearchSettings()
         screen = .preparation; analysisFailed = false
-        report = nil; reportURL = nil; selectedID = nil; decisions = [:]
+        report = nil; reportURL = nil; selectedID = nil; decisions = [:]; editLog = nil
         category = "Todas"; decisionFilter = "Todas"; search = ""; layerFilter = "Todas"; moduleFilter = "Todas"; severityFilter = "Todas"
         status = "Manuscrito selecionado. O arquivo original será preservado."
     }
@@ -207,11 +214,11 @@ final class ReviewStore: ObservableObject {
         guard !isBusy else { return }
         let panel = NSOpenPanel()
         panel.title = "Original para comparar com o manuscrito revisado"
-        panel.allowedContentTypes = [UTType(filenameExtension: "docx") ?? .data]
+        panel.allowedContentTypes = Self.manuscriptTypes
         panel.allowsMultipleSelection = false
         guard panel.runModal() == .OK, let url = panel.url else { return }
-        guard url.pathExtension.lowercased() == "docx", url != documentURL else {
-            errorText = "Selecione outro DOCX: a versão anterior à revisão."
+        guard Self.isManuscript(url), url != documentURL else {
+            errorText = "Selecione outro arquivo: a versão anterior à revisão."
             return
         }
         originalURL = url
@@ -275,13 +282,159 @@ final class ReviewStore: ObservableObject {
                 errorText = "Não foi possível restaurar as decisões locais. Uma cópia foi preservada em \(backup.path)."
             }
         }
+        var inherited = 0
+        if restored.isEmpty, !manager.fileExists(atPath: cache.path) {
+            restored = inheritedDecisions(for: loaded)
+            inherited = restored.count
+        }
         report = loaded; reportURL = url; decisions = restored
+        editLog = readEditLog(loaded.sha256)
         analysisStages = loaded.metadata.stages ?? []
         screen = .review; analysisFailed = false
         selectedID = loaded.findings.first?.id
         category = "Todas"; decisionFilter = "Todas"; search = ""; layerFilter = "Todas"; moduleFilter = "Todas"; severityFilter = "Todas"
         hasUnsavedDecisions = false
         status = "\(loaded.findings.count) candidatos. Avalie cada trecho no contexto."
+        if inherited > 0 {
+            try autosave()
+            status = "\(loaded.findings.count) candidatos. \(inherited) decisões mantidas nos alertas que não mudaram desde as correções."
+        }
+    }
+
+    // MARK: Correção no manuscrito
+
+    /// Só documentos do Pages recebem correções; o DOCX continua somente leitura.
+    var canEditManuscript: Bool { report != nil && documentURL?.pathExtension.lowercased() == "pages" }
+    func appliedEdit(for finding: Finding) -> AppliedEdit? { editLog?.edits.first { $0.finding == finding.id } }
+    func editCount(inParagraph paragraph: Int) -> Int { editLog?.edits.filter { $0.paragraph == paragraph }.count ?? 0 }
+
+    private func editLogURL(_ sha: String) throws -> URL {
+        try supportDirectory("Edicoes").appendingPathComponent(sha + ".json")
+    }
+
+    private func readEditLog(_ sha: String) -> EditLog? {
+        guard let url = try? editLogURL(sha), manager.fileExists(atPath: url.path) else { return nil }
+        let decoder = JSONDecoder(); decoder.dateDecodingStrategy = .iso8601
+        guard let log = try? decoder.decode(EditLog.self, from: readData(url)), log.schemaVersion == 1, log.origem == sha else {
+            errorText = "O histórico de correções deste relatório não pôde ser lido. Analise o manuscrito novamente antes de corrigir."
+            return nil
+        }
+        return log
+    }
+
+    /// Depois de correções feitas pelo Lume, a nova análise mantém as decisões dos alertas
+    /// idênticos (mesmo ID: mesmo parágrafo, texto, regra e trecho). Nada é herdado por aproximação.
+    private func inheritedDecisions(for report: EditorialReport) -> [String: ReviewDecision] {
+        guard let folder = try? supportDirectory("Edicoes"),
+              let files = try? manager.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil) else { return [:] }
+        let decoder = JSONDecoder(); decoder.dateDecodingStrategy = .iso8601
+        let ids = Set(report.findings.map(\.id))
+        for file in files where file.pathExtension == "json" {
+            guard let log = try? decoder.decode(EditLog.self, from: readData(file)),
+                  log.atual == report.sha256, log.origem != report.sha256,
+                  let source = try? supportDirectory("Decisoes").appendingPathComponent(log.origem + ".json"),
+                  let previous = try? JSONDecoder().decode(DecisionFile.self, from: readData(source)) else { continue }
+            return previous.decisions.reduce(into: [:]) { result, entry in
+                if ids.contains(entry.key), let value = ReviewDecision(rawValue: entry.value), value != .pending {
+                    result[entry.key] = value
+                }
+            }
+        }
+        return [:]
+    }
+
+    private func confirmFirstEdit(_ document: URL, backup: URL) -> Bool {
+        let alert = NSAlert()
+        alert.messageText = "Gravar correções em “\(document.lastPathComponent)”?"
+        alert.informativeText = "O Lume vai alterar este arquivo usando o Pages, que será aberto. Cada correção troca apenas o trecho destacado do alerta.\n\nAntes da primeira correção, uma cópia do arquivo como está agora é guardada em:\n\(backup.path)"
+        alert.addButton(withTitle: "Gravar correção")
+        alert.addButton(withTitle: "Cancelar")
+        return alert.runModal() == .alertFirstButtonReturn
+    }
+
+    func revealBackup() {
+        guard let path = editLog?.copia else { return }
+        NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: path)])
+    }
+
+    /// Grava no manuscrito a correção do trecho de um alerta. Só age a pedido do autor.
+    func applyCorrection(_ replacement: String, for finding: Finding) {
+        guard !isBusy, let report = report, let document = documentURL,
+              let python = pythonURL, let directory = engineDirectory else { return }
+        do {
+            guard canEditManuscript else {
+                throw FonteError.message("A correção no próprio arquivo está disponível para documentos do Pages.")
+            }
+            guard appliedEdit(for: finding) == nil else {
+                throw FonteError.message("Este alerta já foi corrigido no manuscrito.")
+            }
+            let expectedSHA = editLog?.atual ?? report.sha256
+            guard manager.fileExists(atPath: document.path), try ManuscriptEditor.sha256(document) == expectedSHA else {
+                throw FonteError.message("O arquivo escolhido não é o mesmo deste relatório, ou foi alterado fora do Lume. Analise o manuscrito novamente antes de corrigir.")
+            }
+            let plan = try ManuscriptEditor.plan(text: finding.text, start: finding.start, end: finding.end, replacement: replacement,
+                                                 edits: (editLog?.edits ?? []).filter { $0.paragraph == finding.paragraph })
+            let backup = try supportDirectory("Copias").appendingPathComponent(report.sha256, isDirectory: true)
+                .appendingPathComponent(document.lastPathComponent)
+            if editLog == nil {
+                guard confirmFirstEdit(document, backup: backup) else { return }
+                try manager.createDirectory(at: backup.deletingLastPathComponent(), withIntermediateDirectories: true)
+                if !manager.fileExists(atPath: backup.path) { try manager.copyItem(at: document, to: backup) }
+                guard try ManuscriptEditor.sha256(backup) == report.sha256 else {
+                    throw FonteError.message("A cópia de segurança não confere com o manuscrito analisado. Nada foi alterado.")
+                }
+            }
+            let work = manager.temporaryDirectory.appendingPathComponent("lume-edicao-" + UUID().uuidString, isDirectory: true)
+            try manager.createDirectory(at: work, withIntermediateDirectories: true)
+            let previous = work.appendingPathComponent("antes." + document.pathExtension)
+            let expected = work.appendingPathComponent("esperado.txt")
+            try manager.copyItem(at: document, to: previous)
+            try Data(plan.resultText.utf8).write(to: expected)
+            let log = try supportDirectory("Registros").appendingPathComponent(UUID().uuidString + ".txt")
+            let arguments = engineArguments + ["conferir-edicao", previous.path, document.path,
+                                               "--paragrafo", String(finding.paragraph), "--esperado", expected.path]
+            isBusy = true; jobLabel = "Gravando a correção no Pages…"; errorText = nil; logURL = log
+            Task {
+                defer { isBusy = false; jobLabel = ""; try? manager.removeItem(at: work) }
+                do {
+                    try await ManuscriptEditor.runPages(document: document, paragraph: finding.paragraph, plan: plan)
+                    let result = try await runner.run(executable: python, arguments: arguments, directory: directory, logURL: log)
+                    let prefix = "LUME_EDICAO "
+                    let current = try ManuscriptEditor.sha256(document)
+                    guard result.exitCode == 0,
+                          let line = PythonRunner.tail(log).split(separator: "\n").last(where: { $0.hasPrefix(prefix) }),
+                          let checked = try? JSONDecoder().decode([String: String].self, from: Data(line.dropFirst(prefix.count).utf8)),
+                          checked["sha256"] == current, current != expectedSHA else {
+                        throw FonteError.message("A conferência da correção falhou: o resultado não é exatamente a troca pedida. Se o motor selecionado for anterior a esta versão do Lume, use Motor de análise → Restaurar embutido.\n\n\(String(PythonRunner.tail(log).suffix(600)))")
+                    }
+                    var updated = editLog ?? EditLog(origem: report.sha256, atual: current, documento: document.lastPathComponent, copia: backup.path)
+                    updated.atual = current
+                    updated.edits.append(AppliedEdit(finding: finding.id, paragraph: finding.paragraph, start: finding.start, end: finding.end,
+                                                     before: finding.segments.marked, after: replacement, date: Date()))
+                    let encoder = JSONEncoder()
+                    encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
+                    encoder.dateEncodingStrategy = .iso8601
+                    try encoder.encode(updated).write(to: editLogURL(report.sha256), options: .atomic)
+                    editLog = updated
+                    if decision(for: finding) == .pending { decisions[finding.id] = .error }
+                    try autosave()
+                    status = "Correção gravada no manuscrito. A cópia anterior às correções está guardada."
+                } catch {
+                    // Qualquer falha devolve o arquivo ao estado anterior a esta correção.
+                    var restored = ""
+                    if (try? ManuscriptEditor.sha256(document)) != expectedSHA {
+                        do {
+                            _ = try manager.replaceItemAt(document, withItemAt: previous)
+                            restored = "\n\nO manuscrito foi devolvido ao estado anterior a esta correção."
+                        } catch {
+                            restored = "\n\nNão foi possível restaurar o manuscrito automaticamente. A cópia anterior às correções está em \(backup.path)."
+                        }
+                    }
+                    errorText = error.localizedDescription + restored
+                    status = "A correção não foi gravada."
+                }
+            }
+        } catch { errorText = error.localizedDescription }
     }
 
     func analyze() {
@@ -444,7 +597,7 @@ final class ReviewStore: ObservableObject {
                         coherenceEstimate = estimate
                         status = "Confira o envio e o custo estimado antes de continuar."
 
-                    case .install: status = "Motor FONTE preparado. Escolha um DOCX e clique em Analisar."
+                    case .install: status = "Motor FONTE preparado. Escolha um manuscrito e clique em Analisar."
                     case .diagnose: status = "Instalação verificada. O analisador está disponível."
                     }
                 } catch {

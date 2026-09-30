@@ -3,6 +3,48 @@
 Os registros abaixo pertencem às versões indicadas. Caminhos citados nos registros anteriores à 1.0 são da antiga pasta `LumeMac/` (correspondência em [README.md](../README.md#estrutura)); os comandos abaixo usam a raiz do repositório. As verificações do hotfix aparecem primeiro; os registros anteriores são mantidos para rastreabilidade.
 
 
+## Lume 1.1 / FONTE 1.1.0 — 30/09/2026
+
+Leitura de Pages conferida nos fontes; a montagem completa está registrada ao final desta seção.
+
+- 227 testes do analisador na leitura (11 novos em `fonte/tests/test_pages.py`), 25 dos pacotes, 29 do
+  Coerencia e o contrato Python aprovados. Build Debug do Xcode concluído; o contrato Swift
+  não foi executado (nenhum modelo mudou) e a interface não foi inspecionada visualmente.
+- Os oito DOCX de `examples/` e os manuscritos A e B foram convertidos para `.pages` pelo
+  Pages 15.3 em cópias temporárias fora do repositório. A leitura do `.pages` devolveu os
+  mesmos blocos do DOCX (texto, capítulo, título, papel e itálicos): 8/8 exemplos, A e B
+  (236 e 1274 parágrafos não vazios).
+- A refatoração de `read_docx` devolve blocos e avisos idênticos aos da revisão `addc886`
+  nesses dez arquivos; nenhum alerta muda.
+- `fonte/tests/corpus/pages/manuscrito-sintetico.pages` foi criado no Pages com texto
+  escrito para o teste.
+- Limites: só o Pages 15.3 foi conferido; tabelas inline, notas e alterações controladas do
+  Pages não foram exercitadas com documentos reais.
+
+### Correção no manuscrito
+
+- 230 testes do analisador (3 da conferência de correções) aprovados; `tests/EditCheck.swift`
+  valida o cálculo das posições (emoji, acento combinado, correções sucessivas, inserção,
+  recusas) e o histórico JSON.
+- Ponta a ponta numa cópia do documento sintético, com o Pages 15.3: troca depois de emoji,
+  troca de palavra em itálico (itálico mantido), inserção após acento combinado e remoção;
+  `conferir-edicao` aprovou e os demais parágrafos ficaram idênticos. Parágrafo diferente
+  do esperado foi recusado sem alterar o arquivo.
+- Achado: o Pages só abre o arquivo no lugar quando a referência é criada fora do bloco
+  `tell`; do contrário mostra “operação não permitida” e abre uma cópia sem título.
+- Achado no primeiro uso real: texto passado ao `osascript` como argumento chega com os
+  acentos decompostos (“á” vira “a” + acento combinado); a conferência do motor recusou e o
+  arquivo foi restaurado. Os textos agora seguem como códigos Unicode. Numa cópia temporária
+  do manuscrito A, sete sugestões com acento foram gravadas e conferidas (7/7).
+- `scripts/montar-lume.command` completo na 1.1: 230 testes do analisador e 25 dos pacotes,
+  contratos Python e Swift, `EditCheck`, motor arm64 1.1.0 congelado e app 1.1 (build 19)
+  assinado ad hoc. O motor embutido analisou o `.pages` sintético; 29 testes do Coerencia.
+- No app empacotado, o autor gravou uma correção num manuscrito real; a segunda falhou pelo
+  defeito dos acentos acima e foi desfeita pela conferência.
+- Não verificado: o fluxo pela interface (botão, confirmação, cópia, restauração, herança
+  de decisões na reanálise) foi compilado, mas não exercitado no app; permissão de
+  Automação pedida pelo app empacotado; documento já aberto no Pages; manuscritos reais.
+
 ## Lume 1.0 / FONTE 1.0.0 — 29/09/2026
 
 - `scripts/montar-lume.command` completo: 216 testes do analisador, 25 dos pacotes e 29 do Coerencia
