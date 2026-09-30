@@ -5,14 +5,23 @@ import hashlib
 import re
 
 from .reader import Block
-from .lexicon import finite, indicative_tense
+from .lexicon import finite, flags, indicative_tense
 
-SPEECH = set("dizer informar perguntar responder murmurar gritar sussurrar comentar retrucar afirmar falar exclamar replicar declarar indagar confessar explicar acrescentar argumentar insistir ordenar pedir protestar avisar pensar refletir ponderar admitir lembrar concluir continuar completar interromper balbuciar resmungar cochichar implorar vociferar anunciar observar sugerir repetir garantir negar confirmar questionar reclamar ironizar brincar saudar chamar ler recitar citar ditar cantar declamar".split())
+SPEECH = set("dizer informar perguntar responder murmurar gritar sussurrar comentar retrucar afirmar falar exclamar replicar declarar indagar confessar explicar acrescentar argumentar insistir ordenar pedir protestar avisar pensar refletir ponderar admitir lembrar concluir continuar completar interromper balbuciar resmungar cochichar implorar vociferar anunciar observar sugerir repetir garantir negar confirmar questionar reclamar ironizar brincar saudar chamar ler recitar citar ditar cantar declamar terminar".split())
 
 # Terminações verbais comuns; com o radical de um verbo de elocução, reconhecem a forma
 # mesmo quando o modelo pequeno erra o lema (“perguntei” → “perguntei”, “respondemos” → “respond”).
 TERMINACOES = re.compile(r"(?:o|a|as|amos|ais|am|ei|aste|ou|astes|aram|ava|avas|ávamos|avam|e|es|emos|em|i|este|eu|"
                          r"estes|eram|ia|ias|íamos|iam|iu|imos|iram|ará|arão|erá|erão|irá|irão|ando|endo|indo)(?:-\w+)?")
+
+
+# Depois destas palavras “para” não pode ser preposição: é o verbo parar (“o braço para no ar”).
+DEPOIS_DE_PARAR = {"de", "do", "da", "dos", "das", "em", "no", "na", "nos", "nas", "num", "numa"}
+
+
+def para_verbal(sent):
+    return any(t.lower_ == "para" and t.i + 1 < len(t.doc) and t.nbor().lower_ in DEPOIS_DE_PARAR
+               and t.i > sent.start for t in sent)
 
 
 def verbo_de_fala(token):
@@ -146,7 +155,8 @@ def analyze(blocks: list[Block], nlp, tense="auto", protect_italics=True, min_wo
                     f"O modelo e o léxico sustentam uma leitura no {observed}, em texto configurado/inferido como {expected}. Isso não confirma erro: pensamento, comentário do narrador, presente geral e mudanças deliberadas de plano temporal precisam ser avaliados no contexto."))
         for sent in doc.sents:
             words = [t for t in sent if t.is_alpha]
-            if "estrutura" in active and len(words) >= min_words and not any(finite(t) for t in sent):
+            if ("estrutura" in active and len(words) >= min_words and not any(finite(t) for t in sent)
+                    and not para_verbal(sent)):
                 # Segunda leitura só dos candidatos, sem espaços da máscara e
                 # com inicial minúscula. Não modifica o texto nem seus offsets.
                 clean = sent.text.strip()
@@ -170,6 +180,9 @@ def analyze(blocks: list[Block], nlp, tense="auto", protect_italics=True, min_wo
                     position, first_verb.idx+len(first_verb.text),
                     "Após as aspas há uma vírgula, mas o primeiro verbo finito identificado não está na lista de elocução/pensamento. Confira se o trecho é uma ação independente ou uma construção válida no contexto."))
         for match in re.finditer(r"\b([^\W\d_]+)(\s+)\1\b", mask if "palavra_consecutiva" in active else "", re.I):
+            # Onomatopeia reduplicada (“au au”, “blá blá”): forma fora do léxico.
+            if not flags(match[1]):
+                continue
             results.append(finding(block, "Palavra repetida", "Verificar", match.start(), match.end(),
                 "Palavra repetida consecutivamente na narração. Confira se é repetição expressiva ou digitação.", "Regras FONTE"))
     results.sort(key=lambda f: (f.paragraph, f.start, f.category))

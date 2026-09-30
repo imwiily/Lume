@@ -4,7 +4,7 @@ Janelas não atravessam capítulos/cortes explícitos. Evidências anteriores
 sustentam referências; parágrafos seguintes só ajudam a revisão humana.
 """
 import re
-from ..analysis import verbo_de_fala
+from ..analysis import forma_de_fala, verbo_de_fala
 from ..lexicon import model_finite
 from ..segments import classify, spans
 from .common import alert, evidence
@@ -73,6 +73,10 @@ def analyze(blocks, nlp, settings, *, docs=None):
                 # Verbos com clítico e nomes com acento decomposto não são
                 # is_alpha no spaCy, mas continuam sendo tokens lexicais.
                 first = next((t for t in parsed if any(c.isalpha() for c in t.text)), None)
+                # O modelo pequeno às vezes não vê o verbo de fala logo após o
+                # travessão (“— respondi, gaguejando…”); a forma escrita basta.
+                if first is not None and forma_de_fala(first.text) and (verb is None or verb.i > first.i):
+                    verb = first
                 if verb is None or first is None:
                     continue
                 if not verbo_de_fala(verb) and (first.text[0].islower() or

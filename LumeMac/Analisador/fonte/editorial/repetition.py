@@ -3,9 +3,22 @@ from difflib import SequenceMatcher
 from .common import WORDS, alert, evidence, normalized
 from ..settings import validate
 from ..segments import classify, spans
+from ..lexicon import flags
 
 STOP = set("a o as os um uma uns umas de da do das dos em no na nos nas por para pra com sem e ou mas que se eu tu ele ela eles elas nós vós você vocês me te lhe lhes meu minha seus suas seu sua isso isto esse essa este esta ao aos à às não sim já só mais muito como quando porque então era foi tinha havia estava ser estar ter faz fez fazer disse dizer é está são eram foram pelo pela pelos pelas comigo contigo consigo assim aqui ali tudo nada pouco cada qual onde este esta aquele aquela isto aquilo estou estamos obrigado obrigada".split())
 SENTENCE = re.compile(r"[^.!?…\n]+[.!?…]*")
+
+
+def expressive(text, lower, upper, first, second):
+    """Repetição entre frases com o mesmo início (“Ainda conseguia… Ainda conseguia…”)
+    ou eco numa frase curta (“Depois, outro. E outro.”) é recurso de estilo."""
+    sentences = [s for s in SENTENCE.finditer(text, lower, upper)]
+    one = next((s for s in sentences if s.start() <= first.start() < s.end()), None)
+    two = next((s for s in sentences if s.start() <= second.start() < s.end()), None)
+    if one is None or two is None or one.start() == two.start():
+        return False
+    before = lambda s, m: [w.casefold() for w in WORDS.findall(text[s.start():m.start()])]
+    return before(one, first) == before(two, second) or len(WORDS.findall(two[0])) <= 3
 
 
 def analyze(blocks, settings=None):
@@ -49,13 +62,13 @@ def analyze(blocks, settings=None):
                     if previous is not None:
                         first=tokens[previous];distance=i-previous
                         if (distance==1 and options['rules']['palavra_consecutiva']
-                                and block.text[first.end():token.start()].isspace()):
+                                and block.text[first.end():token.start()].isspace() and flags(key)):
                             out.append(alert(block,'palavra_consecutiva','Palavra repetida',first.start(),token.end(),
                                 'Palavra repetida consecutivamente na área selecionada. Confira se é expressão deliberada ou digitação.','média'))
                         elif (options['rules']['palavra_proxima'] and key not in STOP and len(key)>=4
                               and not token[0][0].isupper() and 1<distance<=options['word_distance'] and key not in emitted):
                             between=block.text[first.end():token.start()].strip().casefold()
-                            if between not in {'a','por'}:
+                            if between not in {'a','por'} and not expressive(block.text,lower,upper,first,token):
                                 out.append(alert(block,'palavra_proxima','Possível repetição próxima',first.start(),token.end(),
                                     f'“{token[0]}” aparece duas vezes em uma janela curta. A repetição pode ser necessária ou expressiva; confira se há redundância.','baixa'))
                                 emitted.add(key)

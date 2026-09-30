@@ -8,6 +8,7 @@ grafia (estrangeirismos). Nada é enviado para fora do computador.
 """
 from contextlib import contextmanager
 from dataclasses import asdict
+from collections import Counter
 import json
 import os
 from pathlib import Path
@@ -23,6 +24,7 @@ from urllib.request import Request, ProxyHandler, HTTPRedirectHandler, build_ope
 from urllib.error import URLError
 
 from .analysis import finding, forma_de_fala
+from .lexicon import flags
 from .settings import validate
 
 SERVER_JAR = "languagetool-server.jar"
@@ -31,6 +33,9 @@ IGNORED_CATEGORIES = {"STYLE", "REDUNDANCY", "COLLOQUIALISMS", "REGIONALISMS", "
 SENTENCE_END = set(".!?…\"“”«»—–")
 # Sugestões de estilo sobre a pontuação de falas (“Olá.” → “Olá!”, vírgula de despedida).
 IGNORED_RULES = {"INTERJECTIONS_PUNTUATION", "REGARDS_COMMA"}
+# Locuções de uso consagrado sem vírgulas internas (“Agora sim, …”).
+LOCUCOES_SEM_VIRGULA = {"agora sim"}
+PARTICIPIO = re.compile(r"\w+(?:ad|id)[oa]s", re.I)
 # Onomatopeias e interjeições expressivas: letras repetidas, caixa-alta ou formas como “Humm”, “Hm”.
 EXPRESSIVA = re.compile(r"(\w)\1\1|^(?:h+u*m+|h+a+m+|a+h+[mn]*|a+h+a+|h+[mn]+|hã+|u+é|u+h+|o+h+|a+i+)$", re.I)
 
@@ -51,17 +56,32 @@ def utf16_index(text, units):
 
 
 def proper_names(blocks, settings):
-    """Palavras com inicial maiúscula fora do início de frase em algum ponto do
-    texto são tratadas como nomes; o corretor não aponta sua grafia."""
+    """Palavras com inicial maiúscula fora do início de frase são tratadas como nomes;
+    o corretor não aponta sua grafia. Também conta como nome a palavra que aparece mais
+    de uma vez, sempre com inicial maiúscula (nome que só surge no início de frases ou
+    falas). Devolve os nomes para a grafia e, mais exigente, para a maiúscula após vírgula."""
     names = {word.casefold() for entry in settings["ignored_names"] for word in entry.split()}
+    capitalized, middle, lowercase = Counter(), Counter(), set()
     for block in blocks:
         if block.heading:
             continue
-        for match in re.finditer(r"[A-ZÀ-ÖØ-Þ][^\W\d_]+", block.text):
+        for match in re.finditer(r"[^\W\d_]+", block.text):
+            word = match[0]
+            if not word[0].isupper():
+                lowercase.add(word.casefold())
+                continue
+            if word.isupper() and len(word) > 1:
+                continue
+            capitalized[word.casefold()] += 1
             before = block.text[:match.start()].rstrip()
             if before and before[-1] not in SENTENCE_END and before[-1] != ":":
-                names.add(match[0].casefold())
-    return names
+                middle[word.casefold()] += 1
+    always = {w for w, n in capitalized.items() if n >= 2 and w not in lowercase}
+    # Grafia: uma ocorrência no meio de frase basta. Maiúscula depois de vírgula: a
+    # própria ocorrência apontada não prova que a palavra é um nome; exige outra.
+    spelling = names | set(middle) | always
+    after_comma = names | {w for w, n in middle.items() if n >= 2} | always
+    return spelling, after_comma
 
 
 def check(blocks, port=8081, protect_italics=True, settings=None, avancar=None):
@@ -70,7 +90,7 @@ def check(blocks, port=8081, protect_italics=True, settings=None, avancar=None):
         raise ValueError("A porta do LanguageTool precisa estar entre 1 e 65535.")
     settings = validate(settings or {})
     opener = build_opener(ProxyHandler({}), NoRedirect())
-    names = proper_names(blocks, settings)
+    names, vocatives = proper_names(blocks, settings)
     results, warnings = [], []
     total = sum(1 for b in blocks if not b.heading and b.text.strip())
     passo, feitos = max(1, total // 200), 0
@@ -113,7 +133,21 @@ def check(blocks, port=8081, protect_italics=True, settings=None, avancar=None):
             if rule.get("id") == "SENTENCE_WHITESPACE" and antes.endswith(("…", "...")):
                 continue
             # Nome próprio depois de vírgula ou dois-pontos (vocativo, enumeração) mantém a maiúscula.
-            if rule.get("id") == "UPPERCASE_AFTER_COMMA" and palavra.split()[-1].casefold() in names:
+            if rule.get("id") == "UPPERCASE_AFTER_COMMA" and palavra.split()[-1].casefold() in vocatives:
+                continue
+            # Depois de dois-pontos a maiúscula é legítima para nomes, citações e falas.
+            if rule.get("id") == "UPPERCASE_AFTER_COMMA" and excerpt.lstrip().startswith(":"):
+                continue
+            # “Quero todos alinhados”: particípio usado como adjetivo, não substantivo.
+            if rule.get("id") == "TODOS_FOLLOWED_BY_NOUN_PLURAL" and PARTICIPIO.fullmatch(palavra.split()[-1]):
+                continue
+            # “A chuva continua caindo”: verbo seguido de gerúndio, não o adjetivo acentuado.
+            if rule.get("id") == "LP_PARONYMS" and re.match(r"\s+[^\W\d_]+ndo\b", depois):
+                continue
+            if rule.get("id") == "VERB_COMMA_CONJUNCTION" and palavra.casefold() in LOCUCOES_SEM_VIRGULA:
+                continue
+            # Onomatopeia reduplicada (“Au au”): palavra repetida fora do léxico.
+            if rule.get("id") == "PORTUGUESE_WORD_REPEAT_RULE" and palavra and not flags(palavra.split()[0]):
                 continue
             # Onomatopeias, interjeições e palavras cortadas na fala (“proí…”) não são erros de grafia.
             sozinha = re.fullmatch(r"[—–\s]*\w+[!?]+[\s.…]*", text) is not None  # “Fwoosh!” num parágrafo

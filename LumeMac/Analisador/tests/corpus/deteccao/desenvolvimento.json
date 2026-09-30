@@ -190,6 +190,29 @@
         {"p": 10, "trecho": "Pra", "nota": "fala coloquial"},
         {"p": 10, "trecho": "Vem com a gente", "nota": "fala coloquial"}
       ]
+    },
+    {
+      "id": "dev-controle-arena",
+      "tempo": "passado",
+      "controle": true,
+      "nota": "Classes de falso positivo marcadas pelo autor em relatórios reais (29/09/2026), com nomes e cenas trocados.",
+      "paragrafos": [
+        "Capítulo 1",
+        "O sinal tocou, e a professora Irene entrou no pátio com uma prancheta.",
+        "— Quero todos sentados antes do sinal! Primeira apresentação: Lara, da turma do fundo, e depois Tomé.",
+        "— Já vou, senhora! — respondi, tropeçando enquanto subia a escada.",
+        "Taluma observava tudo de longe, encostada no muro.",
+        "“Taluma.” A voz veio do corredor, baixa e cansada.",
+        "Que alegria, achei que o ônibus já tinha partido.",
+        "Agora sim, a festa começou de verdade.",
+        "— A chuva continua caindo lá fora — disse Tomé, sem tirar os olhos do céu.",
+        "Tomé bateu na porta. Uma batida. Depois, outra. E outra.",
+        "Ainda conseguia enxergar. Ainda conseguia correr.",
+        "— Au au, quieto aí — disse Tomé ao cachorro, que latia sem parar.",
+        "— As duas turmas serão avisadas — terminou a diretora, fechando a pasta."
+      ],
+      "erros": [],
+      "aceitaveis": []
     }
   ]
 }

@@ -386,6 +386,9 @@ def subject_comma(block, doc, emit):
         if (subject is None or subject.i > verb.i or subject.pos_ != "NOUN"
                 or not any(c.dep_ in {"det", "nummod"} for c in subject.children)):
             continue
+        # “Que alívio, pensei…”: verbo em 1.ª ou 2.ª pessoa não tem um nome como sujeito.
+        if set(verb.morph.get("Person")) & {"1", "2"}:
+            continue
         words = [t for t in subject.subtree if not t.is_punct]
         if not words:
             continue

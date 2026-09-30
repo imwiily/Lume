@@ -14,6 +14,12 @@ As seções antigas descrevem a cobertura e os resultados de cada entrega, não 
 - O app usa o motor embutido, salvo se o motor instalado for de versão mais nova.
 - **Removida a memória narrativa heurística** (cenas, identidades, eventos, banco de fatos e
   comparações). Relatórios e configurações antigos continuam legíveis.
+- Segunda rodada de falsos positivos dos relatórios reais: nomes que só aparecem com
+  maiúscula, maiúscula após dois-pontos, particípio após “todos”, verbo antes de gerúndio,
+  “agora sim”, verbo de fala não visto pelo modelo (e “terminar” como elocução), vírgula
+  após exclamação com verbo em 1.ª pessoa, “para” verbal, repetição paralela ou em eco e
+  onomatopeia reduplicada. Hikari 228 → 214 e Echoes 20 → 18 alertas, sem perder erros
+  confirmados; corpus inalterado (53/55) e controle novo `dev-controle-arena`.
 - **Nova identidade visual “Luz de leitura”** (`Identidade/GUIA.md`): paleta noite, vela e
   linho, símbolo da chama sobre o livro, novo ícone e interface refeita (Início com arrastar e
   soltar, Mesa de leitura com página e nota de margem, atalhos ⌘1–⌘6 e ⌘[ / ⌘]).
