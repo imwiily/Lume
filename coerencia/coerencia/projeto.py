@@ -28,7 +28,7 @@ from .modelo import ErroModelo
 
 ESTADOS = ("aberta", "corrigida", "intencional", "resolvida_por_edicao")
 # Custo = parte proporcional ao texto + parte fixa por cena (instruções e raciocínio
-# de cada chamada). Calibrado com Sonnet 5.5 em duas medições reais: Hikari
+# de cada chamada). Calibrado com Sonnet 5.5 em duas medições reais: Manuscrito A
 # (79.984 caracteres, 29 cenas, US$ 0,77) e um texto de 2 cenas (US$ 0,013).
 CUSTO_POR_CARACTERE = 7.45e-6
 CUSTO_POR_CENA = 0.006

@@ -23,7 +23,7 @@ Requisitos de produto: [lume-v0.11.md](../product/lume-v0.11.md).
 | A10 | Métricas auditáveis | Candidatos, promoções, descartes, persistência e pares globais com denominadores explícitos |
 | A11 | Contratos compatíveis | JSON estrutural/semanticamente válido, IDs/origens válidos e leitores antigos preservados |
 | A12 | Regressão semântica completa | Suítes, corpus sintético e casos históricos passam sem enfraquecer expectativas |
-| A13 | Corpus real estável | Echoes e Hikari sem exceções, hash preservado e revisão dos casos semânticos esperados |
+| A13 | Corpus real estável | Manuscritos A e B sem exceções, hash preservado e revisão dos casos semânticos esperados |
 | A14 | Fechamento demonstrado | Diff revisado, resultados reproduzíveis, nenhum gate obrigatório pendente ou regressão conhecida |
 
 Marcar cada gate como aprovado, falhou ou pendente com comando/caso, data e caminho
@@ -123,8 +123,8 @@ semântica. Ver comandos de build no [README](../../README.md).
 
 ## Corpus real e comparação antes/depois
 
-Mudanças de análise exigem Echoes; mudanças de memória narrativa/global exigem
-também Hikari. Para fechar a v0.11, ambos são obrigatórios. Manter DOCX externos,
+Mudanças de análise exigem o manuscrito B; mudanças de memória narrativa/global exigem
+também o manuscrito A. Para fechar a v0.11, ambos são obrigatórios. Manter DOCX externos,
 sem versionar seu conteúdo nem modificar entradas para melhorar resultados.
 
 Já existe `scripts/validate_real_memory.py`. Na raiz do repositório, usar o modelo
@@ -147,8 +147,8 @@ e evidência dos fatos e compara fontes/motor quando fornecido.
 
 Esse script não aprova sozinho precisão, falsos fatos ou todos os gates. Acrescentar
 avaliação semântica dos casos esperados: continuidade, falantes, estados físicos,
-posse, objetos e cenas longas em Echoes; volume, múltiplos personagens, diálogos,
-objetos e mudanças de cena em Hikari. Manter configuração e denominadores
+posse, objetos e cenas longas no manuscrito B; volume, múltiplos personagens, diálogos,
+objetos e mudanças de cena no manuscrito A. Manter configuração e denominadores
 comparáveis; registrar alterações nas definições das métricas.
 
 A conversão de eventos elegíveis deve melhorar sem aumento indevido de falsos

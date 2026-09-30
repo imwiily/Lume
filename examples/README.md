@@ -36,7 +36,7 @@ Use uma pasta de saída nova a cada execução. O teste `tests/check_memory_111_
 
 ## Mestre
 
-`Manuscrito-modular.docx` é uma amostra sintética pequena. Não é uma análise do manuscrito completo de Hikari No Sekai.
+`Manuscrito-modular.docx` é uma amostra sintética pequena. Não é uma análise do manuscrito A completo.
 
 Abra o documento, escolha Ambas, Passado e configuração padrão. O relatório incluído foi regenerado pelo FONTE 1.0.0 (spaCy 3.8.16 / pt_core_news_sm 3.8.0), com textos sintéticos.
 
@@ -56,7 +56,7 @@ A suíte `test_fact_quality.py` verifica adicionalmente os papéis, os fatos, o 
 
 ## Temporal
 
-Amostra sintética; relatório regenerado pelo FONTE 1.0.0, com spaCy 3.8.16 e pt_core_news_sm 3.8.0. Não contém personagens nem depende do enredo de Hikari No Sekai.
+Amostra sintética; relatório regenerado pelo FONTE 1.0.0, com spaCy 3.8.16 e pt_core_news_sm 3.8.0. Não contém personagens nem depende do enredo do manuscrito A.
 
 Abra `Manuscrito-temporal.docx`, importe `Busca-temporal.json` e selecione **Ambas / Passado**. A configuração isola coerência temporal, acentuação contextual, quê final e pontuação duplicada; as demais regras ficam desligadas. Restaure o padrão antes de uma revisão geral.
 

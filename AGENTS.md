@@ -43,7 +43,7 @@ aprovam um patch novo.
    sem reescrevê-los; uma falha interrompe as etapas dependentes.
 3. Swift cuida da interface, navegação, decisões, progresso, relatórios, seleção do
    motor e da chave da API. A análise pertence ao Python (FONTE e Coerencia).
-4. Nenhuma regra ou instrução de modelo pode depender de Hikari, Echoes, nomes de
+4. Nenhuma regra ou instrução de modelo pode depender dos manuscritos reais de referência, de nomes de
    personagens, objetos particulares ou gênero literário. Generalizar cada defeito
    como classe editorial e testar substituições de nomes, objetos e contexto.
 5. Na dúvida, não alertar ou alertar como suspeita. Não transformar suspeita em erro
@@ -77,7 +77,7 @@ aprovam um patch novo.
   esconder regressões. Uma mudança legítima de expectativa precisa de justificativa.
 - Para código funcional, executar testes afetados, suítes do FONTE e do Coerencia,
   testes de integração e contratos Python/Swift (comandos nos READMEs). Mudanças que
-  alteram alertas exigem comparação antes/depois em Echoes e Hikari.
+  alteram alertas exigem comparação antes/depois nos manuscritos reais de referência (A e B).
 - Chamadas reais à API custam dinheiro do usuário: testar com modelo simulado e só
   usar a API com autorização, em textos curtos, informando o custo.
 - Para documentação apenas, conferir caminhos, referências, comandos por inspeção,

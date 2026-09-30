@@ -124,7 +124,7 @@ substituem. Não redefinir denominadores para fabricar melhora antes/depois.
 Fechar a v0.11 exige os [gates de aceitação](../testing/acceptance-v0.11.md), incluindo
 casos simples, negativos, ambiguidades, regressões reais e compatibilidade. Aumento
 de fatos úteis precisa vir acompanhado de controle de falsos fatos. Regras devem
-funcionar com nomes e contextos diferentes de Echoes/Hikari.
+funcionar com nomes e contextos diferentes dos manuscritos de referência.
 
 Manter apenas os comparadores previstos: atributo, estado, posse, localização,
 relação, conhecimento, presença e cronologia. Não incluir Auditor Final, sistemas

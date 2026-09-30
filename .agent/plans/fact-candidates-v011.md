@@ -30,14 +30,14 @@ antigo e novo sem exigir mudança de interface.
 ## Etapas e critérios
 
 - [x] Leitura das instruções, arquitetura, aceitação e implementação.
-- [ ] Baseline: suíte atual, Echoes e Hikari com configuração/hash iguais.
+- [ ] Baseline: suíte atual, manuscritos A e B com configuração/hash iguais.
 - [ ] Reproduções antes do patch: candidato/origem/descarte, transferência,
   saída, transições entre cenas, ruído, ambiguidade, confiança, pares globais.
 - [ ] Candidatos explícitos e métricas com denominadores documentados (A05/A10).
 - [ ] Papéis, identidade, relevância e persistência (A03/A04/A06/A09).
 - [ ] Histórico/validade/current_state e classes prioritárias (A07/A08).
 - [ ] Suíte completa, corpus sintético, integração, contratos Python/Swift (A01/A02/A11/A12).
-- [ ] Echoes/Hikari e inspeção semântica comparável (A13).
+- [ ] Manuscritos A e B e inspeção semântica comparável (A13).
 - [ ] Revisão separada do diff e relatório de gates/limites (A14).
 
 ## Comandos e evidências
@@ -46,7 +46,7 @@ Saída própria: LumeMac/Saida/fact-candidates-v011. Executar comandos de
 docs/testing/acceptance-v0.11.md. Baseline-tests.log: `.venv/bin/python -m unittest
 discover -s tests -v` em Analisador. `Scripts/validate_real_memory.py` em LumeMac
 com os DOCX externos e baselines indicados em docs/analises/2026-09-29-diagnostico-memoria-narrativa.md;
-saídas before-echoes e before-hikari tornam-se baselines deste patch para after-*.
+saídas before-manuscrito-b e before-manuscrito-a tornam-se baselines deste patch para after-*.
 Fontes apenas nesta etapa; pacote instalado/executável não são evidência dos fontes.
 
 Expectativas fixadas antes da implementação: controles triviais não persistem,

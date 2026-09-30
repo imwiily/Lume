@@ -2,12 +2,17 @@
 
 As seções antigas descrevem a cobertura e os resultados de cada entrega, não o estado atual. Nas seções anteriores à 1.0, caminhos citados são da antiga pasta `LumeMac/`; a correspondência com a estrutura atual está em [README.md](README.md#estrutura).
 
-## Não lançado
+## Lume 1.0.1 / FONTE 1.0.1 — 29/09/2026
+
+Manutenção da 1.0: repositório reorganizado e aberto sob licença MIT, dados de manuscritos
+reais removidos e uma correção de detecção. O Coerencia continua na 1.0.0.
 
 - Trechos, nomes e adaptações próximas de manuscritos reais removidos de testes, exemplos,
   prévias e documentos (inclusive do histórico do Git); substituídos por textos sintéticos.
   Os relatórios de exemplo Mestre, Editorial e Temporal foram regenerados pelo FONTE 1.0.0
   com as mesmas contagens. Removido o diagnóstico da memória narrativa (módulo já retirado).
+  Os títulos dos manuscritos reais de referência passam a ser citados como “manuscrito A” e
+  “manuscrito B”.
 - Adjetivo posposto (“a tarde inteira”) não é mais lido como verbo quando o modelo o liga a
   outro verbo sem conjunção nem pontuação.
 - Licença MIT para o código do Lume (app, FONTE e Coerencia); componentes de terceiros
@@ -36,7 +41,7 @@ nova identidade visual.
   maiúscula, maiúscula após dois-pontos, particípio após “todos”, verbo antes de gerúndio,
   “agora sim”, verbo de fala não visto pelo modelo (e “terminar” como elocução), vírgula
   após exclamação com verbo em 1.ª pessoa, “para” verbal, repetição paralela ou em eco e
-  onomatopeia reduplicada. Hikari 228 → 214 e Echoes 20 → 18 alertas, sem perder erros
+  onomatopeia reduplicada. Manuscrito A 228 → 214 e manuscrito B 20 → 18 alertas, sem perder erros
   confirmados; corpus inalterado (53/55) e controle novo `dev-controle-arena`.
 - **Nova identidade visual “Luz de leitura”** (`docs/identidade/README.md`): paleta noite, vela e
   linho, símbolo da chama sobre o livro, novo ícone e interface refeita (Início com arrastar e
@@ -166,4 +171,4 @@ Histórico e estado atual ficam ligados às evidências. A abordagem permanece c
 
 Corrigidos front matter, promoção indevida de personagens, atribuição de falas entre aspas, reinício artificial de cenas, narrador em primeira pessoa, conteúdo de fala capturado em gerúndios, autorreferência de objetos e identidade contextual de itens. Inclui numerais compostos, conhecimento negativo, estados de objetos, papéis semânticos, confiança e métricas com definições explícitas. Declarações de personagens preservam seu escopo.
 
-278 testes do analisador e 14 de pacotes aprovados; contratos Python/Swift aprovados. Echoes e Hikari foram reanalisados pelos fontes e pelo motor portátil final, com resultados semânticos idênticos e DOCX preservados. A cobertura continua parcial; detalhes e limitações em [arquitetura e limites](docs/arquitetura.md). O pacote é uma atualização independente do motor, instalado pelo menu do Lume.
+278 testes do analisador e 14 de pacotes aprovados; contratos Python/Swift aprovados. Os manuscritos A e B foram reanalisados pelos fontes e pelo motor portátil final, com resultados semânticos idênticos e DOCX preservados. A cobertura continua parcial; detalhes e limitações em [arquitetura e limites](docs/arquitetura.md). O pacote é uma atualização independente do motor, instalado pelo menu do Lume.

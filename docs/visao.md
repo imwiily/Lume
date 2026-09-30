@@ -456,7 +456,7 @@ O sistema deve armazenar:
 
 O projeto deve possuir uma suíte de testes editoriais.
 
-O manuscrito **Hikari No Sekai** será inicialmente um dos principais corpora de validação.
+Um manuscrito real do autor (**manuscrito A**) será inicialmente um dos principais corpora de validação.
 
 Já temos três tipos de exemplos extremamente úteis:
 

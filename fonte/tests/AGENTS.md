@@ -14,7 +14,7 @@ Aplicar as instruções da raiz Git e de `../AGENTS.md`.
 - A Coerência com IA é testada com modelo simulado; nenhum teste chama a API.
 - Não enfraquecer asserts, remover testes ou regravar resultados esperados para
   esconder regressões. Explicar qualquer mudança legítima de expectativa.
-- Não versionar Echoes/Hikari completos. Usar casos neutros; trechos reais somente
+- Não versionar manuscritos reais, nem trechos ou nomes deles. Usar casos neutros; trechos reais somente
   quando fornecidos/autorizados.
 - Registrar falhas e skips. Testes criados no desenvolvimento não medem precisão
   independente; taxas de acerto exigem corpus anotado.

@@ -152,7 +152,7 @@ Descobertas:
 - Revisão manual no corpus real revelou 6 alarmes (concordância por erro de análise,
   vírgula em vocativos de falas marcadas por hífen) e a supressão de um verbo real pela
   correção de adjetivo posposto; corrigidos com reproduções genéricas antes da rodada final.
-- As versões de Echoes/Hikari com os hashes antigos não existem mais no disco.
+- As versões dos manuscritos A e B com os hashes antigos não existem mais no disco.
 
 ## Validação realizada e resultado final
 
@@ -163,7 +163,7 @@ Registro completo em `LumeMac/Documentacao/VALIDACAO.md` (seção “Detecção 
 - 364 testes do analisador, 25 de integração, contratos Python e Swift, build Release: aprovados.
 - Motor congelado com corretor: validado após relocação, paridade exata com fontes no corpus;
   app empacotado e assinado (`Saida/deteccao-generalizada/Pacote/`).
-- Echoes/Hikari (versões atuais): hash/índice preservados, nenhuma ocorrência anterior perdida,
+- Manuscritos A e B (versões atuais): hash/índice preservados, nenhuma ocorrência anterior perdida,
   19 novas revistas manualmente como corretas.
 
 Gates: A01 aprovado (hash/índice); A11 aprovado (contratos; campo aditivo `languagetool_origem`);

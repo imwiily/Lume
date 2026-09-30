@@ -1,4 +1,4 @@
-# Arquitetura e limites — Lume 1.0 / FONTE 1.0.0
+# Arquitetura e limites — Lume 1.0.1 / FONTE 1.0.1
 
 Os manuscritos são somente lidos. A sequência Linguístico → Morfossintático → Editorial → Coerência Global usa uma captura imutável do documento. Antes de gravar o relatório, a CLI confere novamente o SHA-256 do DOCX. Falha numa etapa impede as seguintes. O Auditor Final continua indisponível.
 
@@ -105,7 +105,7 @@ chamar a API. A chave vem de `ANTHROPIC_API_KEY` ou das Chaves do macOS.
 Até 29/09/2026 o FONTE tinha uma memória narrativa local (`semantic*.py`,
 `narrative*.py`, `generic_facts.py`, `fact_*.py`): cenas, identidades, eventos, banco de
 fatos e comparações. Ela foi removida por não produzir alertas úteis (0 de 11
-contradições nos textos de teste; nenhum alerta em Echoes e Hikari). Relatórios antigos
+contradições nos textos de teste; nenhum alerta nos manuscritos A e B). Relatórios antigos
 com `scenes`, `fact_bank` e `narrative_summary` continuam legíveis no app; as regras
 correspondentes ficam em `RETIRED_RULES` e são ignoradas. Contradições narrativas
 passaram à Coerência com IA.
