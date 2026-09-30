@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "coerencia"
-version = "0.1.0"
+version = "1.0.0"
 description = "Contradições narrativas com a API do Claude, com leitura incremental por capítulo"
 requires-python = ">=3.10"
 dependencies = ["python-docx>=1.1", "anthropic>=1.0"]

@@ -2,7 +2,10 @@
 
 As seções antigas descrevem a cobertura e os resultados de cada entrega, não o estado atual. Caminhos de código e de `Saida/` são relativos à pasta `LumeMac`.
 
-## Em desenvolvimento (após 0.11.4 / FONTE 0.9.5) — 29/09/2026
+## Lume 1.0 / FONTE 1.0.0 / Coerencia 1.0.0 — 29/09/2026
+
+Primeira versão oficial. Detecção de erros para qualquer texto, Coerência com IA opcional e
+nova identidade visual.
 
 - Corretor gramatical LanguageTool embutido no motor, ligado por padrão, revisando também as falas.
 - Regras de crase, homófonos, concordância, regência e vírgula entre sujeito e verbo.
@@ -23,6 +26,11 @@ As seções antigas descrevem a cobertura e os resultados de cada entrega, não 
 - **Nova identidade visual “Luz de leitura”** (`Identidade/GUIA.md`): paleta noite, vela e
   linho, símbolo da chama sobre o livro, novo ícone e interface refeita (Início com arrastar e
   soltar, Mesa de leitura com página e nota de margem, atalhos ⌘1–⌘6 e ⌘[ / ⌘]).
+- Topo no padrão do Mac: barra lateral até os botões da janela e barra de ferramentas única.
+- Janela **Sobre o Lume** com versões, créditos e as licenças de todos os componentes que
+  seguem no motor (índice `licencas/indice.json`, gerado na montagem).
+- Limites conhecidos: a assinatura é local (ad hoc), sem notarização; o Auditor Final
+  continua indisponível.
 
 ## FONTE 0.9.5 — robustez semântica e memória narrativa
 

@@ -670,5 +670,6 @@ extension ReviewStore {
         analysisStages = stages; isAnalyzing = true; screen = .review
     }
     func debugReset() { isAnalyzing = false; screen = .preparation }
+    func debugUseEngine(_ root: URL) { embeddedEngine = EmbeddedEngine(root: root, version: "debug", updated: false) }
 }
 #endif

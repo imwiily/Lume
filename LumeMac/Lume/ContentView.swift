@@ -166,6 +166,7 @@ private struct NightRail: View {
 @MainActor
 private struct EngineControls: View {
     @EnvironmentObject private var store: ReviewStore
+    @Environment(\.openWindow) private var openWindow
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Kicker(title: "Motor de análise")
@@ -192,6 +193,8 @@ private struct EngineControls: View {
                     Button("Verificar") { store.diagnose() }.disabled(!store.pythonExists)
                 }.buttonStyle(LumeButtonStyle())
             }
+            Button("Sobre o Lume e licenças…") { openWindow(id: "sobre") }
+                .buttonStyle(.link).font(LumeFont.ui(12))
         }.disabled(store.isBusy).foregroundStyle(LumeTheme.ink)
     }
 }

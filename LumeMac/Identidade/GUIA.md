@@ -90,6 +90,8 @@ do mesmo modo. Vela sobre Noite (e o inverso) chega a 9,5:1. Cada decisão tem c
 5. **Barra de ferramentas**: uma só, no padrão do Mac. Título e subtítulo mostram o
    manuscrito e o andamento (“Mesa de leitura · 12 de 286 avaliados”). À direita ficam
    os ícones de Capítulos, Etapas e alcance, Abrir relatório, Exportar e Mais opções.
+6. **Sobre o Lume**: painel noturno com o símbolo, as versões e a frase da marca; à direita,
+   os componentes de terceiros e o texto de cada licença, lidos do motor embutido.
 
 ## Prévias
 

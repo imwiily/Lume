@@ -1,4 +1,4 @@
-# Arquitetura e limites — Lume 0.11.4 / FONTE 0.9.5
+# Arquitetura e limites — Lume 1.0 / FONTE 1.0.0
 
 Os manuscritos são somente lidos. A sequência Linguístico → Morfossintático → Editorial → Coerência Global usa uma captura imutável do documento. Antes de gravar o relatório, a CLI confere novamente o SHA-256 do DOCX. Falha numa etapa impede as seguintes. O Auditor Final continua indisponível.
 

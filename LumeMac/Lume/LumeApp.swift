@@ -28,6 +28,7 @@ struct LumeApp: App {
         }
         .defaultSize(width: 1280, height: 820)
         .commands {
+            SobreCommands()
             CommandGroup(replacing: .newItem) {
                 Button("Escolher manuscrito…") { store.chooseDocument() }
                     .keyboardShortcut("o").disabled(store.isBusy)
@@ -39,6 +40,12 @@ struct LumeApp: App {
                     .keyboardShortcut("s").disabled(store.report == nil || store.isBusy)
             }
         }
+        Window("Sobre o Lume", id: "sobre") {
+            SobreView().environmentObject(store)
+        }
+        .windowStyle(.hiddenTitleBar)
+        .windowResizability(.contentMinSize)
+        .defaultSize(width: 920, height: 600)
     }
 }
 
@@ -47,16 +54,23 @@ struct LumeApp: App {
 @MainActor
 enum Snapshot {
     static func render(_ store: ReviewStore, name: String, dark: Bool, into folder: URL) async {
+        await render(AnyView(ContentView().environmentObject(store)), size: NSSize(width: 1280, height: 820),
+                     name: name, dark: dark, into: folder)
+    }
+
+    static func render(_ root: AnyView, size: NSSize, name: String, dark: Bool, into folder: URL) async {
         // Janela real, com barra de ferramentas, para conferir também o topo.
-        let controller = NSHostingController(rootView: ContentView().environmentObject(store))
+        let controller = NSHostingController(rootView: root)
         if #available(macOS 14, *) { controller.sceneBridgingOptions = [.toolbars, .title] }
-        let window = NSWindow(contentRect: NSRect(x: 40, y: 40, width: 1280, height: 820),
+        let window = NSWindow(contentRect: NSRect(origin: CGPoint(x: 40, y: 40), size: size),
                               styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
                               backing: .buffered, defer: false)
         window.contentViewController = controller
         window.toolbarStyle = .unified
+        // A janela Sobre usa título oculto, como na cena real (.hiddenTitleBar).
+        if name.hasPrefix("5-") { window.titlebarAppearsTransparent = true; window.titleVisibility = .hidden }
         window.appearance = NSAppearance(named: dark ? .darkAqua : .aqua)
-        window.setContentSize(NSSize(width: 1280, height: 820))
+        window.setContentSize(size)
         window.orderFrontRegardless()
         try? await Task.sleep(nanoseconds: 1_200_000_000)
         guard let frame = window.contentView?.superview,
@@ -70,6 +84,14 @@ enum Snapshot {
     static func run(into folder: URL) async {
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         let env = ProcessInfo.processInfo.environment
+        if let engine = env["LUME_SNAPSHOT_ABOUT"] {
+            for dark in [false, true] {
+                let store = ReviewStore()
+                store.debugUseEngine(URL(fileURLWithPath: engine))
+                await render(AnyView(SobreView().environmentObject(store)), size: NSSize(width: 920, height: 600),
+                             name: "5-sobre", dark: dark, into: folder)
+            }
+        }
         // Ícone do app: símbolo na grade de ícones do macOS (824 de 1024, com sombra).
         let icon = ImageRenderer(content: LumeMark(size: 824, glowing: true)
             .shadow(color: .black.opacity(0.3), radius: 18, y: 12)

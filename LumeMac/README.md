@@ -6,18 +6,18 @@ verbal da narração informado (passado ou presente), repetições, diálogos, v
 nomes e prazos. Contradições narrativas são verificadas pela Coerência com IA (Claude),
 opcional. Sugestões e decisões ficam nos relatórios.
 
-A memória narrativa heurística das versões 0.9.x foi removida em 29/09/2026: não produzia
-alertas úteis nos textos de teste nem nos manuscritos reais. Configurações antigas que
-mencionam suas regras continuam abrindo. A versão exibida ainda é 0.11.4 / FONTE 0.9.5
-até a próxima entrega oficial.
+Versão atual: **Lume 1.0 / FONTE 1.0.0 / Coerencia 1.0.0**. Novidades em
+[Documentacao/HISTORICO.md](Documentacao/HISTORICO.md). A memória narrativa heurística das
+versões 0.9.x foi removida: não produzia alertas úteis nos textos de teste nem nos manuscritos
+reais. Configurações antigas que mencionam suas regras continuam abrindo.
 
 ## Usar a entrega
 
 Extraia `Lume.app.zip` e copie `Lume.app` para Aplicativos. Feche a versão anterior antes de abrir a nova. Não é necessário instalar Python ou importar um motor separadamente para usar o aplicativo completo.
 
-A entrega deste hotfix está em `Saida/hotfix-0.11.4/Pacote/`, com aplicativo, ZIP e `release.json` (versões, diagnóstico e SHA-256). A assinatura é local/ad hoc, sem notarização para distribuição pública. O macOS mínimo do motor está no manifesto e no resumo da entrega.
+`Montar-Lume.command` gera a entrega em `Saida/<data>-<id>/Pacote/`, com aplicativo, ZIP e `release.json` (versões, diagnóstico e SHA-256). A assinatura é local/ad hoc, sem notarização para distribuição pública. O macOS mínimo do motor está no manifesto e no resumo da entrega.
 
-A seleção de motores instalados anteriormente é preservada. Se **Motor de análise** mostrar uma versão anterior, use **Restaurar embutido** para ativar **FONTE 0.9.4**. Relatórios, decisões e preferências continuam na pasta `~/Library/Application Support/FONTE/`.
+A seleção de motores instalados anteriormente é preservada. Se **Motor** mostrar uma versão anterior, use **Restaurar embutido** para ativar **FONTE 1.0.0**. Versões, créditos e licenças ficam em **Lume → Sobre o Lume**. Relatórios, decisões e preferências continuam na pasta `~/Library/Application Support/FONTE/`.
 
 ## Coerência com IA (Claude)
 

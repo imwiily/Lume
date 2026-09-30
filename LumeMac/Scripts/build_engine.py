@@ -34,6 +34,70 @@ def freeze_command(work):
     return command
 
 
+# Só usados para montar o motor; não seguem dentro dele.
+SO_MONTAGEM = {'pip', 'setuptools', 'wheel', 'altgraph', 'macholib', 'pyinstaller-hooks-contrib'}
+# Código do próprio Lume; licenças de terceiros que ele contém entram à parte.
+PROPRIOS = {'fonte-revisor', 'coerencia'}
+USOS = {'spacy': 'Análise sintática', 'pt-core-news-sm': 'Modelo de português', 'anthropic': 'Coerência com IA',
+        'python-docx': 'Leitura do DOCX', 'pyinstaller': 'Carregador do motor empacotado', 'numpy': 'Cálculo numérico',
+        'thinc': 'Modelos do spaCy', 'lxml': 'Leitura do DOCX', 'httpx': 'Conexão com a API'}
+# Rótulos curtos quando o metadado traz o texto inteiro ou um nome genérico.
+LICENCAS = {'pyinstaller': 'GPL-2.0-or-later com exceção para o carregador'}
+
+
+def licencas(package, grammar):
+    """Grava licencas/indice.json e copia os textos de licença de tudo que segue no motor."""
+    import importlib.metadata as metadata
+    pasta = package / 'licencas'
+    pasta.mkdir()
+    itens, vistos = [], set()
+
+    def copiar(nome, origem, destino):
+        alvo = pasta / nome / destino
+        alvo.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(origem, alvo)
+        return str(alvo.relative_to(package))
+
+    for dist in sorted(metadata.distributions(), key=lambda d: d.metadata['Name'].casefold()):
+        nome = dist.metadata['Name']
+        chave = nome.casefold().replace('_', '-')
+        if chave in vistos or chave in SO_MONTAGEM or chave in PROPRIOS:
+            continue
+        vistos.add(chave)
+        md = dist.metadata
+        classificadores = [c.split(' :: ')[-1] for c in md.get_all('Classifier') or [] if c.startswith('License ::')]
+        texto = md.get('License-Expression') or (md.get('License') or '').strip()
+        licenca = LICENCAS.get(chave) or (texto if texto and len(texto) <= 80 and '\n' not in texto
+                                          else (classificadores[0] if classificadores else 'Ver texto'))
+        arquivos = [copiar(nome, dist.locate_file(f), f.name if i == 0 else f'{i}-{f.name}')
+                    for i, f in enumerate(f for f in dist.files or []
+                                          if any(k in f.name.upper() for k in ('LICEN', 'COPYING', 'NOTICE')))
+                    if Path(dist.locate_file(f)).is_file()]
+        itens.append({'nome': nome, 'versao': dist.version, 'licenca': licenca,
+                      'uso': USOS.get(chave, 'Dependência do motor'), 'arquivos': arquivos})
+    python = Path(sys.base_prefix) / 'lib' / f'python{sys.version_info.major}.{sys.version_info.minor}' / 'LICENSE.txt'
+    if python.is_file():
+        itens.append({'nome': 'Python', 'versao': platform.python_version(), 'licenca': 'PSF-2.0',
+                      'uso': 'Linguagem do motor', 'arquivos': [copiar('Python', python, 'LICENSE.txt')]})
+    lexico = ROOT / 'Analisador/fonte/data/PORTILEXICON-LICENSE.txt'
+    itens.append({'nome': 'PortiLexicon-UD', 'versao': '', 'licenca': 'MIT', 'uso': 'Léxico do português',
+                  'arquivos': [copiar('PortiLexicon-UD', lexico, 'LICENSE.txt')]})
+    if grammar:
+        info = json.loads((grammar / 'lume-languagetool.json').read_text())
+        terceiros = sorted(p for p in (grammar / 'third-party-licenses').iterdir() if p.is_file())
+        itens.append({'nome': 'LanguageTool', 'versao': info['languagetool_version'], 'licenca': 'LGPL-2.1-or-later',
+                      'uso': 'Corretor gramatical local',
+                      'arquivos': ['languagetool/COPYING.txt'] + [f'languagetool/third-party-licenses/{p.name}' for p in terceiros]})
+        legal = grammar / 'jre/legal/java.base'
+        itens.append({'nome': 'OpenJDK', 'versao': info['java_version'], 'licenca': 'GPL-2.0 com Classpath Exception',
+                      'uso': 'Java mínimo do corretor',
+                      'arquivos': [f'languagetool/jre/legal/java.base/{n}' for n in ('LICENSE', 'ASSEMBLY_EXCEPTION', 'ADDITIONAL_LICENSE_INFO')
+                                   if (legal / n).is_file()]})
+    itens.sort(key=lambda item: item['nome'].casefold())
+    (pasta / 'indice.json').write_text(json.dumps({'schema': 1, 'componentes': itens}, ensure_ascii=False, indent=2))
+    return itens
+
+
 def languagetool_source(explicit):
     """Corretor gramatical preparado por Scripts/preparar_languagetool.py."""
     source = (explicit or ROOT / 'Analisador/.languagetool').resolve()
@@ -76,9 +140,10 @@ def main():
     if grammar:
         # Fica ao lado de runtime/: o motor congelado o procura em ../languagetool.
         shutil.copytree(grammar, package / 'languagetool', symlinks=True)
-    # Inclui inventário de dependências e respectivas licenças coletadas pelo PyInstaller.
+    # Inventário de dependências e textos de licença, exibidos em “Sobre o Lume”.
     freeze = subprocess.check_output([sys.executable, '-m', 'pip', 'freeze'], text=True)
     (package / 'dependencias.txt').write_text(freeze)
+    licencas(package, grammar)
     manifest = {'package_schema': 1, 'api_version': 1, 'report_schema': 1, 'decision_schema': 1,
                 'engine_version': health['engine_version'], 'platform': 'darwin', 'architecture': 'arm64',
                 'minimum_os': platform.mac_ver()[0], 'executable': 'runtime/lume-engine', 'files': inventory(package)}
