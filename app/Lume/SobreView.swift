@@ -91,7 +91,7 @@ struct SobreView: View {
             Text("O manuscrito é lido neste Mac e nunca é alterado. Só os capítulos que você autorizar seguem para a Coerência com IA.")
                 .font(LumeFont.ui(11)).foregroundStyle(LumeTheme.linen.opacity(0.7))
                 .fixedSize(horizontal: false, vertical: true)
-            Text("O Lume usa os componentes ao lado, cada um sob sua própria licença.")
+            Text("O Lume é software livre sob a licença MIT. Os componentes ao lado seguem suas próprias licenças.")
                 .font(LumeFont.ui(11)).foregroundStyle(LumeTheme.linen.opacity(0.7))
                 .fixedSize(horizontal: false, vertical: true).padding(.bottom, 26)
         }.padding(.horizontal, 26).frame(width: 260).frame(maxHeight: .infinity, alignment: .top)

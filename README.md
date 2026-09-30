@@ -120,4 +120,8 @@ O conjunto `desenvolvimento` orienta correções; `validacao` fica reservado par
 
 A revisão é heurística e parcial. Confiança não é probabilidade calibrada, e a ausência de alertas não garante ausência de erros. O Auditor Final ainda não existe. Os manuscritos usados no desenvolvimento não constituem uma avaliação independente de precisão.
 
-Licenças de terceiros: janela **Sobre o Lume** e `fonte/fonte/data/` ([atribuições](fonte/fonte/data/ATRIBUICAO.md)).
+## Licença
+
+O código do Lume (app, FONTE e Coerencia) é livre sob a [licença MIT](LICENSE): qualquer pessoa pode usar, copiar, modificar e distribuir, inclusive comercialmente, mantendo o aviso de copyright.
+
+Os componentes de terceiros que acompanham o app mantêm suas próprias licenças. Entre eles estão o LanguageTool (LGPL-2.1), o OpenJDK (GPL-2.0 com Classpath Exception), o modelo de português do spaCy (CC BY-SA 4.0) e o PortiLexicon-UD (MIT). A lista completa, com os textos, fica na janela **Sobre o Lume** e em `fonte/fonte/data/` ([atribuições](fonte/fonte/data/ATRIBUICAO.md)).

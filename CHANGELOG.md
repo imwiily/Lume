@@ -4,6 +4,8 @@ As seções antigas descrevem a cobertura e os resultados de cada entrega, não 
 
 ## Não lançado
 
+- Licença MIT para o código do Lume (app, FONTE e Coerencia); componentes de terceiros
+  mantêm as próprias licenças, listadas em **Sobre o Lume**.
 - Repositório reorganizado no padrão do GitHub: `app/` (SwiftUI e Xcode), `fonte/` (motor
   FONTE), `coerencia/`, `packaging/`, `scripts/`, `tests/`, `examples/`, `docs/` e `build/`
   (saídas locais). `HISTORICO.md` virou este `CHANGELOG.md`; o guia do app virou o README da
