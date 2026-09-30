@@ -1,6 +1,6 @@
 # Lume v0.11 — memória narrativa confiável
 
-> **Documento histórico.** A memória narrativa heurística descrita aqui foi removida em 29/09/2026 por não produzir alertas úteis; contradições narrativas passaram à Coerência com IA (`LumeCoerencia/`). Os gates de preservação do manuscrito, contratos e comandos de teste continuam válidos.
+> **Documento histórico.** A memória narrativa heurística descrita aqui foi removida em 29/09/2026 por não produzir alertas úteis; contradições narrativas passaram à Coerência com IA (`coerencia/`). Os gates de preservação do manuscrito, contratos e comandos de teste continuam válidos.
 
 ## Finalidade e estado observado
 
@@ -11,7 +11,7 @@ quanto tempo permanecem válidas e como alimentam comparações globais.
 Inspeção documental e de código em 29/09/2026: o README identifica Lume 0.11.4 e
 FONTE 0.9.5. Já existem papéis semânticos, promoção de eventos, persistência seletiva,
 histórico e cadeia de confiança. Isso não significa cobertura integral. A
-[validação histórica](../../LumeMac/Documentacao/VALIDACAO.md) registra cobertura
+[validação histórica](../../docs/validacao.md) registra cobertura
 parcial e métricas ainda não avaliadas. Este documento define requisitos, não uma
 declaração de release aprovada nem uma auditoria exaustiva da implementação.
 
@@ -19,21 +19,21 @@ declaração de release aprovada nem uma auditoria exaustiva da implementação.
 
 | Caminho real, relativo à raiz Git | Responsabilidade |
 | --- | --- |
-| `LumeMac/Analisador/fonte/` | Leitura, contratos, pipeline, análise e memória |
-| `LumeMac/Analisador/fonte/semantic_roles.py` | Papéis semânticos |
-| `LumeMac/Analisador/fonte/semantic.py` | Estruturas semânticas e fact bank |
-| `LumeMac/Analisador/fonte/narrative*.py` | Cenas, identidades, falas, referências e memória |
-| `LumeMac/Analisador/fonte/generic_facts.py` | Extração e comparação de fatos genéricos |
-| `LumeMac/Lume/` | Interface, decisões, relatórios, progresso e motores |
-| `LumeMac/Engine/` | Entrada portátil e gerenciamento de pacotes |
-| `LumeMac/Analisador/tests/`, `LumeMac/Tests/` | Regressões semânticas e integração |
+| `fonte/fonte/` | Leitura, contratos, pipeline, análise e memória |
+| `fonte/fonte/semantic_roles.py` | Papéis semânticos |
+| `fonte/fonte/semantic.py` | Estruturas semânticas e fact bank |
+| `fonte/fonte/narrative*.py` | Cenas, identidades, falas, referências e memória |
+| `fonte/fonte/generic_facts.py` | Extração e comparação de fatos genéricos |
+| `app/Lume/` | Interface, decisões, relatórios, progresso e motores |
+| `packaging/` | Entrada portátil e gerenciamento de pacotes |
+| `fonte/tests/`, `tests/` | Regressões semânticas e integração |
 
 O pipeline existente é Linguístico → Morfossintático → Editorial → Coerência
 Global; memória narrativa e semântica são responsabilidades internas dessas
 etapas. Não acrescentar uma etapa pública ou renomear módulos só para refletir
 a cadeia conceitual abaixo. Auditor Final permanece `not_implemented`.
 
-Consulte a [arquitetura existente](../../LumeMac/Documentacao/ARQUITETURA.md) para
+Consulte a [arquitetura existente](../../docs/arquitetura.md) para
 contratos, offsets Unicode e compatibilidade. Relatório/API/decisões usam schema 1;
 memória narrativa usa schema 2 no estado inspecionado. Evoluções exigem análise de
 compatibilidade, sem renumeração automática motivada por esta especificação.

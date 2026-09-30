@@ -1,20 +1,123 @@
 # Lume
 
-Ferramentas de revisão editorial para manuscritos em português. O manuscrito é sempre
-somente lido; sugestões e decisões ficam em relatórios.
+**Revisão editorial para manuscritos em português, no Mac.** Uma luz acesa ao lado de quem escreve.
 
-| Pasta | O que é |
+O Lume lê manuscritos DOCX sem alterá-los e aponta:
+- ortografia e gramática: LanguageTool embutido e regras próprias de crase, homófonos, concordância, regência e vírgula;
+- tempo verbal da narração (passado ou presente);
+- repetições, diálogos, variações de nomes e prazos.
+
+Contradições narrativas são verificadas pela **Coerência com IA** (Claude), opcional. Sugestões e decisões ficam nos relatórios; o texto continua sendo do autor.
+
+![Início do Lume](docs/identidade/previa-inicio-claro.png)
+
+Versão atual: **Lume 1.0 · FONTE 1.0.0 · Coerencia 1.0.0** — novidades no [CHANGELOG](CHANGELOG.md).
+
+## Estrutura
+
+| Pasta | Conteúdo |
 | --- | --- |
-| [`LumeMac/`](LumeMac/README.md) | App macOS (SwiftUI) e motor **FONTE** (Python): ortografia, gramática com LanguageTool embutido, tempo verbal e regras editoriais, tudo local; contradições narrativas pela Coerência com IA, opcional. |
-| [`LumeCoerencia/`](LumeCoerencia/README.md) | Motor experimental **Coerencia**, só no terminal: contradições narrativas com a API do Claude, com leitura incremental por capítulo para economizar tokens. |
-| [`docs/`](docs/) | Produto e critérios de aceitação da v0.11 (`product/`, `testing/`) e diagnósticos (`analises/`). |
-| `.agent/` | Regras de ExecPlan (`PLANS.md`) e planos de cada tarefa (`plans/`). |
-| [`AGENTS.md`](AGENTS.md) | Instruções para agentes de código que trabalham no repositório. |
+| [`app/`](app/) | Aplicativo macOS em SwiftUI (`Lume/`) e projeto Xcode (`Lume.xcodeproj/`) |
+| [`fonte/`](fonte/) | Motor **FONTE** (Python, pacote `fonte-revisor`): análise linguística e editorial, testes e corpus de detecção |
+| [`coerencia/`](coerencia/) | Motor **Coerencia** (Python): contradições narrativas com a API do Claude, embutido no FONTE |
+| [`packaging/`](packaging/) | Entrada do motor congelado e gerenciamento de pacotes `.lumemotor` |
+| [`scripts/`](scripts/) | Montagem do motor e do app, preparação do LanguageTool e avaliações |
+| [`tests/`](tests/) | Contratos Python/Swift, empacotamento e verificações do relatório HTML |
+| [`examples/`](examples/) | Manuscritos sintéticos, configurações e relatórios de referência |
+| [`docs/`](docs/) | [Arquitetura](docs/arquitetura.md), [validação](docs/validacao.md), [visão](docs/visao.md), [identidade visual](docs/identidade/), produto, testes e análises |
+| `.agent/` | ExecPlans (`PLANS.md`) e planos de cada tarefa |
+| `build/` | Entregas, logs e intermediários locais (fora do Git) |
 
-Saídas de montagem e testes ficam em `LumeMac/Saida/` e `LumeCoerencia/Saida/`, fora do Git.
+Instruções para agentes de código estão em [AGENTS.md](AGENTS.md) e nos `AGENTS.md` de cada pasta.
 
-## Começar
+## Usar a entrega
 
-- App e motor FONTE: veja [LumeMac/README.md](LumeMac/README.md) (`bash LumeMac/Montar-Lume.command`).
-- Coerencia: veja [LumeCoerencia/README.md](LumeCoerencia/README.md) (chave da API nas Chaves do macOS,
-  serviço `coerencia-anthropic`).
+Extraia `Lume.app.zip` e copie `Lume.app` para Aplicativos. Feche a versão anterior antes de abrir a nova. Python, modelo de linguagem, LanguageTool e Java já vêm dentro do app.
+
+A assinatura é local (ad hoc), sem notarização para distribuição pública. Se **Motor** mostrar uma versão anterior, use **Restaurar embutido**. Versões, créditos e licenças ficam em **Lume → Sobre o Lume**. Relatórios, decisões e preferências ficam em `~/Library/Application Support/FONTE/`.
+
+## Coerência com IA (Claude)
+
+Opção da etapa Coerência global, desligada por padrão.
+
+- **Chave:** em *Coerência com IA → Configurar chave…*. Fica nas Chaves do macOS (serviço `coerencia-anthropic`); o app a entrega ao motor por variável de ambiente.
+- **Confirmação:** antes de enviar, o Lume mostra quais capítulos vão à Anthropic e o custo estimado; nada é enviado sem confirmar. Teto padrão: US$ 1,00 por análise.
+- **Economia:** capítulos sem alteração não são reenviados (projeto por manuscrito em `~/Library/Application Support/FONTE/Coerencia/`); julgamentos repetidos saem do cache.
+- **Modelo:** Sonnet 5.5 por padrão; Opus 5.5 como opção (custa o dobro).
+- **Privacidade:** pela política atual da API, o texto enviado fica nos servidores da Anthropic por até 30 dias e não é usado para treino por padrão.
+
+O Coerencia também roda sozinho no terminal: veja [coerencia/README.md](coerencia/README.md).
+
+## Montar o aplicativo
+
+Na raiz do repositório, em Mac Apple Silicon, com Xcode e Python 3.10–3.13 nativo arm64:
+
+```sh
+bash scripts/montar-lume.command
+```
+
+O comando:
+1. prepara `fonte/.venv` e instala as dependências;
+2. executa as regressões;
+3. prepara o corretor gramatical embutido;
+4. congela o motor;
+5. compila a interface e monta a entrega em `build/<data>-<id>/Pacote/`, com app, ZIP e `release.json` (versões, diagnóstico e SHA-256).
+
+Uma falha interrompe a montagem; não use como entrega uma pasta sem `release.json`.
+
+O corretor (LanguageTool 6.6, com Java mínimo gerado por jlink) é preparado uma vez em `fonte/.languagetool` por `scripts/preparar_languagetool.py`. Isso exige JDK 17 ou posterior (por exemplo, `brew install openjdk`) e internet, e acrescenta cerca de 210 MB ao motor. Tudo roda no Mac. `scripts/build_engine.py --sem-languagetool` monta um motor sem ele.
+
+Para compilar só a interface e reaproveitar um motor já produzido nesta versão:
+
+```sh
+xcodebuild -project app/Lume.xcodeproj -scheme Lume -configuration Release -derivedDataPath build/nova-montagem/DerivedData ARCHS=arm64 build
+fonte/.venv/bin/python scripts/package_app.py --app build/nova-montagem/DerivedData/Build/Products/Release/Lume.app --engine /caminho/fonte-1.0.0.lumemotor --output build/nova-montagem/Pacote
+```
+
+O empacotador:
+- exige uma pasta de saída nova;
+- recusa motor de versão diferente dos fontes;
+- valida inventário e funcionamento do motor;
+- assina o app e repete as verificações no motor embutido.
+
+Uma execução direta no Xcode usa o modo de desenvolvimento, com motor externo; para testar o motor embutido, use o app empacotado.
+
+### Atualizações independentes do motor
+
+```sh
+bash scripts/montar-lume.command --motor
+```
+
+Produz `.lumemotor` e `.lumemotor.zip`, sem compilar a interface. No app:
+- **Motor → Instalar atualização…** valida e testa o pacote antes de ativá-lo;
+- **Voltar à versão anterior** reverte a seleção;
+- **Restaurar embutido** volta ao motor do app.
+
+Mantenha o pacote inteiro. Motores são código executável: importe somente pacotes de origem conhecida.
+
+## Testes
+
+Na raiz do repositório, com o ambiente preparado:
+
+```sh
+PYTHONPATH=fonte fonte/.venv/bin/python -m unittest discover -s fonte/tests
+fonte/.venv/bin/python -m unittest discover -s tests -p 'test_*.py'
+PYTHONPATH=fonte fonte/.venv/bin/python tests/check_python_contract.py
+(cd coerencia && ../fonte/.venv/bin/python -m unittest discover -s tests)
+```
+
+A montagem completa executa também o contrato Swift. Os scripts DOM em `tests/` requerem Node e jsdom.
+
+A avaliação cega mede a detecção em textos que o motor não conhece. Ela gera um DOCX por texto do corpus anotado em `fonte/tests/corpus/deteccao/` e conta erros encontrados e alarmes falsos por categoria:
+
+```sh
+fonte/.venv/bin/python scripts/avaliar_deteccao.py --conjunto validacao --languagetool --saida build/avaliacao-nova
+```
+
+O conjunto `desenvolvimento` orienta correções; `validacao` fica reservado para medir. Os dois são sintéticos e foram escritos junto com as regras, por isso não substituem textos anotados por outra pessoa.
+
+## Limites
+
+A revisão é heurística e parcial. Confiança não é probabilidade calibrada, e a ausência de alertas não garante ausência de erros. O Auditor Final ainda não existe. Os manuscritos usados no desenvolvimento não constituem uma avaliação independente de precisão.
+
+Licenças de terceiros: janela **Sobre o Lume** e `fonte/fonte/data/` ([atribuições](fonte/fonte/data/ATRIBUICAO.md)).

@@ -1,19 +1,30 @@
+# macOS
 .DS_Store
+
+# Python
 __pycache__/
 *.py[cod]
 .venv/
 venv/
 *.egg-info/
 .pytest_cache/
-build/
 dist/
+
+# Saídas de montagem, testes e avaliações (scripts/montar-lume.command, coerencia)
+build/
+
+# Xcode
 DerivedData/
 xcuserdata/
-LumeMac/Saida/
-LumeMac/Analisador/.languagetool/
+
+# Corretor gramatical embutido, preparado por scripts/preparar_languagetool.py
+fonte/.languagetool/
+
+# Projetos locais do Coerencia (capítulos e cache de julgamentos)
+coerencia/Projetos/
+
+# Segredos e configurações locais
 .env
 .env.*
 !.env.example
 .claude/settings.local.json
-LumeCoerencia/Saida/
-LumeCoerencia/Projetos/

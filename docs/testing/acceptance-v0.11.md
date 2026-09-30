@@ -1,9 +1,9 @@
 # Aceitação da v0.11 — Lume
 
-> **Documento histórico.** A memória narrativa heurística descrita aqui foi removida em 29/09/2026 por não produzir alertas úteis; contradições narrativas passaram à Coerência com IA (`LumeCoerencia/`). Os gates de preservação do manuscrito, contratos e comandos de teste continuam válidos.
+> **Documento histórico.** A memória narrativa heurística descrita aqui foi removida em 29/09/2026 por não produzir alertas úteis; contradições narrativas passaram à Coerência com IA (`coerencia/`). Os gates de preservação do manuscrito, contratos e comandos de teste continuam válidos.
 
 Estes são critérios de fechamento, não resultados desta configuração documental.
-Todos começam sem aprovação nova. A [validação histórica](../../LumeMac/Documentacao/VALIDACAO.md)
+Todos começam sem aprovação nova. A [validação histórica](../../docs/validacao.md)
 é referência de baseline; cada alteração funcional precisa de evidência própria.
 Requisitos de produto: [lume-v0.11.md](../product/lume-v0.11.md).
 
@@ -64,17 +64,17 @@ reprodução sintética genérica antes de uma regressão específica autorizada
 
 O projeto usa `unittest`, não uma suíte `pytest` configurada. Os comandos abaixo
 foram conferidos por inspeção; esta criação de documentos não os executou.
-Usar o ambiente existente `Analisador/.venv` com dependências do `pyproject.toml`
+Usar o ambiente existente `fonte/.venv` com dependências do `pyproject.toml`
 e modelo `pt_core_news_sm`. Não reinstalar dependências por rotina.
 
-### Analisador: executar em `LumeMac/Analisador/`
+### Analisador: executar em `fonte/`
 
 ```sh
 .venv/bin/python -c 'import fonte; print(fonte.__file__)'
 .venv/bin/python -m unittest discover -s tests -v
 ```
 
-A primeira saída deve apontar para `LumeMac/Analisador/fonte/__init__.py`. A
+A primeira saída deve apontar para `fonte/fonte/__init__.py`. A
 documentação histórica registra risco de testar uma cópia instalada antiga;
 confirmar a origem antes de usar resultados como prova. A suíte completa inclui
 unitários, semântica, negativos, ambiguidades e regressões existentes.
@@ -89,15 +89,15 @@ Mapas de cobertura: `test_semantic.py`, `test_fact_quality.py`,
 `test_generic_facts.py`, `test_persistent_memory.py`, `test_real_narrative.py`,
 `test_narrative_111.py`, `test_narrative_quality.py`, `test_pipeline.py` e demais
 testes da descoberta. O corpus `tests/corpus/generic.json` é exercitado por
-`test_generic_facts.py`; consulte seu [README](../../LumeMac/Analisador/tests/corpus/README.md).
+`test_generic_facts.py`; consulte seu [README](../../fonte/tests/corpus/README.md).
 O arquivo `test_real_narrative.py` contém regressões selecionadas e não substitui
 analisar os manuscritos completos.
 
-### Integração: executar em `LumeMac/`
+### Integração: executar na raiz do repositório
 
 ```sh
-PYTHONPATH=Analisador Analisador/.venv/bin/python -m unittest discover -s Tests -p 'test_*.py' -v
-PYTHONPATH=Analisador Analisador/.venv/bin/python Tests/check_python_contract.py
+PYTHONPATH=fonte fonte/.venv/bin/python -m unittest discover -s tests -p 'test_*.py' -v
+PYTHONPATH=fonte fonte/.venv/bin/python tests/check_python_contract.py
 ```
 
 O contrato Python verifica CLI/JSON, Unicode, hash, intervalos e proteção contra
@@ -110,16 +110,16 @@ o relatório usado deve conter achados, conforme exige `ContractCheck.swift`:
 
 ```sh
 lume_contract_dir=$(mktemp -d)
-swiftc Lume/Models.swift Lume/PythonRunner.swift Tests/ContractCheck.swift -o "$lume_contract_dir/contrato-swift"
-"$lume_contract_dir/contrato-swift" Exemplo/Mestre/relatorio.json "$PWD/Analisador/.venv/bin/python"
+swiftc app/Lume/Models.swift app/Lume/PythonRunner.swift tests/ContractCheck.swift -o "$lume_contract_dir/contrato-swift"
+"$lume_contract_dir/contrato-swift" examples/Mestre/relatorio.json "$PWD/fonte/.venv/bin/python"
 ```
 
-Testar também relatório atual quando o contrato mudar. Testes DOM em `Tests/`
+Testar também relatório atual quando o contrato mudar. Testes DOM em `tests/`
 exigem Node/jsdom e o relatório correspondente ao cenário esperado; não apontar
 um teste de sete fatos para qualquer relatório. Mudanças no HTML exigem DOM
 pertinente; mudanças visuais exigem inspeção visual apropriada. Registrar ambiente
 ausente como pendência. Não usar a montagem completa como substituto de aceitação
-semântica. Ver comandos de build no [README](../../LumeMac/README.md).
+semântica. Ver comandos de build no [README](../../README.md).
 
 ## Corpus real e comparação antes/depois
 
@@ -127,14 +127,14 @@ Mudanças de análise exigem Echoes; mudanças de memória narrativa/global exig
 também Hikari. Para fechar a v0.11, ambos são obrigatórios. Manter DOCX externos,
 sem versionar seu conteúdo nem modificar entradas para melhorar resultados.
 
-Já existe `LumeMac/Scripts/validate_real_memory.py`. Em `LumeMac/`, usar o modelo
+Já existe `scripts/validate_real_memory.py`. Na raiz do repositório, usar o modelo
 abaixo substituindo os caminhos ilustrativos por entradas existentes e uma saída nova:
 
 ```sh
-Analisador/.venv/bin/python Scripts/validate_real_memory.py \
+fonte/.venv/bin/python scripts/validate_real_memory.py \
   --docx '/caminho/real/manuscrito.docx' \
   --baseline '/caminho/real/relatorio-anterior.json' \
-  --output 'Saida/validacao-tarefa-corpus-nova' \
+  --output 'build/validacao-tarefa-corpus-nova' \
   --engine '/caminho/real/pacote.lumemotor/fonte-engine'
 ```
 

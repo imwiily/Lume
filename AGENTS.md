@@ -2,19 +2,29 @@
 
 ## Mapa e leitura inicial
 
-A raiz Git é `Lume/`. O app e o motor FONTE estão em `LumeMac/`; o motor de
-contradições narrativas com IA está em `LumeCoerencia/` (pacote `coerencia`,
-embutido no motor FONTE). O pacote Python do FONTE se chama `fonte-revisor`, mas sua
-pasta real é `LumeMac/Analisador/`. A interface SwiftUI fica em `LumeMac/Lume/`.
-Não criar pastas paralelas nem reorganizar a arquitetura para reproduzir exemplos.
+A raiz Git é `Lume/`, organizada no padrão do GitHub:
+
+| Pasta | Conteúdo |
+| --- | --- |
+| `app/` | Interface SwiftUI (`app/Lume/`) e projeto Xcode (`app/Lume.xcodeproj/`) |
+| `fonte/` | Motor FONTE (pacote Python `fonte-revisor`, código em `fonte/fonte/`) |
+| `coerencia/` | Motor Coerencia (pacote `coerencia`, embutido no FONTE) |
+| `packaging/` | Entrada do motor congelado e pacotes `.lumemotor` |
+| `scripts/` | Montagem (`montar-lume.command`), LanguageTool e avaliações |
+| `tests/` | Contratos, empacotamento e DOM |
+| `examples/`, `docs/` | Exemplos de referência e documentação |
+| `build/` | Saídas locais, fora do Git |
+
+Comandos são executados a partir da raiz. Não criar pastas paralelas nem reorganizar a
+arquitetura para reproduzir exemplos.
 
 Leia os documentos pertinentes antes de alterar código:
 
-- [Visão geral](README.md), [README do app](LumeMac/README.md) e
-  [README do Coerencia](LumeCoerencia/README.md).
-- [Arquitetura existente](LumeMac/Documentacao/ARQUITETURA.md).
-- [Validação e limites](LumeMac/Documentacao/VALIDACAO.md).
-- [Visão do produto](LumeMac/Documentacao/VISAO.md).
+- [Visão geral](README.md), [CHANGELOG](CHANGELOG.md) e
+  [README do Coerencia](coerencia/README.md).
+- [Arquitetura existente](docs/arquitetura.md).
+- [Validação e limites](docs/validacao.md).
+- [Visão do produto](docs/visao.md).
 - [ExecPlans](.agent/PLANS.md) para mudanças complexas.
 - `docs/product/lume-v0.11.md` e `docs/testing/acceptance-v0.11.md` são históricos: a
   memória narrativa heurística que eles descrevem foi removida em 29/09/2026. Os
@@ -56,8 +66,8 @@ aprovam um patch novo.
   refactors ou alterações entre módulos, manter um ExecPlan conforme `.agent/PLANS.md`.
 - Para correções de detecção, escrever primeiro o caso esperado, demonstrar a falha e
   implementar a menor correção genérica, com positivos, negativos e ambiguidades.
-  Casos novos entram também no corpus de `LumeMac/Analisador/tests/corpus/deteccao/`
-  e são medidos com `Scripts/avaliar_deteccao.py`. Não enfraquecer ou remover testes
+  Casos novos entram também no corpus de `fonte/tests/corpus/deteccao/`
+  e são medidos com `scripts/avaliar_deteccao.py`. Não enfraquecer ou remover testes
   para passar.
 - Não editar manuscritos, resultados esperados ou relatórios de referência para
   esconder regressões. Uma mudança legítima de expectativa precisa de justificativa.

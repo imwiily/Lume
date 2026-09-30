@@ -56,7 +56,7 @@ Indicar diretório de execução, comando exato, dependências, entradas e saíd
 Usar os comandos existentes de aceitação; não inventar um script de validação.
 Para corpus real, registrar hash, configuração, baseline e versão do motor. Não
 copiar manuscritos privados para fixtures versionadas. Explicar denominadores e
-anotação usada em métricas. Guardar logs em uma saída própria de `LumeMac/Saida/`.
+anotação usada em métricas. Guardar logs em uma saída própria de `build/`.
 
 ### Progresso, descobertas e decisões
 
