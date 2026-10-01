@@ -221,6 +221,17 @@ struct FalsePositiveExport: Encodable {
             chapter = finding.chapter; paragraph = finding.paragraph; start = finding.start; end = finding.end
             excerpt = finding.segments.marked; suggestion = finding.suggestion; reason = finding.reason; text = finding.text
         }
+        /// Grava `null` nos campos ausentes: todas as entradas têm as mesmas chaves.
+        func encode(to encoder: Encoder) throws {
+            var c = encoder.container(keyedBy: CodingKeys.self)
+            try c.encode(id, forKey: .id); try c.encode(module, forKey: .module); try c.encode(layer, forKey: .layer)
+            try c.encode(rule, forKey: .rule); try c.encode(category, forKey: .category); try c.encode(severity, forKey: .severity)
+            try c.encode(priority, forKey: .priority); try c.encode(confidence, forKey: .confidence)
+            try c.encode(confidenceScore, forKey: .confidenceScore); try c.encode(source, forKey: .source)
+            try c.encode(chapter, forKey: .chapter); try c.encode(paragraph, forKey: .paragraph)
+            try c.encode(start, forKey: .start); try c.encode(end, forKey: .end); try c.encode(excerpt, forKey: .excerpt)
+            try c.encode(suggestion, forKey: .suggestion); try c.encode(reason, forKey: .reason); try c.encode(text, forKey: .text)
+        }
     }
     let schemaVersion = 1
     let document: String
@@ -233,6 +244,22 @@ struct FalsePositiveExport: Encodable {
         case document, sha256, findings
         case engineVersion = "engine_version"
         case exportedAt = "exported_at"
+    }
+}
+
+extension FalsePositiveExport {
+    /// Os alertas marcados como falso positivo, na ordem do relatório; `nil` quando não há nenhum.
+    init?(report: EditorialReport, decisions: [String: ReviewDecision], exportedAt: Date) {
+        let findings = report.findings.filter { decisions[$0.id] == .falsePositive }
+        guard !findings.isEmpty else { return nil }
+        self.init(document: report.document, sha256: report.sha256, engineVersion: report.metadata.versaoFonte,
+                  exportedAt: ISO8601DateFormatter().string(from: exportedAt), findings: findings.map(Entry.init))
+    }
+
+    func encoded() throws -> Data {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
+        return try encoder.encode(self)
     }
 }
 

@@ -2,6 +2,12 @@
 
 As seções antigas descrevem a cobertura e os resultados de cada entrega, não o estado atual. Nas seções anteriores à 1.0, caminhos citados são da antiga pasta `LumeMac/`; a correspondência com a estrutura atual está em [README.md](README.md#estrutura).
 
+## Em desenvolvimento
+
+- Extrair falsos positivos: campos ausentes (relatórios antigos, alerta sem sugestão) passam a
+  ser gravados como `null`, para todas as entradas terem as mesmas chaves. Novo teste
+  `tests/FalsePositiveCheck.swift`, executado na montagem.
+
 ## Lume 1.2 / FONTE 1.2.0 · Coerencia 1.1.0 — 01/10/2026
 
 - Página do alerta reorganizada: texto, “Copiar parágrafo” e **Confirmar** (habilitado

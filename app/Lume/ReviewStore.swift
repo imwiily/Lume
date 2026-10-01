@@ -740,21 +740,16 @@ final class ReviewStore: ObservableObject {
 
     func exportFalsePositives() {
         guard let report = report, !isBusy else { return }
-        let findings = report.findings.filter { decision(for: $0) == .falsePositive }
-        guard !findings.isEmpty else { status = "Nenhum alerta marcado como falso positivo."; return }
+        guard let file = FalsePositiveExport(report: report, decisions: decisions, exportedAt: Date()) else {
+            status = "Nenhum alerta marcado como falso positivo."; return
+        }
         let panel = NSSavePanel(); panel.allowedContentTypes = [.json]
         panel.title = "Extrair falsos positivos"
         panel.nameFieldStringValue = "lume-falsos-positivos.json"
         guard panel.runModal() == .OK, let url = panel.url else { return }
-        let file = FalsePositiveExport(document: report.document, sha256: report.sha256,
-                                       engineVersion: report.metadata.versaoFonte,
-                                       exportedAt: ISO8601DateFormatter().string(from: Date()),
-                                       findings: findings.map(FalsePositiveExport.Entry.init))
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
         do {
-            try encoder.encode(file).write(to: url, options: .atomic)
-            status = "\(findings.count) falsos positivos extraídos. O arquivo contém trechos do manuscrito."
+            try file.encoded().write(to: url, options: .atomic)
+            status = "\(file.findings.count) falsos positivos extraídos. O arquivo contém trechos do manuscrito."
         } catch { errorText = error.localizedDescription }
     }
 

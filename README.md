@@ -106,7 +106,7 @@ PYTHONPATH=fonte fonte/.venv/bin/python tests/check_python_contract.py
 (cd coerencia && ../fonte/.venv/bin/python -m unittest discover -s tests)
 ```
 
-A montagem completa executa também o contrato Swift.
+A montagem completa executa também os testes Swift: contrato, correção no manuscrito e extração de falsos positivos.
 
 A avaliação cega mede a detecção em textos que o motor não conhece. Ela gera um DOCX por texto do corpus anotado em `fonte/tests/corpus/deteccao/` e conta erros encontrados e alarmes falsos por categoria:
 
