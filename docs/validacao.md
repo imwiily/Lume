@@ -18,9 +18,9 @@ comparação nos manuscritos A e B.
 - Montagem completa aprovada: contratos Swift, build Release arm64 e teste de saúde do motor
   1.2.0. SHA-256 do `Lume.app.zip`:
   `94ffa0a50ab786a619d31c70e1952fef9a251c7081f4d27697122ebfc8bc2a56`.
-- Pendências: a interface nova (botão Confirmar, avaliações numa linha, Extrair falsos
-  positivos) não foi inspecionada pelo agente; o autor testou as montagens intermediárias.
-  A extração de falsos positivos não tem teste automatizado.
+- Interface nova (botão Confirmar, avaliações numa linha, Extrair falsos positivos) conferida
+  pelo autor no app montado em 01/10/2026. Pendência: a extração de falsos positivos não tem
+  teste automatizado.
 
 ## Lume 1.1 / FONTE 1.1.0 — 30/09/2026
 
