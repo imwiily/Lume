@@ -114,10 +114,9 @@ swiftc app/Lume/Models.swift app/Lume/PythonRunner.swift tests/ContractCheck.swi
 "$lume_contract_dir/contrato-swift" examples/Mestre/relatorio.json "$PWD/fonte/.venv/bin/python"
 ```
 
-Testar também relatório atual quando o contrato mudar. Testes DOM em `tests/`
-exigem Node/jsdom e o relatório correspondente ao cenário esperado; não apontar
-um teste de sete fatos para qualquer relatório. Mudanças no HTML exigem DOM
-pertinente; mudanças visuais exigem inspeção visual apropriada. Registrar ambiente
+Testar também relatório atual quando o contrato mudar. O relatório HTML e seus
+testes DOM foram removidos em 01/10/2026; o JSON é a única saída do motor.
+Mudanças visuais exigem inspeção visual apropriada. Registrar ambiente
 ausente como pendência. Não usar a montagem completa como substituto de aceitação
 semântica. Ver comandos de build no [README](../../README.md).
 

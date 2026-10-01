@@ -734,6 +734,30 @@ final class ReviewStore: ObservableObject {
         } catch { errorText = error.localizedDescription }
     }
 
+    var falsePositiveCount: Int {
+        report?.findings.filter { decision(for: $0) == .falsePositive }.count ?? 0
+    }
+
+    func exportFalsePositives() {
+        guard let report = report, !isBusy else { return }
+        let findings = report.findings.filter { decision(for: $0) == .falsePositive }
+        guard !findings.isEmpty else { status = "Nenhum alerta marcado como falso positivo."; return }
+        let panel = NSSavePanel(); panel.allowedContentTypes = [.json]
+        panel.title = "Extrair falsos positivos"
+        panel.nameFieldStringValue = "lume-falsos-positivos.json"
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        let file = FalsePositiveExport(document: report.document, sha256: report.sha256,
+                                       engineVersion: report.metadata.versaoFonte,
+                                       exportedAt: ISO8601DateFormatter().string(from: Date()),
+                                       findings: findings.map(FalsePositiveExport.Entry.init))
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
+        do {
+            try encoder.encode(file).write(to: url, options: .atomic)
+            status = "\(findings.count) falsos positivos extraídos. O arquivo contém trechos do manuscrito."
+        } catch { errorText = error.localizedDescription }
+    }
+
     func copyParagraph(_ finding: Finding) {
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(finding.text, forType: .string)
@@ -742,13 +766,6 @@ final class ReviewStore: ObservableObject {
 
     func revealReport() {
         if let url = reportURL { NSWorkspace.shared.activateFileViewerSelecting([url]) }
-    }
-    func openHTML() {
-        guard let url = reportURL?.deletingPathExtension().appendingPathExtension("html"), manager.fileExists(atPath: url.path) else {
-            errorText = "O HTML correspondente não está junto deste JSON. O relatório pode ser revisado nesta janela."
-            return
-        }
-        NSWorkspace.shared.open(url)
     }
     func openLog() {
         if let url = logURL { NSWorkspace.shared.open(url) }

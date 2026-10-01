@@ -32,7 +32,7 @@ import fonte
 source = Path('fonte/fonte')
 installed = Path(fonte.__file__).parent
 mismatched = [str(path.relative_to(source)) for path in source.rglob('*')
-              if path.is_file() and path.suffix in {'.py', '.html'}
+              if path.is_file() and path.suffix == '.py'
               and (not (installed / path.relative_to(source)).is_file()
                    or path.read_bytes() != (installed / path.relative_to(source)).read_bytes())]
 mismatched += [str(path.relative_to(installed)) + ' (sobra)' for path in installed.rglob('*.py')

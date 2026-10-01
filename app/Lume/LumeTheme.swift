@@ -159,21 +159,6 @@ struct Kicker: View {
     }
 }
 
-/// Anel de progresso das avaliações.
-struct LightRing: View {
-    let value: Double
-    var size: CGFloat = 38
-    var body: some View {
-        ZStack {
-            Circle().stroke(LumeTheme.line, lineWidth: 4)
-            Circle().trim(from: 0, to: max(0.001, min(1, value)))
-                .stroke(LinearGradient(colors: [LumeTheme.candle, LumeTheme.blush], startPoint: .top, endPoint: .bottom),
-                        style: StrokeStyle(lineWidth: 4, lineCap: .round))
-                .rotationEffect(.degrees(-90))
-        }.frame(width: size, height: size).accessibilityHidden(true)
-    }
-}
-
 extension ReviewDecision {
     var symbol: String {
         switch self {

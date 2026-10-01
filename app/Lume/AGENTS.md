@@ -18,6 +18,6 @@ relatórios, decisões editoriais, progresso e escolha/execução do motor.
 - Para mudanças de contrato, executar `../../tests/ContractCheck.swift` conforme
   `../../docs/testing/acceptance-v0.11.md`, com relatórios legados e atuais.
   Para código Swift, executar build pertinente; mudanças visuais requerem inspeção
-  nativa. Testes de HTML ou mera compilação não substituem essa inspeção.
+  nativa. A mera compilação não substitui essa inspeção.
 - Usar o projeto Xcode existente em `../Lume.xcodeproj/`; não criar pacote Swift
   paralelo ou alterar versão/distribuição incidentalmente.

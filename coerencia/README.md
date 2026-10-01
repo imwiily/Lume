@@ -41,11 +41,10 @@ Contradições cruzam capítulos: um capítulo não enviado ainda participa da c
 pelos fatos guardados. Pendência cujo trecho sumiu com a edição é encerrada sozinha;
 a marcada como `intencional` não volta. `--reler` força o envio de tudo.
 
-Cada análise gera **`relatorio.html`** na pasta de saída ou do projeto: cada pendência com os dois
-parágrafos lado a lado, o trecho destacado, a explicação e o comando para decidir. Alertas sobre o
-mesmo ponto do texto (trechos sobrepostos ou o mesmo par de parágrafos) aparecem uma vez só, com os
-demais em “Também apontado”. Rodar `analisar` de novo com o livro inalterado atualiza o relatório
-sem gastar tokens (útil depois de `decidir`).
+Cada análise lista no terminal as pendências abertas: os dois trechos, a confiança e a
+explicação; `status --todas` mostra também as já decididas. Alertas sobre o mesmo ponto do
+texto (trechos sobrepostos ou o mesmo par de parágrafos) aparecem uma vez só, com os demais em
+`relacionadas`. No Lume.app, as pendências aparecem como alertas da etapa Coerência global.
 
 A pasta do projeto guarda `projeto.json` (capítulos, hash e fatos com posição relativa
 ao capítulo), `julgamentos.json` (cache), `pendencias.json`, `rodadas.json` (tokens,

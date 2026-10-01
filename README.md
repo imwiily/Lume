@@ -11,7 +11,7 @@ Contradições narrativas são verificadas pela **Coerência com IA** (Claude), 
 
 ![Início do Lume](docs/identidade/previa-inicio-claro.png)
 
-Versão atual: **Lume 1.1 · FONTE 1.1.0 · Coerencia 1.0.0** — novidades no [CHANGELOG](CHANGELOG.md).
+Versão atual: **Lume 1.2 · FONTE 1.2.0 · Coerencia 1.1.0** — novidades no [CHANGELOG](CHANGELOG.md).
 
 ## Estrutura
 
@@ -22,7 +22,7 @@ Versão atual: **Lume 1.1 · FONTE 1.1.0 · Coerencia 1.0.0** — novidades no [
 | [`coerencia/`](coerencia/) | Motor **Coerencia** (Python): contradições narrativas com a API do Claude, embutido no FONTE |
 | [`packaging/`](packaging/) | Entrada do motor congelado e gerenciamento de pacotes `.lumemotor` |
 | [`scripts/`](scripts/) | Montagem do motor e do app, preparação do LanguageTool e avaliações |
-| [`tests/`](tests/) | Contratos Python/Swift, empacotamento e verificações do relatório HTML |
+| [`tests/`](tests/) | Contratos Python/Swift e empacotamento |
 | [`examples/`](examples/) | Manuscritos sintéticos, configurações e relatórios de referência |
 | [`docs/`](docs/) | [Arquitetura](docs/arquitetura.md), [validação](docs/validacao.md), [visão](docs/visao.md), [identidade visual](docs/identidade/), produto e testes |
 | `.agent/` | ExecPlans (`PLANS.md`) e planos de cada tarefa |
@@ -71,7 +71,7 @@ Para compilar só a interface e reaproveitar um motor já produzido nesta versã
 
 ```sh
 xcodebuild -project app/Lume.xcodeproj -scheme Lume -configuration Release -derivedDataPath build/nova-montagem/DerivedData ARCHS=arm64 build
-fonte/.venv/bin/python scripts/package_app.py --app build/nova-montagem/DerivedData/Build/Products/Release/Lume.app --engine /caminho/fonte-1.1.0.lumemotor --output build/nova-montagem/Pacote
+fonte/.venv/bin/python scripts/package_app.py --app build/nova-montagem/DerivedData/Build/Products/Release/Lume.app --engine /caminho/fonte-1.2.0.lumemotor --output build/nova-montagem/Pacote
 ```
 
 O empacotador:
@@ -106,7 +106,7 @@ PYTHONPATH=fonte fonte/.venv/bin/python tests/check_python_contract.py
 (cd coerencia && ../fonte/.venv/bin/python -m unittest discover -s tests)
 ```
 
-A montagem completa executa também o contrato Swift. Os scripts DOM em `tests/` requerem Node e jsdom.
+A montagem completa executa também o contrato Swift.
 
 A avaliação cega mede a detecção em textos que o motor não conhece. Ela gera um DOCX por texto do corpus anotado em `fonte/tests/corpus/deteccao/` e conta erros encontrados e alarmes falsos por categoria:
 

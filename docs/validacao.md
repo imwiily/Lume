@@ -3,6 +3,25 @@
 Os registros abaixo pertencem às versões indicadas. Caminhos citados nos registros anteriores à 1.0 são da antiga pasta `LumeMac/` (correspondência em [README.md](../README.md#estrutura)); os comandos abaixo usam a raiz do repositório. As verificações do hotfix aparecem primeiro; os registros anteriores são mantidos para rastreabilidade.
 
 
+## Lume 1.2 / FONTE 1.2.0 · Coerencia 1.1.0 — 01/10/2026
+
+Interface do alerta reorganizada, extração de falsos positivos e remoção do relatório HTML.
+Nenhuma regra de detecção mudou; os alertas são os mesmos da 1.1, por isso não houve
+comparação nos manuscritos A e B.
+
+- 229 testes do analisador, 25 dos pacotes, 24 do Coerencia e o contrato Python aprovados. Saíram
+  os testes do próprio HTML (escape de `</script>` e destaque `<mark>`) e os cinco testes DOM;
+  o teste de integração e o contrato Python passam a exigir que a saída contenha só
+  `relatorio.json`.
+- `vulture` sem funções ou classes sem uso em `fonte/fonte`, `coerencia/coerencia`,
+  `packaging` e `scripts`.
+- Montagem completa aprovada: contratos Swift, build Release arm64 e teste de saúde do motor
+  1.2.0. SHA-256 do `Lume.app.zip`:
+  `94ffa0a50ab786a619d31c70e1952fef9a251c7081f4d27697122ebfc8bc2a56`.
+- Pendências: a interface nova (botão Confirmar, avaliações numa linha, Extrair falsos
+  positivos) não foi inspecionada pelo agente; o autor testou as montagens intermediárias.
+  A extração de falsos positivos não tem teste automatizado.
+
 ## Lume 1.1 / FONTE 1.1.0 — 30/09/2026
 
 Leitura de Pages conferida nos fontes; a montagem completa está registrada ao final desta seção.

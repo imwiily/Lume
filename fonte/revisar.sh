@@ -9,4 +9,4 @@ if [ "$#" -eq 0 ]; then
   printf '%s\n' 'Uso: bash revisar.sh "/caminho/Livro.docx" [--tempo passado] [--languagetool]'
   exit 1
 fi
-exec "$fonte_dir/.venv/bin/python" -m fonte revisar "$@" --abrir
+exec "$fonte_dir/.venv/bin/python" -m fonte revisar "$@"

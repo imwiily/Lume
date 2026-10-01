@@ -187,6 +187,55 @@ struct EditorialReport: Decodable {
     }
 }
 
+/// Alertas que o autor marcou como falso positivo, exportados para estudar e corrigir as regras.
+/// Contém trechos do manuscrito: fica fora do repositório.
+struct FalsePositiveExport: Encodable {
+    struct Entry: Encodable {
+        let id: String
+        let module: String?
+        let layer: String?
+        let rule: String?
+        let category: String
+        let severity: String?
+        let priority: String
+        let confidence: String?
+        let confidenceScore: Double?
+        let source: String
+        let chapter: String
+        let paragraph: Int
+        let start: Int
+        let end: Int
+        let excerpt: String
+        let suggestion: String?
+        let reason: String
+        let text: String
+        enum CodingKeys: String, CodingKey {
+            case id, module, layer, rule, category, severity, priority, confidence, source, chapter, paragraph
+            case start, end, excerpt, suggestion, reason, text
+            case confidenceScore = "confidence_score"
+        }
+        init(_ finding: Finding) {
+            id = finding.id; module = finding.module; layer = finding.layer; rule = finding.rule
+            category = finding.category; severity = finding.severity; priority = finding.priority
+            confidence = finding.confidence; confidenceScore = finding.confidence_score; source = finding.source
+            chapter = finding.chapter; paragraph = finding.paragraph; start = finding.start; end = finding.end
+            excerpt = finding.segments.marked; suggestion = finding.suggestion; reason = finding.reason; text = finding.text
+        }
+    }
+    let schemaVersion = 1
+    let document: String
+    let sha256: String
+    let engineVersion: String
+    let exportedAt: String
+    let findings: [Entry]
+    enum CodingKeys: String, CodingKey {
+        case schemaVersion = "schema_version"
+        case document, sha256, findings
+        case engineVersion = "engine_version"
+        case exportedAt = "exported_at"
+    }
+}
+
 struct DecisionFile: Codable {
     let schemaVersion: Int
     let sha256: String

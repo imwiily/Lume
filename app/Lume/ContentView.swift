@@ -102,7 +102,6 @@ struct ContentView: View {
                     Button("Importar decisões…") { store.importDecisions() }
                     Divider()
                     Button("Mostrar relatório no Finder") { store.revealReport() }
-                    Button("Abrir relatório HTML") { store.openHTML() }
                 } label: { Label("Mais opções", systemImage: "ellipsis.circle") }
                     .help("Mais opções").disabled(store.isBusy)
             }
@@ -770,6 +769,19 @@ private struct ReadingPage: View {
         if store.filteredFindings.indices.contains(target) { store.selectedID = store.filteredFindings[target].id }
     }
 
+    /// A decisão já foi salva ao ser escolhida; confirmar passa ao alerta seguinte da lista.
+    /// Usa a ordem do relatório para seguir em frente mesmo quando o filtro esconde o alerta atual.
+    private func confirm() {
+        let all = store.report?.findings ?? []
+        guard let position = all.firstIndex(where: { $0.id == finding.id }) else { return }
+        let visible = Set(store.filteredFindings.map(\.id))
+        if let next = all[(position + 1)...].first(where: { visible.contains($0.id) }) {
+            store.selectedID = next.id
+        } else {
+            store.status = "Este era o último alerta da lista."
+        }
+    }
+
     /// O trecho sinalizado recebe uma luz suave ao fundo; o texto não é alterado.
     private var illuminated: Text {
         let parts = finding.segments
@@ -831,6 +843,27 @@ private struct ReadingPage: View {
                     .background(RoundedRectangle(cornerRadius: 22, style: .continuous).fill(LumeTheme.paper)
                         .shadow(color: LumeTheme.night.opacity(0.08), radius: 18, y: 8))
 
+                HStack(spacing: 10) {
+                    Button { store.copyParagraph(finding) } label: {
+                        Label("Copiar parágrafo para localizar no original", systemImage: "doc.on.doc")
+                    }.buttonStyle(LumeButtonStyle())
+                    Button { confirm() } label: { Label("Confirmar", systemImage: "checkmark") }
+                        .buttonStyle(LumeButtonStyle())
+                        .disabled(store.decision(for: finding) == .pending)
+                        .help("Confirma a sua avaliação e passa para o próximo alerta")
+                    Spacer()
+                }
+
+                // Decisão.
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: ReviewDecision.allCases.count),
+                          spacing: 8) {
+                    ForEach(ReviewDecision.allCases) { decision in
+                        DecisionChip(decision: decision, selected: store.decision(for: finding) == decision) {
+                            store.setDecision(decision, for: finding)
+                        }
+                    }
+                }.disabled(store.isBusy)
+
                 // Nota de margem.
                 HStack(alignment: .top, spacing: 16) {
                     RoundedRectangle(cornerRadius: 2).fill(LinearGradient(colors: [LumeTheme.candle, LumeTheme.blush],
@@ -882,27 +915,6 @@ private struct ReadingPage: View {
 
                 if store.canEditManuscript { correctionView }
 
-                // Decisão.
-                VStack(alignment: .leading, spacing: 14) {
-                    Text("E você, o que acha?").font(LumeFont.display(22))
-                    LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10),
-                                        GridItem(.flexible(), spacing: 10)], spacing: 10) {
-                        ForEach(ReviewDecision.allCases) { decision in
-                            DecisionChip(decision: decision, selected: store.decision(for: finding) == decision) {
-                                store.setDecision(decision, for: finding)
-                            }
-                        }
-                    }.disabled(store.isBusy)
-                    Text("Sua avaliação fica salva neste Mac (atalhos ⌘1 a ⌘6). Exporte as decisões para compartilhar.")
-                        .font(LumeFont.ui(11)).foregroundStyle(LumeTheme.secondary)
-                }.padding(22).background(RoundedRectangle(cornerRadius: 20, style: .continuous).fill(LumeTheme.wash.opacity(0.6)))
-
-                HStack {
-                    Button { store.copyParagraph(finding) } label: {
-                        Label("Copiar parágrafo para localizar no original", systemImage: "doc.on.doc")
-                    }.buttonStyle(LumeButtonStyle())
-                    Spacer()
-                }
                 if let report = store.report, !report.warnings.isEmpty {
                     DisclosureGroup("Sobre esta análise · \(report.warnings.count) avisos") {
                         VStack(alignment: .leading, spacing: 10) {
@@ -943,15 +955,16 @@ private struct DecisionChip: View {
                     Text("⌘" + String(decision.shortcut.character)).font(LumeFont.ui(9)).foregroundStyle(LumeTheme.secondary)
                 }
                 Text(decision.rawValue).font(LumeFont.ui(12, weight: .semibold)).foregroundStyle(LumeTheme.ink)
-                Text(decision.explanation).font(LumeFont.ui(10)).foregroundStyle(LumeTheme.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }.padding(12).frame(maxWidth: .infinity, minHeight: 88, alignment: .topLeading)
+                    .lineLimit(2).fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 0)
+            }.padding(12).frame(maxWidth: .infinity, minHeight: 74, maxHeight: 74, alignment: .topLeading)
                 .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(selected ? LumeTheme.paper : LumeTheme.paper.opacity(0.7)))
                 .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .strokeBorder(selected ? decision.color : LumeTheme.line, lineWidth: selected ? 2 : 1))
                 .shadow(color: selected ? decision.color.opacity(0.25) : .clear, radius: 8, y: 2)
                 .contentShape(RoundedRectangle(cornerRadius: 14))
         }.buttonStyle(.plain).keyboardShortcut(decision.shortcut, modifiers: .command)
+            .help(decision.explanation)
             .accessibilityLabel(decision.rawValue + (selected ? ", selecionado" : "") + ". " + decision.explanation)
     }
 }
@@ -974,6 +987,11 @@ private struct StatusLine: View {
             }
             Spacer(minLength: 12)
             if store.logURL != nil { Button("Ver registro") { store.openLog() }.buttonStyle(.borderless) }
+            if store.report != nil {
+                Button("Extrair falsos positivos") { store.exportFalsePositives() }.buttonStyle(.borderless)
+                    .disabled(store.isBusy || store.falsePositiveCount == 0)
+                    .help("Salva em JSON os alertas marcados como falso positivo, para analisar e corrigir as regras")
+            }
         }.font(LumeFont.ui(11)).foregroundStyle(LumeTheme.secondary)
             .padding(.horizontal, 18).padding(.vertical, 9)
             .background(LumeTheme.paper)

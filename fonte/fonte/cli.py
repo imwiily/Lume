@@ -7,12 +7,10 @@ import os
 from pathlib import Path
 import sys
 import tempfile
-import webbrowser
 
 from . import __version__
 from .pipeline import run as run_pipeline
 from .reader import read_manuscript
-from .report import render
 
 
 def load_model():
@@ -33,7 +31,7 @@ def parser():
     root = argparse.ArgumentParser(description="FONTE — triagem editorial local, sem corrigir o manuscrito.")
     root.add_argument("--version", action="version", version=__version__)
     commands = root.add_subparsers(dest="command", required=True)
-    review = commands.add_parser("revisar", help="Ler DOCX ou Pages e gerar HTML + JSON")
+    review = commands.add_parser("revisar", help="Ler DOCX ou Pages e gerar o relatório JSON")
     review.add_argument("arquivo", type=Path)
     review.add_argument("--saida", type=Path, help="Pasta nova para os relatórios (nunca sobrescreve)")
     review.add_argument("--config", type=Path, help="Configuração JSON das verificações e estrutura do manuscrito")
@@ -47,7 +45,6 @@ def parser():
                         help="Usar o corretor gramatical local: o embutido, se existir; senão, um servidor já ativo. Nenhum serviço na nuvem")
     review.add_argument("--porta-lt", type=int,
                         help="Porta de um servidor LanguageTool já ativo (ignora o embutido; padrão 8081 quando não há embutido)")
-    review.add_argument("--abrir", action="store_true", help="Abrir relatório no navegador")
     review.add_argument("--coerencia-ia", action="store_true",
                         help="Contradições narrativas com a API do Claude (envia os capítulos alterados à Anthropic)")
     coherence_options(review)
@@ -186,16 +183,12 @@ def main(argv=None):
             output.mkdir(parents=True, exist_ok=False)
         else:
             output = Path(tempfile.mkdtemp(prefix=path.stem + "-revisao-", dir=path.parent))
-        for name, content in [("relatorio.html", render(data)),
-                              ("relatorio.json", json.dumps(data, ensure_ascii=False, indent=2))]:
-            with (output / name).open("x", encoding="utf-8") as handle:
-                handle.write(content)
+        with (output / "relatorio.json").open("x", encoding="utf-8") as handle:
+            handle.write(json.dumps(data, ensure_ascii=False, indent=2))
         print(f"{len(findings)} suspeitas para avaliação humana. Isso não mede a qualidade nem certifica a publicação.")
-        print(f"Relatório: {output / 'relatorio.html'}")
+        print(f"Relatório: {output / 'relatorio.json'}")
         print("Manuscrito preservado. Corretor gramatical geral: " + (
             f"LanguageTool local ({origin})" if args.languagetool else "não executado (opcional)"))
-        if args.abrir:
-            webbrowser.open((output / "relatorio.html").as_uri())
         return 0
     except KeyboardInterrupt:
         print("\nAnálise interrompida. Manuscrito preservado.", file=sys.stderr)

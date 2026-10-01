@@ -2,6 +2,21 @@
 
 As seções antigas descrevem a cobertura e os resultados de cada entrega, não o estado atual. Nas seções anteriores à 1.0, caminhos citados são da antiga pasta `LumeMac/`; a correspondência com a estrutura atual está em [README.md](README.md#estrutura).
 
+## Lume 1.2 / FONTE 1.2.0 · Coerencia 1.1.0 — 01/10/2026
+
+- Página do alerta reorganizada: texto, “Copiar parágrafo” e **Confirmar** (habilitado
+  quando a avaliação não é “Pendente”; passa ao próximo alerta da lista), as seis
+  avaliações numa linha e em cartões do mesmo tamanho, “Por que acendemos esta luz” e, por
+  último, “Corrigir no manuscrito”. A explicação de cada avaliação fica na dica do cartão.
+- **Extrair falsos positivos**, na linha de estado: grava em JSON os alertas marcados como
+  falso positivo (regra, módulo, trecho, parágrafo e motivo) para estudar as regras. O
+  arquivo contém trechos do manuscrito e não deve ir para o repositório.
+- Relatório HTML removido. O FONTE grava só `relatorio.json` (lido pelo app), sem a opção
+  `--abrir`; o Coerencia avulso deixa de gerar `relatorio.html` e mostra as pendências no
+  terminal (`contradicoes.json` continua na pasta de saída). Saem também o menu “Abrir
+  relatório HTML”, os testes DOM em Node/jsdom, os `.html` dos exemplos e os exemplos da
+  memória narrativa removida (`Generico`, `Memoria`, `Memoria111`, `Qualidade113`).
+
 ## Lume 1.1 / FONTE 1.1.0 — 30/09/2026
 
 Documentos do Pages: leitura direta e correção no próprio arquivo. O Coerencia continua na 1.0.0.

@@ -11,7 +11,6 @@ from docx import Document
 from fonte.analysis import analyze, narrative_masks
 from fonte.cli import main
 from fonte.reader import Block, read_docx
-from fonte.report import render
 from fonte.languagetool import check, utf16_index
 
 
@@ -121,7 +120,7 @@ class LinguisticTests(unittest.TestCase):
             self.assertEqual(path.read_bytes(),original)
             data=json.loads((out/"relatorio.json").read_text())
             self.assertTrue(data["findings"])
-            self.assertTrue((out/"relatorio.html").exists())
+            self.assertEqual(sorted(p.name for p in out.iterdir()),["relatorio.json"])
 
     def test_pages_rejected(self):
         with self.assertRaisesRegex(ValueError, "Pages"):
@@ -129,12 +128,6 @@ class LinguisticTests(unittest.TestCase):
 
 
 class InfrastructureTests(unittest.TestCase):
-    def test_html_injection_is_text(self):
-        malicious='</script><script>alert(1)</script>'
-        html=render({"text":malicious})
-        self.assertNotIn(malicious,html)
-        self.assertIn('\\u003c/script\\u003e',html)
-
     def test_utf16_emoji(self):
         self.assertEqual(utf16_index("😀 palavra",3),2)
 

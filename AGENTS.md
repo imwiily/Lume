@@ -11,7 +11,7 @@ A raiz Git é `Lume/`, organizada no padrão do GitHub:
 | `coerencia/` | Motor Coerencia (pacote `coerencia`, embutido no FONTE) |
 | `packaging/` | Entrada do motor congelado e pacotes `.lumemotor` |
 | `scripts/` | Montagem (`montar-lume.command`), LanguageTool e avaliações |
-| `tests/` | Contratos, empacotamento e DOM |
+| `tests/` | Contratos e empacotamento |
 | `examples/`, `docs/` | Exemplos de referência e documentação |
 | `build/` | Saídas locais, fora do Git |
 

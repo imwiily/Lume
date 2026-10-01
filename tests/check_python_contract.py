@@ -30,7 +30,7 @@ def main():
         assert document.read_bytes() == original, "O original mudou"
         assert report["schema_version"] == 1
         assert report["sha256"] == hashlib.sha256(original).hexdigest()
-        assert report["metadata"]["versao_fonte"] == "1.1.0"
+        assert report["metadata"]["versao_fonte"] == "1.2.0"
         assert isinstance(report["metadata"]["paragrafos"], int)
         assert isinstance(report["metadata"]["languagetool"], bool)
         ids = set()
@@ -47,7 +47,7 @@ def main():
         assert anchor["text"][anchor["start"]:anchor["end"]] == "abriu"
         manuscript = "\n".join(p.text for p in doc.paragraphs)
         assert manuscript[temporal["range"]["start"]:temporal["range"]["end"]] == "observa"
-        assert (output / "relatorio.html").is_file()
+        assert sorted(p.name for p in output.iterdir()) == ["relatorio.json"]
         # A segunda execução não pode sobrescrever a saída da primeira.
         again = subprocess.run(result.args, cwd=ROOT / "fonte", capture_output=True, text=True, timeout=120)
         assert again.returncode != 0

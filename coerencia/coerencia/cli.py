@@ -73,11 +73,6 @@ def analisar_projeto(args, caminho, antes):
     print(f"\nRodada: {rodada['enviados']}/{rodada['capitulos']} capítulos enviados · "
           f"{rodada['tokens_gastos']} tokens gastos (US$ {rodada['custo_usd']:.4f}) · ~{rodada['tokens_poupados_estimados']} poupados · "
           f"{time.monotonic() - inicio:.0f} s · manuscrito preservado.")
-    from .projeto import capitulos
-    from .relatorio import de_projeto
-    relatorio = projeto.pasta / "relatorio.html"
-    relatorio.write_text(de_projeto(projeto, capitulos(paragrafos), args.projeto), encoding="utf-8")
-    print("Relatório: " + str(relatorio))
     print("Marque cada pendência com: coerencia decidir <ID> corrigida|intencional --projeto " + str(args.projeto))
 
 
@@ -106,10 +101,7 @@ def analisar(args):
     mostrar(contradicoes)
     custo = sum(c.get("custo_usd", 0) for c in modelo.chamadas)
     print(f"\nTempo: {segundos:.0f} s · {len(modelo.chamadas)} chamadas ao modelo · US$ {custo:.4f} · manuscrito preservado.")
-    from .relatorio import avulso
-    (pasta / "relatorio.html").write_text(avulso(caminho.name, args.modelo, contradicoes, paragrafos, custo), encoding="utf-8")
-    print("Relatório: " + str(pasta / "relatorio.html"))
-    print("Memória e julgamentos em " + str(pasta))
+    print("Contradições, memória e julgamentos em " + str(pasta))
 
 
 def casa(deteccao, gabarito):

@@ -13,7 +13,6 @@ def health():
     from fonte import __version__
     from fonte.analysis import analyze
     from fonte.reader import read_docx
-    from fonte.report import render
     from docx import Document
     import tempfile
     with tempfile.TemporaryDirectory() as temporary:
@@ -23,7 +22,6 @@ def health():
         assert blocks[0].heading and blocks[1].chapter == 'Capítulo um', 'Identificação de capítulo falhou'
         findings, _, _ = analyze(blocks, model(), 'passado', True)
         assert any(f['text'][f['start']:f['end']] == 'observa' for f in findings), 'Análise de teste falhou'
-        assert '__REPORT_DATA__' not in render({'findings': findings}), 'Template HTML ausente'
         from fonte.editorial import analyze as editorial
         from fonte.reader import Block
         editorial_findings, _ = editorial([Block(1, 'Não treina amanhã nem nos três dias seguintes. Está suspenso por três dias.')])
