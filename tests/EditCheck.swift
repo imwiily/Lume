@@ -69,6 +69,31 @@ struct EditCheck {
         try require(ManuscriptEditor.currentText(text, edits: [longer, edit(repeated, repeated + 2, "e ", "")])
                         == "🌿 Cafe\u{0301} chegou durante a noite, e ficou.", "Texto atual com duas correções incorreto.")
 
+        // Edição do parágrafo inteiro: só a menor troca contínua vai ao Pages, em posições do relatório.
+        let whole = try ManuscriptEditor.paragraphChange(text: text, edits: [],
+                                                         newText: "🌿 Cafe\u{0301} chegou à noite, e e ficou.")
+        try require(whole.start == a && whole.end == a + 1 && whole.before == "a" && whole.after == "à",
+                    "Edição do parágrafo deveria reduzir-se à troca mínima.")
+        let rewritten = try ManuscriptEditor.paragraphChange(text: text, edits: [],
+                                                             newText: "🌿 Cafe\u{0301} chegou ao anoitecer e ficou.")
+        let rewrittenPlan = try ManuscriptEditor.plan(text: text, start: rewritten.start, end: rewritten.end,
+                                                      replacement: rewritten.after, edits: [])
+        try require(rewrittenPlan.resultText == "🌿 Cafe\u{0301} chegou ao anoitecer e ficou.", "Reescrita do parágrafo incorreta.")
+        // Depois de uma correção no parágrafo, a edição parte do texto atual e é traduzida para o relatório.
+        let afterEdit = try ManuscriptEditor.paragraphChange(text: text, edits: [longer],
+                                                             newText: "🌿 Cafe\u{0301} chegou durante a noite, e ficou.")
+        try require(afterEdit.start == repeated && afterEdit.end == repeated + 2 && afterEdit.after == "",
+                    "Edição do parágrafo após correção anterior mal traduzida.")
+        let afterPlan = try ManuscriptEditor.plan(text: text, start: afterEdit.start, end: afterEdit.end,
+                                                  replacement: afterEdit.after, edits: [longer])
+        try require(afterPlan.resultText == "🌿 Cafe\u{0301} chegou durante a noite, e ficou.", "Resultado após correção anterior incorreto.")
+        // Recusas: mexer numa correção já gravada e parágrafo sem mudança.
+        try require((try? ManuscriptEditor.paragraphChange(text: text, edits: [longer],
+                                                            newText: "🌿 Cafe\u{0301} chegou durante toda a noite, e e ficou.")) == nil,
+                    "Edição sobre correção já gravada deveria ser recusada.")
+        try require((try? ManuscriptEditor.paragraphChange(text: text, edits: [], newText: text)) == nil,
+                    "Parágrafo sem mudança deveria ser recusado.")
+
         let log = EditLog(origem: String(repeating: "a", count: 64), atual: String(repeating: "b", count: 64),
                           documento: "Livro.pages", copia: "/tmp/Livro.pages", edits: [longer])
         let encoder = JSONEncoder(); encoder.dateEncodingStrategy = .iso8601

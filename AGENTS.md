@@ -40,7 +40,8 @@ aprovam um patch novo.
 1. A análise nunca altera o manuscrito. Analisar uma captura de leitura; manter bytes, hash,
    parágrafos, trechos e índices Unicode. Sugestões e decisões ficam em relatórios.
    Única exceção: a correção que o autor pede no app, alerta por alerta, num documento do
-   Pages. Ela troca só o trecho destacado, guarda antes uma cópia do arquivo, é conferida
+   Pages. Ela troca só o trecho destacado (ou, se o autor escolher **Editar parágrafo**, só a
+   parte alterada daquele parágrafo), guarda antes uma cópia do arquivo, é conferida
    pelo motor (só aquele parágrafo mudou) e é desfeita se a conferência falhar. Nenhuma
    correção é aplicada automaticamente ou em lote.
 2. Preservar o pipeline modular. Etapas posteriores consomem resultados anteriores

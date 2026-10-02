@@ -307,6 +307,11 @@ final class ReviewStore: ObservableObject {
     var canEditManuscript: Bool { report != nil && documentURL?.pathExtension.lowercased() == "pages" }
     func appliedEdit(for finding: Finding) -> AppliedEdit? { editLog?.edits.first { $0.finding == finding.id } }
     func editCount(inParagraph paragraph: Int) -> Int { editLog?.edits.filter { $0.paragraph == paragraph }.count ?? 0 }
+    private func edits(inParagraph paragraph: Int) -> [AppliedEdit] { (editLog?.edits ?? []).filter { $0.paragraph == paragraph } }
+    /// Parágrafo do alerta como está no arquivo: o do relatório com as correções já gravadas.
+    func currentParagraph(for finding: Finding) -> String {
+        ManuscriptEditor.currentText(finding.text, edits: edits(inParagraph: finding.paragraph))
+    }
 
     private func editLogURL(_ sha: String) throws -> URL {
         try supportDirectory("Edicoes").appendingPathComponent(sha + ".json")
@@ -346,7 +351,7 @@ final class ReviewStore: ObservableObject {
     private func confirmFirstEdit(_ document: URL, backup: URL) -> Bool {
         let alert = NSAlert()
         alert.messageText = "Gravar correções em “\(document.lastPathComponent)”?"
-        alert.informativeText = "O Lume vai alterar este arquivo usando o Pages, que será aberto. Cada correção troca apenas o trecho destacado do alerta.\n\nAntes da primeira correção, uma cópia do arquivo como está agora é guardada em:\n\(backup.path)"
+        alert.informativeText = "O Lume vai alterar este arquivo usando o Pages, que será aberto. Cada correção troca apenas o trecho destacado do alerta ou, em Editar parágrafo, só a parte alterada daquele parágrafo.\n\nAntes da primeira correção, uma cópia do arquivo como está agora é guardada em:\n\(backup.path)"
         alert.addButton(withTitle: "Gravar correção")
         alert.addButton(withTitle: "Cancelar")
         return alert.runModal() == .alertFirstButtonReturn
@@ -359,6 +364,20 @@ final class ReviewStore: ObservableObject {
 
     /// Grava no manuscrito a correção do trecho de um alerta. Só age a pedido do autor.
     func applyCorrection(_ replacement: String, for finding: Finding) {
+        applyEdit(for: finding) { (finding.start, finding.end, finding.segments.marked, replacement) }
+    }
+
+    /// Grava a edição do parágrafo inteiro do alerta, pedida pelo autor em Editar parágrafo.
+    /// Só a menor troca contínua vai ao Pages; o restante do parágrafo não é tocado.
+    func applyParagraphEdit(_ newText: String, for finding: Finding) {
+        applyEdit(for: finding) {
+            let change = try ManuscriptEditor.paragraphChange(text: finding.text, edits: self.edits(inParagraph: finding.paragraph),
+                                                              newText: newText)
+            return (change.start, change.end, change.before, change.after)
+        }
+    }
+
+    private func applyEdit(for finding: Finding, change: () throws -> (start: Int, end: Int, before: String, after: String)) {
         guard !isBusy, let report = report, let document = documentURL,
               let python = pythonURL, let directory = engineDirectory else { return }
         do {
@@ -372,8 +391,9 @@ final class ReviewStore: ObservableObject {
             guard manager.fileExists(atPath: document.path), try ManuscriptEditor.sha256(document) == expectedSHA else {
                 throw FonteError.message("O arquivo escolhido não é o mesmo deste relatório, ou foi alterado fora do Lume. Analise o manuscrito novamente antes de corrigir.")
             }
-            let plan = try ManuscriptEditor.plan(text: finding.text, start: finding.start, end: finding.end, replacement: replacement,
-                                                 edits: (editLog?.edits ?? []).filter { $0.paragraph == finding.paragraph })
+            let (start, end, before, replacement) = try change()
+            let plan = try ManuscriptEditor.plan(text: finding.text, start: start, end: end, replacement: replacement,
+                                                 edits: edits(inParagraph: finding.paragraph))
             let backup = try supportDirectory("Copias").appendingPathComponent(report.sha256, isDirectory: true)
                 .appendingPathComponent(document.lastPathComponent)
             if editLog == nil {
@@ -409,8 +429,8 @@ final class ReviewStore: ObservableObject {
                     }
                     var updated = editLog ?? EditLog(origem: report.sha256, atual: current, documento: document.lastPathComponent, copia: backup.path)
                     updated.atual = current
-                    updated.edits.append(AppliedEdit(finding: finding.id, paragraph: finding.paragraph, start: finding.start, end: finding.end,
-                                                     before: finding.segments.marked, after: replacement, date: Date()))
+                    updated.edits.append(AppliedEdit(finding: finding.id, paragraph: finding.paragraph, start: start, end: end,
+                                                     before: before, after: replacement, date: Date()))
                     let encoder = JSONEncoder()
                     encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
                     encoder.dateEncodingStrategy = .iso8601

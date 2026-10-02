@@ -62,6 +62,35 @@ enum ManuscriptEditor {
         return string(scalars[...])
     }
 
+    /// Edição do parágrafo inteiro pedida pelo autor: reduz o texto novo à menor troca
+    /// contínua em relação ao parágrafo atual (o resto, com a formatação, fica intocado) e
+    /// devolve essa troca em posições do relatório. Uma troca que toca correção já gravada é recusada.
+    static func paragraphChange(text: String, edits: [AppliedEdit], newText: String) throws -> (start: Int, end: Int, before: String, after: String) {
+        let original = Array(text.unicodeScalars)
+        let current = Array(currentText(text, edits: edits).unicodeScalars)
+        let new = Array(newText.unicodeScalars)
+        guard current != new else { throw FonteError.message("O parágrafo não foi alterado.") }
+        var prefix = 0
+        while prefix < min(current.count, new.count), current[prefix] == new[prefix] { prefix += 1 }
+        var suffix = 0
+        while suffix < min(current.count, new.count) - prefix,
+              current[current.count - 1 - suffix] == new[new.count - 1 - suffix] { suffix += 1 }
+        let lower = prefix, upper = current.count - suffix
+        var shift = 0
+        for edit in edits.sorted(by: { $0.start < $1.start }) {
+            let editLower = edit.start + shift, editUpper = editLower + edit.after.unicodeScalars.count
+            if max(lower, editLower) < min(upper, editUpper) || (lower == upper && editLower < lower && lower < editUpper) {
+                throw FonteError.message("A edição mexe num trecho já alterado por outra correção. Analise o manuscrito novamente para continuar neste ponto.")
+            }
+            if editUpper <= lower { shift += edit.after.unicodeScalars.count - (edit.end - edit.start) }
+        }
+        let start = lower - shift, end = upper - shift
+        guard start >= 0, end >= start, end <= original.count else {
+            throw FonteError.message("A edição não cabe no parágrafo do relatório.")
+        }
+        return (start, end, string(original[start..<end]), string(new[lower..<(new.count - suffix)]))
+    }
+
     /// Traduz o trecho do relatório para o parágrafo atual. `edits` são as correções já
     /// gravadas neste parágrafo; um trecho que toca uma delas é recusado.
     static func plan(text: String, start: Int, end: Int, replacement: String, edits: [AppliedEdit]) throws -> EditPlan {

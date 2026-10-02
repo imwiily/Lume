@@ -7,11 +7,11 @@ O Lume lê manuscritos do Word (.docx) e do Pages (.pages) e aponta:
 - tempo verbal da narração (passado ou presente);
 - repetições, diálogos, variações de nomes e prazos.
 
-Contradições narrativas são verificadas pela **Coerência com IA** (Claude), opcional. Sugestões e decisões ficam nos relatórios; o texto continua sendo do autor. A análise nunca altera o arquivo. Em documentos do Pages, o autor pode gravar a correção de um alerta no próprio arquivo (**Corrigir no manuscrito**): o Lume guarda antes uma cópia em `~/Library/Application Support/FONTE/Copias/`, usa o Pages para trocar só o trecho destacado e confere o resultado.
+Contradições narrativas são verificadas pela **Coerência com IA** (Claude), opcional. Sugestões e decisões ficam nos relatórios; o texto continua sendo do autor. A análise nunca altera o arquivo. Em documentos do Pages, o autor pode gravar a correção de um alerta no próprio arquivo (**Corrigir no manuscrito**): o Lume guarda antes uma cópia em `~/Library/Application Support/FONTE/Copias/`, usa o Pages para trocar só o trecho destacado e confere o resultado. Em **Editar parágrafo**, o autor reescreve o parágrafo do alerta e o Lume grava só a parte alterada.
 
 ![Início do Lume](docs/identidade/previa-inicio-claro.png)
 
-Versão atual: **Lume 1.2 · FONTE 1.2.0 · Coerencia 1.1.0** — novidades no [CHANGELOG](CHANGELOG.md).
+Versão atual: **Lume 1.3 · FONTE 1.2.0 · Coerencia 1.1.0** — novidades no [CHANGELOG](CHANGELOG.md).
 
 ## Estrutura
 

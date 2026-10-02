@@ -628,7 +628,7 @@ private struct FindingsColumn: View {
                         guard let id else { return }
                         withAnimation(.easeOut(duration: 0.2)) { proxy.scrollTo(id) }
                     }
-                }.focusable()
+                }.focusable().modifier(NoFocusRing())
                     .onMoveCommand { direction in
                         if direction == .down { move(1) } else if direction == .up { move(-1) }
                     }
@@ -680,6 +680,13 @@ private struct FindingsColumn: View {
     }
 }
 
+/// A lista recebe foco para navegar com ↑ ↓; o anel azul de foco do sistema não é desenhado.
+private struct NoFocusRing: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(macOS 14.0, *) { content.focusEffectDisabled() } else { content }
+    }
+}
+
 private struct FindingCard: View {
     let finding: Finding
     let decision: ReviewDecision
@@ -723,43 +730,102 @@ private struct ReadingPage: View {
     @AppStorage("lumeReadingSize") private var readingSize = 21.0
     let finding: Finding
     @State private var correction = ""
+    @State private var copiedID: String?
+    /// Editar parágrafo: opção do autor para trocar o parágrafo todo em vez do trecho destacado.
+    @State private var editingParagraph = false
+    @State private var paragraphDraft = ""
 
     private var textSize: CGFloat { CGFloat(min(28, max(17, readingSize))) }
 
     /// Correção do trecho destacado, gravada no documento do Pages a pedido do autor.
     @ViewBuilder private var correctionView: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Corrigir no manuscrito").font(LumeFont.display(22))
-            if let edit = store.appliedEdit(for: finding) {
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Image(systemName: "checkmark.circle.fill").foregroundStyle(LumeTheme.sage)
-                    Text(edit.before.isEmpty ? "inserção" : edit.before).strikethrough(!edit.before.isEmpty, color: LumeTheme.rose)
-                        .foregroundStyle(LumeTheme.secondary)
-                    Image(systemName: "arrow.right").font(.system(size: 11)).foregroundStyle(LumeTheme.secondary)
-                    Text(edit.after.isEmpty ? "trecho removido" : edit.after).italic(edit.after.isEmpty).bold()
-                }.font(LumeFont.display(16)).textSelection(.enabled)
-                Text("Gravado no arquivo. O texto acima é o da análise; analise novamente para ver o manuscrito atualizado.")
-                    .font(LumeFont.ui(11)).foregroundStyle(LumeTheme.secondary)
-                Button { store.revealBackup() } label: { Label("Mostrar a cópia anterior às correções", systemImage: "clock.arrow.circlepath") }
-                    .buttonStyle(.borderless).font(LumeFont.ui(11))
-            } else {
+        if let edit = store.appliedEdit(for: finding) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Image(systemName: "checkmark.circle.fill").foregroundStyle(LumeTheme.sage)
+                Text(edit.before.isEmpty ? "inserção" : edit.before).strikethrough(!edit.before.isEmpty, color: LumeTheme.rose)
+                    .foregroundStyle(LumeTheme.secondary)
+                Image(systemName: "arrow.right").font(.system(size: 11)).foregroundStyle(LumeTheme.secondary)
+                Text(edit.after.isEmpty ? "trecho removido" : edit.after).italic(edit.after.isEmpty).bold()
+                Text("Gravado no arquivo; analise novamente para ver o manuscrito atualizado.")
+                    .font(LumeFont.ui(11)).foregroundStyle(LumeTheme.secondary).lineLimit(1)
+                Spacer(minLength: 4)
+                Button { store.revealBackup() } label: { Image(systemName: "clock.arrow.circlepath") }
+                    .buttonStyle(.borderless).help("Mostrar a cópia anterior às correções")
+                    .accessibilityLabel("Mostrar a cópia anterior às correções")
+            }.font(LumeFont.display(15)).textSelection(.enabled)
+        } else if editingParagraph {
+            VStack(alignment: .leading, spacing: 6) {
+                TextField("Parágrafo", text: $paragraphDraft, axis: .vertical)
+                    .textFieldStyle(.roundedBorder).font(LumeFont.display(16)).lineLimit(3...12)
+                    .accessibilityLabel("Texto do parágrafo inteiro")
+                HStack(spacing: 10) {
+                    Button { editingParagraph = false } label: { Label("Editar só o trecho", systemImage: "text.cursor") }
+                        .buttonStyle(.borderless).font(LumeFont.ui(11))
+                        .help("Volta a trocar apenas o trecho destacado")
+                    Text("Só o que você mudar é gravado; o restante do parágrafo e a formatação ficam como estão.")
+                        .font(LumeFont.ui(11)).foregroundStyle(LumeTheme.secondary)
+                    Spacer(minLength: 4)
+                    Button { store.applyParagraphEdit(paragraphDraft, for: finding) } label: {
+                        Label("Gravar parágrafo", systemImage: "pencil.line")
+                    }.buttonStyle(LumeButtonStyle())
+                        .disabled(store.isBusy || paragraphDraft == store.currentParagraph(for: finding))
+                        .help("Grava no arquivo do Pages a parte do parágrafo que você alterou. Uma cópia do original é guardada antes da primeira correção.")
+                }
+            }
+        } else {
+            VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 10) {
                     TextField("Texto que substitui o trecho destacado (vazio remove o trecho)", text: $correction)
                         .textFieldStyle(.roundedBorder).font(LumeFont.display(16))
                         .accessibilityLabel("Correção para o trecho destacado")
                     Button { store.applyCorrection(correction, for: finding) } label: {
                         Label("Corrigir", systemImage: "pencil.line")
-                    }.buttonStyle(LumeButtonStyle()).disabled(store.isBusy || correction == finding.segments.marked)
-                        .help("Troca o trecho destacado no documento do Pages")
+                    }.buttonStyle(LumeButtonStyle()).disabled(!canCorrect)
+                        .help("Troca só o trecho destacado, no próprio arquivo do Pages. Uma cópia do original é guardada antes da primeira correção.")
+                    Button {
+                        paragraphDraft = store.currentParagraph(for: finding)
+                        editingParagraph = true
+                    } label: { Label("Editar parágrafo", systemImage: "text.alignleft") }
+                        .buttonStyle(LumeButtonStyle())
+                        .help("Abre o parágrafo inteiro para edição, em vez de só o trecho destacado")
                 }
-                Text(store.editCount(inParagraph: finding.paragraph) > 0
-                     ? "Este parágrafo já recebeu correções; o texto acima é o da análise. A troca vale só para o trecho destacado."
-                     : "Troca só o trecho destacado, no próprio arquivo do Pages. Uma cópia do original é guardada antes da primeira correção.")
-                    .font(LumeFont.ui(11)).foregroundStyle(LumeTheme.secondary)
+                if store.editCount(inParagraph: finding.paragraph) > 0 {
+                    Text("Este parágrafo já recebeu correções; o texto acima é o da análise. A troca vale só para o trecho destacado.")
+                        .font(LumeFont.ui(11)).foregroundStyle(LumeTheme.secondary)
+                }
             }
-        }.padding(22).frame(maxWidth: .infinity, alignment: .leading)
-            .background(RoundedRectangle(cornerRadius: 20, style: .continuous).fill(LumeTheme.wash.opacity(0.6)))
-            .task(id: finding.id) { correction = finding.suggestion ?? finding.segments.marked }
+        }
+    }
+    private var canCorrect: Bool { !store.isBusy && correction != finding.segments.marked }
+
+    /// Correção, avaliação e confirmação logo abaixo da explicação do alerta.
+    private var actionPanel: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            if store.canEditManuscript { correctionView }
+            HStack(spacing: 10) {
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 6) { decisionChips }
+                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: 3), spacing: 6) { decisionChips }
+                }.disabled(store.isBusy)
+                Button { confirm() } label: { Label("Confirmar", systemImage: "checkmark") }
+                    .buttonStyle(LumeButtonStyle())
+                    .disabled(store.decision(for: finding) == .pending)
+                    .help("Confirma a sua avaliação e passa para o próximo alerta")
+            }
+        }.padding(14).frame(maxWidth: .infinity, alignment: .leading)
+            .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(LumeTheme.wash.opacity(0.6)))
+            .task(id: finding.id) {
+                correction = finding.suggestion ?? finding.segments.marked
+                editingParagraph = false
+            }
+    }
+
+    @ViewBuilder private var decisionChips: some View {
+        ForEach(ReviewDecision.allCases) { decision in
+            DecisionChip(decision: decision, selected: store.decision(for: finding) == decision) {
+                store.setDecision(decision, for: finding)
+            }
+        }
     }
     private var severity: FindingSeverity? { finding.severity.flatMap(FindingSeverity.init(rawValue:)) }
     private var currentIndex: Int? { store.filteredFindings.firstIndex { $0.id == finding.id } }
@@ -801,133 +867,139 @@ private struct ReadingPage: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                HStack(spacing: 10) {
-                    Label(finding.moduleTitle + " · " + finding.severityTitle,
-                          systemImage: "circle.fill")
-                        .labelStyle(DotLabel(color: severity?.color ?? LumeTheme.secondary))
-                        .font(LumeFont.ui(12, weight: .medium))
-                    Spacer()
-                    if let index = currentIndex {
-                        Text("\(index + 1) de \(store.filteredFindings.count)").font(LumeFont.ui(11)).monospacedDigit()
-                            .foregroundStyle(LumeTheme.secondary)
-                    }
-                    Button { move(-1) } label: { Image(systemName: "chevron.up") }
-                        .help("Alerta anterior (⌘[)").accessibilityLabel("Alerta anterior")
-                        .disabled(currentIndex == nil || currentIndex == 0)
-                    Button { move(1) } label: { Image(systemName: "chevron.down") }
-                        .help("Próximo alerta (⌘])").accessibilityLabel("Próximo alerta")
-                        .disabled(currentIndex == nil || currentIndex == store.filteredFindings.count - 1)
-                }.buttonStyle(.borderless)
-
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(finding.category).font(LumeFont.display(34)).fixedSize(horizontal: false, vertical: true)
-                    Text("\(finding.chapter) · parágrafo \(finding.paragraph)")
-                        .font(LumeFont.ui(12)).foregroundStyle(LumeTheme.secondary).textSelection(.enabled)
-                }
-
-                // A página.
+        VStack(spacing: 0) {
+            header.padding(.horizontal, 24).padding(.top, 16).padding(.bottom, 12)
+            ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
-                    HStack {
-                        Kicker(title: "No seu texto")
-                        Spacer()
-                        Button { readingSize = max(17, readingSize - 1) } label: { Text("A").font(.system(size: 11)) }
-                            .accessibilityLabel("Diminuir tamanho do texto").disabled(readingSize <= 17)
-                        Button { readingSize = min(28, readingSize + 1) } label: { Text("A").font(.system(size: 16)) }
-                            .accessibilityLabel("Aumentar tamanho do texto").disabled(readingSize >= 28)
-                    }.buttonStyle(.borderless)
-                    illuminated.font(LumeFont.display(textSize)).lineSpacing(textSize * 0.42)
-                        .textSelection(.enabled).fixedSize(horizontal: false, vertical: true)
-                }.padding(.horizontal, 34).padding(.vertical, 28).frame(maxWidth: .infinity, alignment: .leading)
-                    .background(RoundedRectangle(cornerRadius: 22, style: .continuous).fill(LumeTheme.paper)
-                        .shadow(color: LumeTheme.night.opacity(0.08), radius: 18, y: 8))
-
-                HStack(spacing: 10) {
-                    Button { store.copyParagraph(finding) } label: {
-                        Label("Copiar parágrafo para localizar no original", systemImage: "doc.on.doc")
-                    }.buttonStyle(LumeButtonStyle())
-                    Button { confirm() } label: { Label("Confirmar", systemImage: "checkmark") }
-                        .buttonStyle(LumeButtonStyle())
-                        .disabled(store.decision(for: finding) == .pending)
-                        .help("Confirma a sua avaliação e passa para o próximo alerta")
-                    Spacer()
-                }
-
-                // Decisão.
-                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: ReviewDecision.allCases.count),
-                          spacing: 8) {
-                    ForEach(ReviewDecision.allCases) { decision in
-                        DecisionChip(decision: decision, selected: store.decision(for: finding) == decision) {
-                            store.setDecision(decision, for: finding)
+                    page
+                    marginNote
+                    actionPanel
+                    if let related = finding.related, !related.isEmpty {
+                        VStack(alignment: .leading, spacing: 10) {
+                            Kicker(title: "Trechos relacionados")
+                            ForEach(Array(related.enumerated()), id: \.offset) { _, evidence in evidenceView(evidence) }
                         }
                     }
-                }.disabled(store.isBusy)
-
-                // Nota de margem.
-                HStack(alignment: .top, spacing: 16) {
-                    RoundedRectangle(cornerRadius: 2).fill(LinearGradient(colors: [LumeTheme.candle, LumeTheme.blush],
-                                                                           startPoint: .top, endPoint: .bottom))
-                        .frame(width: 3)
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Por que acendemos esta luz").font(LumeFont.display(18))
-                        Text(finding.reason).font(LumeFont.ui(14)).lineSpacing(5).textSelection(.enabled)
-                            .fixedSize(horizontal: false, vertical: true)
-                        if let suggestion = finding.suggestion {
-                            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                                Text(finding.segments.marked).strikethrough(color: LumeTheme.rose)
-                                    .foregroundStyle(LumeTheme.secondary)
-                                Image(systemName: "arrow.right").font(.system(size: 11)).foregroundStyle(LumeTheme.secondary)
-                                Text(suggestion.isEmpty ? "remover o trecho" : suggestion)
-                                    .italic(suggestion.isEmpty).foregroundStyle(LumeTheme.accent).bold()
-                            }.font(LumeFont.display(16)).textSelection(.enabled)
-                                .padding(.horizontal, 14).padding(.vertical, 10)
-                                .background(RoundedRectangle(cornerRadius: 12).fill(LumeTheme.wash))
-                                .accessibilityElement(children: .combine)
-                                .accessibilityLabel(suggestion.isEmpty ? "Sugestão: remover o trecho destacado."
-                                                    : "Sugestão para o trecho destacado: \(suggestion)")
-                        }
-                        if let confidence = finding.confidence {
-                            Text("Força do indício: \(confidence). Classificação automática, sujeita à sua decisão.")
-                                .font(LumeFont.ui(11)).foregroundStyle(LumeTheme.secondary)
-                        }
-                        DisclosureGroup("Detalhes da análise") {
-                            Text("Prioridade: \(finding.priority)\nOrigem: \(finding.source)")
-                                .font(LumeFont.ui(11)).frame(maxWidth: .infinity, alignment: .leading).padding(.top, 6)
-                                .textSelection(.enabled)
+                    if let context = finding.context, !context.isEmpty {
+                        DisclosureGroup("Ver contexto próximo") {
+                            VStack(alignment: .leading, spacing: 12) {
+                                ForEach(Array(context.enumerated()), id: \.offset) { _, evidence in evidenceView(evidence) }
+                            }.padding(.top, 12)
+                        }.font(LumeFont.ui(12))
+                    }
+                    if let report = store.report, !report.warnings.isEmpty {
+                        DisclosureGroup("Sobre esta análise · \(report.warnings.count) avisos") {
+                            VStack(alignment: .leading, spacing: 10) {
+                                ForEach(Array(report.warnings.enumerated()), id: \.offset) { _, warning in
+                                    Text(warning).font(LumeFont.ui(11)).lineSpacing(3)
+                                }
+                                Text("As avaliações registradas não treinam o analisador automaticamente.").font(LumeFont.ui(11))
+                            }.padding(.top, 10)
                         }.font(LumeFont.ui(11)).foregroundStyle(LumeTheme.secondary)
                     }
-                }.fixedSize(horizontal: false, vertical: true)
-
-                if let related = finding.related, !related.isEmpty {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Kicker(title: "Trechos relacionados")
-                        ForEach(Array(related.enumerated()), id: \.offset) { _, evidence in evidenceView(evidence) }
-                    }
-                }
-                if let context = finding.context, !context.isEmpty {
-                    DisclosureGroup("Ver contexto próximo") {
-                        VStack(alignment: .leading, spacing: 12) {
-                            ForEach(Array(context.enumerated()), id: \.offset) { _, evidence in evidenceView(evidence) }
-                        }.padding(.top, 12)
-                    }.font(LumeFont.ui(13))
-                }
-
-                if store.canEditManuscript { correctionView }
-
-                if let report = store.report, !report.warnings.isEmpty {
-                    DisclosureGroup("Sobre esta análise · \(report.warnings.count) avisos") {
-                        VStack(alignment: .leading, spacing: 10) {
-                            ForEach(Array(report.warnings.enumerated()), id: \.offset) { _, warning in
-                                Text(warning).font(LumeFont.ui(11)).lineSpacing(3)
-                            }
-                            Text("As avaliações registradas não treinam o analisador automaticamente.").font(LumeFont.ui(11))
-                        }.padding(.top, 10)
-                    }.font(LumeFont.ui(11)).foregroundStyle(LumeTheme.secondary)
-                }
-            }.padding(.horizontal, 40).padding(.vertical, 30).frame(maxWidth: 820, alignment: .leading)
-                .frame(maxWidth: .infinity, alignment: .center)
+                }.padding(.horizontal, 24).padding(.bottom, 18).frame(maxWidth: 860, alignment: .leading)
+                    .frame(maxWidth: .infinity, alignment: .center)
+            }
         }.background(LumeTheme.canvas)
+    }
+
+    /// Cabeçalho em duas linhas curtas: classificação e navegação; categoria e local.
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 10) {
+                Label(finding.moduleTitle + " · " + finding.severityTitle, systemImage: "circle.fill")
+                    .labelStyle(DotLabel(color: severity?.color ?? LumeTheme.secondary))
+                    .font(LumeFont.ui(11, weight: .medium))
+                Spacer()
+                if let index = currentIndex {
+                    Text("\(index + 1) de \(store.filteredFindings.count)").font(LumeFont.ui(11)).monospacedDigit()
+                        .foregroundStyle(LumeTheme.secondary)
+                }
+                Button { move(-1) } label: { Image(systemName: "chevron.up") }
+                    .help("Alerta anterior (⌘[)").accessibilityLabel("Alerta anterior")
+                    .disabled(currentIndex == nil || currentIndex == 0)
+                Button { move(1) } label: { Image(systemName: "chevron.down") }
+                    .help("Próximo alerta (⌘])").accessibilityLabel("Próximo alerta")
+                    .disabled(currentIndex == nil || currentIndex == store.filteredFindings.count - 1)
+            }.buttonStyle(.borderless)
+            HStack(alignment: .firstTextBaseline, spacing: 10) {
+                Text(finding.category).font(LumeFont.display(22)).lineLimit(2)
+                Text("\(finding.chapter) · parágrafo \(finding.paragraph)")
+                    .font(LumeFont.ui(12)).foregroundStyle(LumeTheme.secondary).textSelection(.enabled).lineLimit(1)
+            }
+        }.frame(maxWidth: 860, alignment: .leading).frame(maxWidth: .infinity, alignment: .center)
+    }
+
+    /// A página.
+    private var page: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 10) {
+                Kicker(title: "No seu texto")
+                Spacer()
+                Button {
+                    store.copyParagraph(finding)
+                    let id = finding.id
+                    withAnimation(.easeOut(duration: 0.15)) { copiedID = id }
+                    Task {
+                        try? await Task.sleep(nanoseconds: 1_500_000_000)
+                        if copiedID == id { withAnimation(.easeIn(duration: 0.3)) { copiedID = nil } }
+                    }
+                } label: {
+                    if copiedID == finding.id {
+                        Label("Copiado", systemImage: "checkmark").foregroundStyle(LumeTheme.sage)
+                            .font(LumeFont.ui(11, weight: .semibold))
+                    } else {
+                        Image(systemName: "doc.on.doc")
+                    }
+                }.help("Copiar parágrafo para localizar no original")
+                    .accessibilityLabel("Copiar parágrafo para localizar no original")
+                Button { readingSize = max(17, readingSize - 1) } label: { Text("A").font(.system(size: 11)) }
+                    .accessibilityLabel("Diminuir tamanho do texto").disabled(readingSize <= 17)
+                Button { readingSize = min(28, readingSize + 1) } label: { Text("A").font(.system(size: 16)) }
+                    .accessibilityLabel("Aumentar tamanho do texto").disabled(readingSize >= 28)
+            }.buttonStyle(.borderless)
+            illuminated.font(LumeFont.display(textSize)).lineSpacing(textSize * 0.35)
+                .textSelection(.enabled).fixedSize(horizontal: false, vertical: true)
+        }.padding(.horizontal, 26).padding(.vertical, 18).frame(maxWidth: .infinity, alignment: .leading)
+            .background(RoundedRectangle(cornerRadius: 18, style: .continuous).fill(LumeTheme.paper)
+                .shadow(color: LumeTheme.night.opacity(0.08), radius: 14, y: 6))
+    }
+
+    /// Nota de margem: o motivo do alerta. A sugestão já vem no campo de correção;
+    /// a caixa "trecho → sugestão" só aparece quando o documento não pode ser corrigido pelo app.
+    private var marginNote: some View {
+        HStack(alignment: .top, spacing: 14) {
+            RoundedRectangle(cornerRadius: 2).fill(LinearGradient(colors: [LumeTheme.candle, LumeTheme.blush],
+                                                                   startPoint: .top, endPoint: .bottom))
+                .frame(width: 3)
+            VStack(alignment: .leading, spacing: 8) {
+                Text(finding.reason).font(LumeFont.ui(13.5)).lineSpacing(4).textSelection(.enabled)
+                    .fixedSize(horizontal: false, vertical: true)
+                if let suggestion = finding.suggestion, !store.canEditManuscript {
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Text(finding.segments.marked).strikethrough(color: LumeTheme.rose)
+                            .foregroundStyle(LumeTheme.secondary)
+                        Image(systemName: "arrow.right").font(.system(size: 11)).foregroundStyle(LumeTheme.secondary)
+                        Text(suggestion.isEmpty ? "remover o trecho" : suggestion)
+                            .italic(suggestion.isEmpty).foregroundStyle(LumeTheme.accent).bold()
+                    }.font(LumeFont.display(15)).textSelection(.enabled)
+                        .padding(.horizontal, 12).padding(.vertical, 8)
+                        .background(RoundedRectangle(cornerRadius: 10).fill(LumeTheme.wash))
+                        .accessibilityElement(children: .combine)
+                        .accessibilityLabel(suggestion.isEmpty ? "Sugestão: remover o trecho destacado."
+                                            : "Sugestão para o trecho destacado: \(suggestion)")
+                }
+                DisclosureGroup("Detalhes da análise") {
+                    VStack(alignment: .leading, spacing: 4) {
+                        if let confidence = finding.confidence {
+                            Text("Força do indício: \(confidence). Classificação automática, sujeita à sua decisão.")
+                        }
+                        Text("Prioridade: \(finding.priority)\nOrigem: \(finding.source)")
+                    }.font(LumeFont.ui(11)).frame(maxWidth: .infinity, alignment: .leading).padding(.top, 6)
+                        .textSelection(.enabled)
+                }.font(LumeFont.ui(11)).foregroundStyle(LumeTheme.secondary)
+            }
+        }.fixedSize(horizontal: false, vertical: true)
     }
 }
 
@@ -947,24 +1019,17 @@ private struct DecisionChip: View {
     let action: () -> Void
     var body: some View {
         Button(action: action) {
-            VStack(alignment: .leading, spacing: 6) {
-                HStack {
-                    Image(systemName: selected && decision != .pending ? decision.symbol + ".fill" : decision.symbol)
-                        .font(.system(size: 15)).foregroundStyle(decision.color)
-                    Spacer()
-                    Text("⌘" + String(decision.shortcut.character)).font(LumeFont.ui(9)).foregroundStyle(LumeTheme.secondary)
-                }
-                Text(decision.rawValue).font(LumeFont.ui(12, weight: .semibold)).foregroundStyle(LumeTheme.ink)
-                    .lineLimit(2).fixedSize(horizontal: false, vertical: true)
-                Spacer(minLength: 0)
-            }.padding(12).frame(maxWidth: .infinity, minHeight: 74, maxHeight: 74, alignment: .topLeading)
-                .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(selected ? LumeTheme.paper : LumeTheme.paper.opacity(0.7)))
-                .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .strokeBorder(selected ? decision.color : LumeTheme.line, lineWidth: selected ? 2 : 1))
-                .shadow(color: selected ? decision.color.opacity(0.25) : .clear, radius: 8, y: 2)
-                .contentShape(RoundedRectangle(cornerRadius: 14))
+            HStack(spacing: 5) {
+                Image(systemName: selected && decision != .pending ? decision.symbol + ".fill" : decision.symbol)
+                    .font(.system(size: 12)).foregroundStyle(decision.color)
+                Text(decision.rawValue).font(LumeFont.ui(11.5, weight: selected ? .semibold : .regular))
+                    .foregroundStyle(LumeTheme.ink).lineLimit(1).fixedSize()
+            }.padding(.horizontal, 9).frame(maxWidth: .infinity, minHeight: 28)
+                .background(Capsule().fill(selected ? LumeTheme.wash : LumeTheme.canvas))
+                .overlay(Capsule().strokeBorder(selected ? decision.color : LumeTheme.line, lineWidth: selected ? 1.5 : 1))
+                .contentShape(Capsule())
         }.buttonStyle(.plain).keyboardShortcut(decision.shortcut, modifiers: .command)
-            .help(decision.explanation)
+            .help(decision.explanation + " (⌘" + String(decision.shortcut.character) + ")")
             .accessibilityLabel(decision.rawValue + (selected ? ", selecionado" : "") + ". " + decision.explanation)
     }
 }

@@ -2,11 +2,22 @@
 
 As seções antigas descrevem a cobertura e os resultados de cada entrega, não o estado atual. Nas seções anteriores à 1.0, caminhos citados são da antiga pasta `LumeMac/`; a correspondência com a estrutura atual está em [README.md](README.md#estrutura).
 
-## Em desenvolvimento
+## Lume 1.3 / FONTE 1.2.0 · Coerencia 1.1.0 — 01/10/2026
+
+Só a interface mudou; o motor é o mesmo da 1.2 e os alertas não mudam.
 
 - Extrair falsos positivos: campos ausentes (relatórios antigos, alerta sem sugestão) passam a
   ser gravados como `null`, para todas as entradas terem as mesmas chaves. Novo teste
   `tests/FalsePositiveCheck.swift`, executado na montagem.
+- Página do alerta mais compacta: cabeçalho em duas linhas curtas, avaliações em botões
+  numa linha (três por linha em janelas estreitas) e correção, avaliação e **Confirmar**
+  logo abaixo da explicação do alerta. Relacionados, contexto e avisos vêm depois; a força
+  do indício foi para “Detalhes da análise”. “Copiar parágrafo” virou ícone, que mostra
+  “Copiado” ao clicar. A lista de alertas não mostra mais o anel azul de foco.
+- **Editar parágrafo**: opção, ao lado de Corrigir, para reescrever o parágrafo inteiro do
+  alerta. O Lume reduz a edição à menor troca contínua (o resto do parágrafo e a
+  formatação não são tocados), recusa trocas sobre correções já gravadas e usa a mesma
+  cópia de segurança e conferência pelo motor. Testes em `tests/EditCheck.swift`.
 
 ## Lume 1.2 / FONTE 1.2.0 · Coerencia 1.1.0 — 01/10/2026
 
