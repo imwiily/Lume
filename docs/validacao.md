@@ -19,6 +19,20 @@ Fragmentos deliberados fora da estrutura da frase e mensagens reescritas (ação
 - Manuscrito B: 30 → 30 ocorrências; mudou só a mensagem de 3 alertas de estrutura.
 - SHA-256 dos dois DOCX igual antes e depois e igual ao registrado nos relatórios.
 
+### Decisões por livro
+
+- `tests/BookMemoryCheck.swift` (novo, na montagem): mesmo texto com outro SHA-256, parágrafo
+  editado, parágrafo inserido, regra ou evidência diferente, pendentes, parágrafos repetidos
+  (mesma quantidade herda na ordem; quantidade diferente não herda), nome com extensão,
+  maiúsculas e acento decomposto, JSON e versão desconhecida.
+- Relatórios reais do app do manuscrito A em `.pages` (só contagens, leitura das pastas do app
+  sem alterá-las): cinco reanálises seguidas. Nas quatro feitas depois de correções pelo Lume, a
+  herança por conteúdo recupera o mesmo que a herança por ID atual (7, 10, 33, 32). Na última,
+  depois de uma edição no Pages, a versão anterior recuperava 0 de 50 decisões e a nova recupera 30;
+  as outras 20 eram de alertas que mudaram ou deixaram de existir.
+- Não verificado no app empacotado: migração a partir das decisões salvas e mensagem de decisões
+  mantidas (compilado; a lógica pura está no teste acima).
+
 ## Lume 1.2 / FONTE 1.2.0 · Coerencia 1.1.0 — 01/10/2026
 
 Interface do alerta reorganizada, extração de falsos positivos e remoção do relatório HTML.

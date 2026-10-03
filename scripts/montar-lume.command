@@ -76,6 +76,8 @@ swiftc app/Lume/Models.swift app/Lume/PythonRunner.swift tests/ContractCheck.swi
 "$fonte_output/contrato-swift" examples/Mestre/relatorio.json "$fonte_python"
 swiftc app/Lume/Models.swift app/Lume/ManuscriptEditor.swift tests/EditCheck.swift -o "$fonte_output/edicao-swift"
 swiftc app/Lume/Models.swift tests/FalsePositiveCheck.swift -o "$fonte_output/falsos-positivos-swift"
+swiftc app/Lume/Models.swift tests/BookMemoryCheck.swift -o "$fonte_output/livro-swift"
+"$fonte_output/livro-swift"
 "$fonte_output/falsos-positivos-swift"
 "$fonte_output/edicao-swift"
 "$fonte_python" scripts/package_app.py \

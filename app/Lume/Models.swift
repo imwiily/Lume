@@ -1,4 +1,5 @@
 import Foundation
+import CryptoKit
 
 enum ReviewModule: String, CaseIterable, Identifiable {
     case linguistic, morphosyntactic, editorial, global_coherence, audit
@@ -271,6 +272,85 @@ struct DecisionFile: Codable {
     enum CodingKeys: String, CodingKey {
         case schemaVersion = "schema_version"
         case sha256, document, decisions
+    }
+}
+
+extension Finding {
+    /// Identidade do alerta pelo conteúdo: categoria, regra, origem, parágrafo, trecho e evidências.
+    /// Sem número de parágrafo nem capítulo, para sobreviver a parágrafos inseridos ou apagados.
+    var contentKey: String {
+        struct Evidence: Encodable { let text: String; let start: Int; let end: Int; let document: String }
+        struct Key: Encodable {
+            let category: String; let rule: String?; let source: String
+            let text: String; let start: Int; let end: Int; let related: [Evidence]
+        }
+        let key = Key(category: category, rule: rule, source: source, text: text, start: start, end: end,
+                      related: (related ?? []).map { Evidence(text: $0.text, start: $0.start, end: $0.end, document: $0.document) })
+        let encoder = JSONEncoder(); encoder.outputFormatting = [.sortedKeys]
+        let data = (try? encoder.encode(key)) ?? Data()
+        return SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
+    }
+}
+
+/// Decisões do último relatório salvo de um livro, identificado pelo nome do arquivo.
+/// Uma análise nova (outro SHA-256, depois de editar o manuscrito fora do Lume) herda as
+/// decisões dos alertas idênticos pelo conteúdo. Nada é herdado por aproximação.
+struct BookMemory: Codable {
+    let schemaVersion: Int
+    let document: String
+    let sha256: String
+    /// Chave de conteúdo → decisões dos alertas com essa chave, na ordem do relatório.
+    let decisions: [String: [String]]
+    enum CodingKeys: String, CodingKey {
+        case schemaVersion = "schema_version"
+        case document, sha256, decisions
+    }
+
+    init(report: EditorialReport, decisions: [String: ReviewDecision]) {
+        schemaVersion = 1; document = report.document; sha256 = report.sha256
+        self.decisions = report.findings.reduce(into: [:]) { result, finding in
+            result[finding.contentKey, default: []].append((decisions[finding.id] ?? .pending).rawValue)
+        }
+    }
+
+    /// Nome do livro: sem extensão (.docx e .pages são o mesmo livro), sem maiúsculas, Unicode composto.
+    static func bookName(_ document: String) -> String {
+        let name = (document as NSString).deletingPathExtension
+        return name.precomposedStringWithCanonicalMapping.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    static func fileName(_ document: String) -> String {
+        String(bookName(document).map { $0.isLetter || $0.isNumber || $0 == "-" || $0 == " " ? $0 : "-" }) + ".json"
+    }
+
+    func belongs(to report: EditorialReport) -> Bool {
+        Self.bookName(document) == Self.bookName(report.document)
+    }
+
+    /// Decisões (exceto Pendente) dos alertas idênticos. Chave repetida só herda, na ordem,
+    /// quando a quantidade é a mesma antes e depois; senão é ambígua e fica pendente.
+    func inherited(for report: EditorialReport) -> [String: ReviewDecision] {
+        let groups = Dictionary(grouping: report.findings, by: \.contentKey)
+        var result: [String: ReviewDecision] = [:]
+        for (key, findings) in groups {
+            guard let previous = decisions[key], previous.count == findings.count else { continue }
+            for (finding, raw) in zip(findings, previous) {
+                if let value = ReviewDecision(rawValue: raw), value != .pending { result[finding.id] = value }
+            }
+        }
+        return result
+    }
+
+    func encoded() throws -> Data {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
+        return try encoder.encode(self)
+    }
+
+    static func decode(_ data: Data) throws -> BookMemory {
+        let file = try JSONDecoder().decode(BookMemory.self, from: data)
+        guard file.schemaVersion == 1 else { throw FonteError.message("Arquivo do livro com versão desconhecida.") }
+        return file
     }
 }
 

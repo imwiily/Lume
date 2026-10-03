@@ -4,8 +4,16 @@ As seções antigas descrevem a cobertura e os resultados de cada entrega, não 
 
 ## Lume 1.3.1 / FONTE 1.2.1 · Coerencia 1.1.0 — 03/10/2026
 
-Menos alertas sobre fragmentos deliberados e explicações mais claras. A interface não mudou.
+Decisões mantidas depois de editar o manuscrito fora do Lume, menos alertas sobre fragmentos
+deliberados e explicações mais claras.
 
+- Decisões por livro: o Lume guarda as decisões de cada manuscrito pelo nome do arquivo (sem a
+  extensão; `.docx` e `.pages` com o mesmo nome são o mesmo livro), em
+  `~/Library/Application Support/FONTE/Livros/`. Antes, editar ou só salvar o arquivo no Pages
+  mudava o SHA-256 e a nova análise começava toda pendente. Agora cada alerta idêntico ao da
+  análise anterior (mesmo texto do parágrafo, trecho, regra e evidências, ainda que o parágrafo
+  tenha mudado de posição) recupera a decisão; alertas de parágrafos editados ficam pendentes.
+  Na primeira análise depois da atualização, as decisões já salvas do mesmo livro são usadas.
 - Estrutura da frase: deixa de alertar o complemento solto que retoma o verbo da frase
   anterior (“Pensei no jardim. Naquela mulher de chapéu azul.”), com a mesma preposição e sem
   vírgula, e o pensamento suspenso por reticências concluído por expressão nominal curta

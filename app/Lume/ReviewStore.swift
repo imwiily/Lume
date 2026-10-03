@@ -285,6 +285,11 @@ final class ReviewStore: ObservableObject {
         var inherited = 0
         if restored.isEmpty, !manager.fileExists(atPath: cache.path) {
             restored = inheritedDecisions(for: loaded)
+            // Edições feitas fora do Lume (ou só salvar de novo) mudam o SHA-256: o livro, pelo
+            // nome do arquivo, devolve as decisões dos alertas idênticos pelo conteúdo.
+            if let book = bookMemory(for: loaded) {
+                restored.merge(book.inherited(for: loaded)) { fromEdits, _ in fromEdits }
+            }
             inherited = restored.count
         }
         report = loaded; reportURL = url; decisions = restored
@@ -297,8 +302,39 @@ final class ReviewStore: ObservableObject {
         status = "\(loaded.findings.count) candidatos. Avalie cada trecho no contexto."
         if inherited > 0 {
             try autosave()
-            status = "\(loaded.findings.count) candidatos. \(inherited) decisões mantidas nos alertas que não mudaram desde as correções."
+            status = "\(loaded.findings.count) candidatos. \(inherited) decisões mantidas nos alertas que não mudaram desde a análise anterior."
         }
+    }
+
+    private func bookURL(_ document: String) throws -> URL {
+        try supportDirectory("Livros").appendingPathComponent(BookMemory.fileName(document))
+    }
+
+    /// Decisões do livro pelo nome do arquivo; na primeira vez, montadas das decisões já salvas.
+    private func bookMemory(for report: EditorialReport) -> BookMemory? {
+        guard let url = try? bookURL(report.document) else { return nil }
+        guard manager.fileExists(atPath: url.path) else { return migratedBook(for: report) }
+        guard let book = try? BookMemory.decode(readData(url)), book.belongs(to: report) else { return nil }
+        return book
+    }
+
+    /// Migração: relatório mais recente do mesmo livro, com outro SHA-256 e alguma decisão salva.
+    private func migratedBook(for report: EditorialReport) -> BookMemory? {
+        guard let folder = try? supportDirectory("Relatorios"),
+              let jobs = try? manager.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil) else { return nil }
+        let reports = jobs.map { $0.appendingPathComponent("relatorio.json") }.compactMap { url -> (URL, Date)? in
+            guard let date = try? url.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate else { return nil }
+            return (url, date)
+        }.sorted { $0.1 > $1.1 }
+        for (url, _) in reports {
+            guard let old = try? JSONDecoder().decode(EditorialReport.self, from: readData(url)),
+                  old.sha256 != report.sha256, BookMemory.bookName(old.document) == BookMemory.bookName(report.document),
+                  let source = try? decisionURL(for: old), manager.fileExists(atPath: source.path),
+                  let saved = try? parseDecisions(readData(source), for: old),
+                  saved.values.contains(where: { $0 != .pending }) else { continue }
+            return BookMemory(report: old, decisions: saved)
+        }
+        return nil
     }
 
     // MARK: Correção no manuscrito
@@ -715,6 +751,8 @@ final class ReviewStore: ObservableObject {
     private func autosave() throws {
         guard let report = report else { return }
         try payload().write(to: decisionURL(for: report), options: .atomic)
+        // O livro só serve às próximas análises: uma falha nele não invalida a decisão já salva.
+        try? BookMemory(report: report, decisions: decisions).encoded().write(to: bookURL(report.document), options: .atomic)
         hasUnsavedDecisions = false
     }
 
