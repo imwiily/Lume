@@ -9,6 +9,7 @@ import spacy
 from docx import Document
 
 from fonte.analysis import analyze, narrative_masks
+from fonte.lexicon import finite
 from fonte.cli import main
 from fonte.reader import Block, read_docx
 from fonte.languagetool import check, utf16_index
@@ -193,8 +194,8 @@ class FragmentEllipsisTests(unittest.TestCase):
         for text in ["Do outro lado, um grupo de turistas.",
                      # Preposição diferente: “pensei daquele…” não é retomada.
                      "Pensei no jardim molhado. Daquele homem de casaco cinza escuro.",
-                     # Frase anterior sem verbo finito.
-                     "Uma tarde inteira de chuva. Na janela da sala de jantar.",
+                     # (“Uma tarde inteira de chuva. Na janela…” saiu daqui: sequência de fragmentos
+                     # descritivos deixou de gerar alerta; ver FragmentClassificationTests.)
                      # Adjunto anteposto e núcleo nominal: não é complemento solto.
                      "Pensei no jardim molhado. No canto, um velho banco de pedra."]:
             with self.subTest(text=text):
@@ -228,3 +229,103 @@ class FragmentSuspensionTests(unittest.TestCase):
                      "Uma velha cadeira de madeira no canto da sala."]:
             with self.subTest(text=text):
                 self.assertTrue(self.fragments(text))
+
+
+class FragmentClassificationTests(unittest.TestCase):
+    """Fragmento sem verbo finito: só a oração incompleta gera alerta normal; o incerto, de baixa confiança."""
+    @classmethod
+    def setUpClass(cls):
+        cls.nlp = spacy.load("pt_core_news_sm", disable=["ner"])
+
+    scan = LinguisticTests.scan
+    fragments = FragmentVerbParaTests.fragments
+
+    def test_elliptical_predication_recovers_previous_referent(self):
+        # O adjetivo concorda com um referente da frase anterior: “[as chaves eram] enferrujadas…”.
+        for text in ["Encontrei duas chaves antigas na gaveta. Enferrujadas e tortas por causa da umidade.",
+                     "Vi os barcos no cais. Minúsculos diante do enorme navio do porto.",
+                     "Vi o animal no fundo do poço. Enorme, escuro e completamente imóvel.",
+                     "Encontramos três garrafas na areia molhada. Verdes. Minúsculas diante da força das ondas."]:
+            with self.subTest(text=text):
+                self.assertEqual(self.fragments(text), [])
+
+    def test_adverbial_fragment_continues_previous_action(self):
+        for text in ["O ponteiro começou a girar. Primeiro bem devagar e, em seguida, mais e mais depressa.",
+                     "A luz vinha na nossa direção. Aos poucos, cada vez mais perto da margem.",
+                     "Ela correu sem olhar para trás. Diretamente para o portão da fazenda."]:
+            with self.subTest(text=text):
+                self.assertEqual(self.fragments(text), [])
+
+    def test_descriptive_sequence_and_short_fragments(self):
+        for text in ["O quarto estava vazio. Silêncio por toda a casa antiga.",
+                     "Uma tarde inteira de chuva. Na janela da sala de jantar.",
+                     "Vi a criatura. Enorme. Escura. Imóvel.",
+                     "Ele abriu a porta. Escuridão absoluta.",
+                     "Aos poucos. Cada vez mais perto."]:
+            with self.subTest(text=text):
+                self.assertEqual(self.fragments(text), [])
+
+    def test_incomplete_clause_keeps_normal_alert(self):
+        # Subordinante ou relativo sem verbo: falta a oração principal.
+        for text, marked in [("Enquanto todos na sala, depois do jantar longo.", "Enquanto todos na sala, depois do jantar longo"),
+                             ("A menina que, sentada perto da janela aberta.", "A menina que, sentada perto da janela aberta")]:
+            with self.subTest(text=text):
+                f, = self.fragments(text)
+                self.assertEqual(f["text"][f["start"]:f["end"]], marked)
+                self.assertEqual(f.get("confidence", "média"), "média")
+                self.assertIn("incompleta", f["reason"])
+
+    def test_uncertain_nominal_fragment_is_low_confidence(self):
+        # Frase nominal isolada, sem apoio no contexto: continua visível, com confiança baixa.
+        for text in ["Uma velha cadeira de madeira no canto da sala.",
+                     # Sem concordância com a frase anterior, o adjetivo não recupera referente.
+                     "O carro parou na esquina. Minúsculas diante do tamanho da praça."]:
+            with self.subTest(text=text):
+                f, = self.fragments(text)
+                self.assertEqual((f["confidence"], f["confidence_score"]), ("baixa", .4))
+
+    def test_classes_are_counted_in_metadata(self):
+        text = "Uma velha cadeira de madeira no canto da sala. Vi os barcos no cais. Minúsculos diante do enorme navio do porto."
+        counts = analyze([Block(1, text)], self.nlp, "passado")[2]["fragmentos_sem_verbo"]
+        self.assertEqual(counts, {"likely_elliptical_predication": 1, "uncertain": 1})
+
+
+class FiniteVerbTests(unittest.TestCase):
+    """Formas finitas de verbos de ligação, auxiliares e lexicais, em vários tempos."""
+    @classmethod
+    def setUpClass(cls):
+        cls.nlp = spacy.load("pt_core_news_sm", disable=["ner"])
+
+    scan = LinguisticTests.scan
+    fragments = FragmentVerbParaTests.fragments
+
+    def has_finite(self, text):
+        return any(finite(t) for t in self.nlp(text))
+
+    def test_copula_tagged_as_verb_or_adverb_is_finite(self):
+        # O modelo liga a cópula ao predicativo (dep=cop) e a etiqueta como VERB ou ADV; “era”
+        # também é substantivo no léxico. A relação sintática decide, não só a etiqueta.
+        for text in ["Não era como uma ponte qualquer.", "Era como uma porta antiga.", "Era tarde demais."]:
+            with self.subTest(text=text):
+                self.assertTrue(self.has_finite(text))
+        self.assertEqual(self.fragments("Não era como uma ponte qualquer."), [])
+
+    def test_paradigms_are_finite(self):
+        frases = (["Ele {} muito alto.".format(f) for f in "é era foi será seria".split()]
+                  + ["Talvez ele seja muito alto.", "Se ele fosse muito alto, entraria."]
+                  + ["Ela {} cansada.".format(f) for f in "está estava esteve estará estaria".split()]
+                  + ["Talvez ela esteja cansada.", "Se ela estivesse cansada, dormiria."]
+                  + ["Ele {} medo do escuro.".format(f) for f in "tem tinha teve terá teria".split()]
+                  + ["{} alguém na porta.".format(f) for f in "Há Havia Houve Haverá Haveria".split()]
+                  + ["Ele {} pela praia.".format(f) for f in "corre correu corria correrá correria".split()]
+                  + ["Eles foram embora.", "Tenho medo.", "Ele tinha saído cedo.", "Pode acontecer.",
+                     "Deveria funcionar.", "Ficou parado.", "Parece estranho.", "Continuava escuro lá fora."])
+        for text in frases:
+            with self.subTest(text=text):
+                self.assertTrue(self.has_finite(text))
+
+    def test_nonfinite_forms_alone_are_not_finite(self):
+        for text in ["correr pela floresta", "ter terminado o trabalho", "sendo observado", "feito por ele",
+                     "ao chegar em casa"]:
+            with self.subTest(text=text):
+                self.assertFalse(self.has_finite(text))

@@ -66,6 +66,90 @@ def fragmento_suspenso(sent, limite=5):
     return 0 < len(words) <= limite
 
 
+# Conjunções que abrem oração subordinada: sem verbo finito, falta a oração.
+SUBORDINANTES = {"quando", "enquanto", "porque", "embora", "conquanto", "caso", "porquanto"}
+# “Enquanto isso, …”, “quando muito”: locuções adverbiais, não subordinação.
+LOCUCAO_ADVERBIAL = {"isso", "isto", "aquilo", "assim", "muito", "pouco", "possível", "necessário"}
+RELATIVOS = {"que", "onde", "cujo", "cuja", "cujos", "cujas"}
+ARTIGOS = {"o", "a", "os", "as", "um", "uma", "uns", "umas"}
+# Palavras que pedem continuação: fragmento terminado nelas foi cortado.
+PEDEM_CONTINUACAO = set(PREPOSICOES) | ARTIGOS | {"e", "ou", "mas", "que", "se", "nem"}
+
+
+def _concorda(palavra, token):
+    """Gênero e número da terminação de `palavra` compatíveis com o referente `token`."""
+    word, number = palavra.casefold(), token.morph.get("Number")
+    plural = word.endswith("s")
+    if number and plural != ("Plur" in number):
+        return False
+    if not number and plural != token.lower_.endswith("s"):
+        return False
+    gender = token.morph.get("Gender")
+    raiz = word[:-1] if plural else word
+    if raiz.endswith("a"):
+        return not gender or "Fem" in gender
+    if raiz.endswith("o"):
+        return not gender or "Masc" in gender
+    return True
+
+
+def _nucleo_nominal(words):
+    """Artigo fora de sintagma preposicionado (“uma longa fila”, “o canto dos pássaros”).
+
+    Determinantes antes do artigo não contam: “por toda a casa” continua preposicionado.
+    """
+    for i, w in enumerate(words):
+        if w.lower_ not in ARTIGOS:
+            continue
+        j = i - 1
+        while j >= 0 and words[j].pos_ == "DET" and words[j].lower_ not in ARTIGOS:
+            j -= 1
+        if j < 0 or words[j].lower_ not in PREPOSICOES:
+            return True
+    return False
+
+
+def classificar_fragmento(sent, previous=None, following=None):
+    """Classe de um segmento sem verbo finito, lido com a frase anterior e a seguinte.
+
+    Só `likely_incomplete_clause` (subordinante ou relativo sem oração, ou corte em
+    palavra que pede continuação) indica estrutura incompleta. Adjetivo que concorda
+    com referente da frase anterior é predicação elíptica (“[as chaves eram]
+    enferrujadas”); advérbio sem núcleo nominal continua a ação anterior (“primeiro
+    devagar, depois mais depressa”); frase nominal com núcleo sem artigo ou vizinha de
+    outro fragmento é descrição fragmentada. O resto fica `uncertain`.
+    """
+    if any(finite(t) for t in sent):
+        return "complete_clause"
+    words = [t for t in sent if t.is_alpha]
+    if not words:
+        return "uncertain"
+    first, second = words[0].lower_, words[1].lower_ if len(words) > 1 else ""
+    ultima = sent.text.rstrip()
+    if ((first in SUBORDINANTES and second not in LOCUCAO_ADVERBIAL)
+            or any(w.lower_ in RELATIVOS and words[i - 1].pos_ in {"NOUN", "PROPN", "PRON"}
+                   for i, w in enumerate(words) if i > 0)
+            or (words[-1].lower_ in PEDEM_CONTINUACAO and not ultima.endswith(("…", "...")))):
+        return "likely_incomplete_clause"
+    nucleo = _nucleo_nominal(words)
+    abre_adverbio = (words[0].pos_ == "ADV" or first.endswith("mente")
+                     or (first in PREPOSICOES and words[1:2] and words[1].pos_ in {"PRON", "ADV", "VERB"}))
+    if abre_adverbio and not nucleo:
+        return "likely_adverbial_fragment"
+    referentes = [t for t in (previous or []) if t.pos_ in {"NOUN", "PRON"} and t.is_alpha]
+    nua = first not in PREPOSICOES and first not in ARTIGOS and words[0].pos_ in {"ADJ", "NOUN", "PROPN", "VERB"}
+    if nua and not nucleo and any(_concorda(words[0].text, r) for r in referentes):
+        return "likely_elliptical_predication"
+    # Frase nominal com núcleo no singular sem artigo (“Silêncio por toda a casa”): marca de
+    # estilo. No plural (“Minúsculas diante do…”) depende de um referente que concorde.
+    if nua and not nucleo and not first.endswith("s"):
+        return "likely_literary_fragment"
+    vizinhos = [s for s in (previous, following) if s is not None]
+    if any(not any(finite(t) for t in s) for s in vizinhos):
+        return "likely_literary_fragment"
+    return "uncertain"
+
+
 def verbo_de_fala(token):
     """Verbo de elocução ou pensamento, pelo lema ou pelo radical + terminação verbal."""
     return token.lemma_.casefold() in SPEECH or forma_de_fala(token.lower_)
@@ -183,6 +267,7 @@ def analyze(blocks: list[Block], nlp, tense="auto", protect_italics=True, min_wo
     else:
         expected = tense
     results = []
+    fragment_classes, low_confidence = Counter(), set()
     for block, doc, closed, mask in zip(blocks, docs, closings, masks):
         if block.heading:
             continue
@@ -196,7 +281,8 @@ def analyze(blocks: list[Block], nlp, tense="auto", protect_italics=True, min_wo
                     token.idx+len(token.text),
                     f"O modelo e o léxico sustentam uma leitura no {observed}, em texto configurado/inferido como {expected}. Isso não confirma erro: pensamento, comentário do narrador, presente geral e mudanças deliberadas de plano temporal precisam ser avaliados no contexto."))
         previous = None
-        for sent in doc.sents:
+        sents = list(doc.sents)
+        for index, sent in enumerate(sents):
             words = [t for t in sent if t.is_alpha]
             before, previous = previous, sent
             if ("estrutura" in active and len(words) >= min_words and not any(finite(t) for t in sent)
@@ -209,10 +295,23 @@ def analyze(blocks: list[Block], nlp, tense="auto", protect_italics=True, min_wo
                     second = nlp(clean[0].lower() + clean[1:])
                     if any(finite(t) for t in second):
                         continue
+                following = sents[index + 1] if index + 1 < len(sents) else None
+                classe = classificar_fragmento(sent, before, following)
+                fragment_classes[classe] += 1
+                if classe not in {"likely_incomplete_clause", "uncertain"}:
+                    continue
                 start, end = words[0].idx, words[-1].idx + len(words[-1].text)
-                results.append(finding(block, "Estrutura da frase", "Explorar", start, end,
-                    f"O segmento ‘{block.text[start:end]}’ não tem verbo finito expresso. Frases nominais e fragmentos "
-                    "são comuns em prosa literária e podem ser deliberados; revise apenas se uma oração completa era pretendida."))
+                if classe == "likely_incomplete_clause":
+                    reason = (f"O segmento ‘{block.text[start:end]}’ parece uma oração incompleta: não tem verbo finito e "
+                              "começa com subordinante ou relativo, ou termina em palavra que pede continuação. "
+                              "Confira se falta a oração principal ou parte do texto.")
+                else:
+                    reason = (f"O segmento ‘{block.text[start:end]}’ não tem verbo finito expresso. Frases nominais e fragmentos "
+                              "são comuns em prosa literária e podem ser deliberados; revise apenas se uma oração completa era pretendida.")
+                item = finding(block, "Estrutura da frase", "Explorar", start, end, reason)
+                if classe == "uncertain":
+                    low_confidence.add(item.id)
+                results.append(item)
         for position in (closed if "pontuacao_dialogo" in active else []):
             tail = block.text[position+1:]
             match = re.match(r"\s*,\s*", tail)
@@ -236,4 +335,8 @@ def analyze(blocks: list[Block], nlp, tense="auto", protect_italics=True, min_wo
                 "modelo": nlp.meta.get("name"), "versao_modelo": nlp.meta.get("version"),
                 "paragrafos": len(blocks), "excluir_italico": protect_italics,
                 "confirmacao_lexical": "PortiLexicon-UD", "segunda_leitura_estrutura": True}
-    return [asdict(f) for f in results], warnings, metadata
+    if "estrutura" in active:
+        # Só a rodada da estrutura informa: as outras não apagam a contagem no relatório.
+        metadata["fragmentos_sem_verbo"] = dict(fragment_classes)
+    low = {"confidence": "baixa", "confidence_score": .4}
+    return [asdict(f) | (low if f.id in low_confidence else {}) for f in results], warnings, metadata

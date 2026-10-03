@@ -28,6 +28,18 @@ deliberados e explicações mais claras.
   alguma além daquilo”, “nenhum caderno além desse”); o conector sem vírgulas (“cansado e além
   disso precisava”) continua apontado. A mensagem dessa regra deixa de afirmar que o conector
   “só deve ser utilizado no início duma frase”.
+- Estrutura da frase: o segmento sem verbo finito passa por uma classificação com a frase
+  anterior e a seguinte. Só a oração incompleta (subordinante ou relativo sem oração, ou corte
+  em palavra que pede continuação) recebe o alerta normal, com mensagem própria. Predicação
+  elíptica (adjetivo que concorda com um referente da frase anterior: “Encontramos três
+  garrafas. Verdes. Minúsculas diante das ondas.”), fragmento adverbial (“Primeiro bem devagar
+  e, em seguida, mais depressa.”), frase nominal com núcleo sem artigo e sequência de
+  fragmentos descritivos ficam sem alerta; o resto aparece com confiança baixa. O relatório
+  conta as classes em `metadata.fragmentos_sem_verbo`.
+- Verbo de ligação: “era”, “seria” e outras cópulas que o modelo etiqueta como verbo ou
+  advérbio (e que também são substantivos no léxico) deixam de ser lidas como substantivo. A
+  relação sintática de cópula ou auxiliar passa a valer como verbo, junto com a morfologia do
+  modelo ou o léxico.
 - Corpus de desenvolvimento: controles `dev-controle-elipse`, `dev-controle-reticencias` e
   `dev-controle-alem`.
 

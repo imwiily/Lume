@@ -7,6 +7,8 @@ import re
 import unicodedata
 
 FINITE, PAST, PRESENT, FUTURE, NONFINITE, NONVERB = 1, 2, 4, 8, 16, 32
+# Relações em que o token é, pela própria análise, verbo de ligação ou auxiliar.
+VERBAL_DEPS = {'cop', 'aux', 'aux:pass'}
 CLITIC = re.compile(r'-(?:me|te|se|nos|vos|lhe|lhes|o|a|os|as|lo|la|los|las)$', re.I)
 
 
@@ -74,8 +76,15 @@ def finite(token):
         return False
     if value & FINITE:
         if model_finite(token):
-            # Cópulas/auxiliares herdam o sujeito do predicado; não são adjetivos.
-            return token.pos_ == 'AUX' or not nominal_context(token, value)
+            # Cópulas/auxiliares herdam o sujeito do predicado; não são adjetivos. Vale
+            # pela relação sintática, não só pela etiqueta: o modelo marca a cópula
+            # como VERB (“Não era como uma ponte…”), e a cópula nunca é a raiz nem tem
+            # sujeito próprio, o que a faria parecer substantivo em nominal_context.
+            return token.pos_ == 'AUX' or token.dep_ in VERBAL_DEPS or not nominal_context(token, value)
+        # Sem morfologia do modelo (“Era como uma porta…” etiquetado como ADV), a forma
+        # finita do léxico ligada como cópula ou auxiliar é verbo: duas fontes concordam.
+        if token.dep_ in VERBAL_DEPS:
+            return True
         # Só recupera sem o modelo se não houver leitura nominal ou não finita.
         if value & NONVERB and not value & NONFINITE and token.i > 0:
             previous = token.doc[token.i-1]

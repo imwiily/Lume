@@ -33,6 +33,26 @@ Fragmentos deliberados fora da estrutura da frase e mensagens reescritas (ação
   apontadas. Ambiguidade aceita: “nada além disso” seguido de outra oração sem pontuação
   (“não viu nada além disso precisava…”) fica sem alerta.
 
+### Fragmentos sem verbo e verbo de ligação
+
+- Comparação em três estados contra `731015f` (anterior; só a classificação de fragmentos;
+  fragmentos + verbo de ligação), com `--modo ambas --tempo passado --languagetool`.
+- 249 testes do analisador (6 de classificação de fragmentos e 3 de formas finitas novos), 25 dos
+  pacotes, 24 do Coerencia e contrato Python aprovados. Os testes de forma finita falham no
+  `lexicon.py` anterior e passam no novo. Expectativa alterada: “Uma tarde inteira de chuva. Na
+  janela…” saiu dos casos que devem alertar (sequência de fragmentos descritivos, a pedido do
+  autor).
+- Corpus: os três estados iguais (desenvolvimento 34/42 com 2 alarmes falsos; validação 19/24
+  com 5).
+- Manuscrito A: estrutura da frase 4 → 1 (classificação) → 0 (verbo de ligação); total
+  211 → 208 → 207. Saíram uma predicação elíptica, um fragmento adverbial, uma frase com cópula e
+  uma frase com verbo na 1ª pessoa homógrafo de substantivo; esta última saiu como frase nominal,
+  não por ter o verbo reconhecido (limitação).
+- Manuscrito B: 30 → 30; os 3 alertas de estrutura continuam, agora com confiança baixa.
+- Fora do alcance desta regra: orações subordinadas com verbo finito e sem oração principal
+  (a regra só examina segmentos sem verbo finito). Falha anterior mantida: “era” substantivo
+  etiquetado como AUX ainda conta como verbo.
+
 ### Decisões por livro
 
 - `tests/BookMemoryCheck.swift` (novo, na montagem): mesmo texto com outro SHA-256, parágrafo
