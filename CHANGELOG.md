@@ -28,6 +28,25 @@ As seções antigas descrevem a cobertura e os resultados de cada entrega, não 
   Precedência, um alerta por verbo: coordenação, passado-presente-passado, mesmo sujeito, cena,
   genérico. Separador de cena e parágrafos só de diálogo interrompem o estado; a troca de
   parágrafo não.
+- Coordenação: o auxiliar finito de uma locução (“estava observando”) serve de âncora; orações
+  coordenadas com outro sujeito (“…ficam mais altos, mas ele não conseguia…”) recebem confiança
+  média; ‘vira’ (virar/ver) é desempatado pelo lema. Presente → passado (“Ela ergue a arma. O
+  homem recuou.”) e “continua deslizando… Então bateu” entram na sequência.
+- `conditional_tense_mismatch`: “se” + imperfeito do subjuntivo com consequência no futuro ou
+  presente (“se chegasse, conseguirá”), e “se” + presente ou futuro do subjuntivo com futuro do
+  pretérito (“se parar, morreria”). Discurso indireto fica de fora. Sem sugestão.
+- Sugestão no aspecto da âncora: perfeito com perfeito (“caiu e se quebra” → “quebrou”),
+  imperfeito com imperfeito; âncoras mistas ou forma incerta, nenhuma sugestão.
+- Precedência explícita por verbo (condicional, coordenação, passado-presente-passado, mesmo
+  sujeito, cena, genérico). `metadata.temporal_relations` lista os detectores novos.
+- Função do presente: ‘estar’ + adjetivo ou particípio é estado passageiro (fora da sequência,
+  peso médio no genérico); pergunta reconhecida mesmo quando o modelo separa o “?”;
+  demonstrativo próximo no sujeito (“esse diretor…”) é comentário do narrador; pronome retoma
+  só nome de gênero e número compatíveis; parágrafo que abre com hífen ou travessão fica fora da
+  sequência.
+- Concordância pelo núcleo: determinante singular (“nenhuma palavra conseguiram”) e partitivo
+  “um/uma de” (“uma das portas estavam”), fora de “um dos que”; aposto entre vírgulas e plural
+  sem -m/-ão ficam de fora.
 - `temporal_evidence` ganha `function`, `local_state`, `local_tense_score`,
   `previous_narrative_verbs`, `same_scene` e `same_subject` (campos novos; os antigos ficam).
 - ‘Ainda’ só mantém no presente um estado que continua (“está quebrado ainda”), não uma ação

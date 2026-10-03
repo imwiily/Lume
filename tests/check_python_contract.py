@@ -44,7 +44,8 @@ def main():
         # Ações coordenadas do mesmo sujeito em tempos diferentes (sequência temporal, 1.3.1).
         assert temporal["relation"] == "coordinated_tense_mismatch"
         assert temporal["confidence"] == "alta"
-        assert temporal["suggestion"] == "observava"
+        # A sugestão segue o aspecto da âncora: ‘abriu’ (perfeito) → ‘observou’.
+        assert temporal["suggestion"] == "observou"
         anchor = temporal["related"][0]
         assert anchor["text"][anchor["start"]:anchor["end"]] == "abriu"
         manuscript = "\n".join(p.text for p in doc.paragraphs)

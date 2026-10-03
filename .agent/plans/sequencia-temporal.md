@@ -94,3 +94,11 @@ como mudança deliberada); ‘ainda’ tratado como âncora no presente; verbos 
 como nome, adjetivo ou infinitivo; objeto posposto lido como sujeito; pessoa e número
 comparados como texto único. Implementado `local_state`, `local_narrative_tense_shift`,
 cadeia de sujeito consistente, quebras de cena, evidências. Resultados em `docs/validacao.md`.
+
+## Etapa 3 — coordenação, condicionais e concordância (03/10/2026)
+
+Diagnóstico: a maior parte dos exemplos já era detectada. Faltavam: locução no passado como
+âncora (o auxiliar finito era descartado), coordenação com outro sujeito, ‘vira’ ambíguo,
+marca de tempo da oração coordenada contaminando a principal, “?” separado pelo modelo,
+pronome × nome na cadeia, regra de condicional (inexistente), núcleo singular com determinante
+e partitivo “uma das”. Pendente: comparação nos manuscritos de referência (arquivos ausentes).

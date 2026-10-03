@@ -93,7 +93,10 @@ def run(blocks, model_loader, *, settings=None, tense="auto", mode="ambas",
                        for p, s, e in covered))]
             out.extend(more)
             meta["temporal_relations"] = ["conditional_future", "simultaneous_present",
-                                          "ambiguous_simultaneity", "coordinated_past_present"]
+                                          "ambiguous_simultaneity", "coordinated_past_present",
+                                          "conditional_tense_mismatch", "coordinated_tense_mismatch",
+                                          "past_present_past", "same_subject_narrative_shift",
+                                          "local_narrative_tense_shift"]
         if any(rules[r] for r in GRAMMAR_RULES):
             from .grammar import analyze as grammar
             # O mesmo trecho não recebe um segundo alerta do corretor geral.

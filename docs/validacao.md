@@ -3,6 +3,26 @@
 Os registros abaixo pertencem às versões indicadas. Caminhos citados nos registros anteriores à 1.0 são da antiga pasta `LumeMac/` (correspondência em [README.md](../README.md#estrutura)); os comandos abaixo usam a raiz do repositório. As verificações do hotfix aparecem primeiro; os registros anteriores são mantidos para rastreabilidade.
 
 
+## Próxima versão — coordenação, condicionais e concordância pelo núcleo (03/10/2026)
+
+Comparação contra `6264652`, mesma configuração; saídas locais em `build/sequencia3/`.
+
+- 279 testes do analisador (36 + 2 em `test_temporal_sequence.py`), 25 dos pacotes, 24 do
+  Coerencia e contrato Python aprovados. Expectativa alterada: no contrato Python, a sugestão para
+  “Clara abriu a janela e observa” passa de ‘observava’ a ‘observou’ (aspecto da âncora).
+- Sonda com os exemplos do pedido: os 35 casos “deve detectar” recebem alerta; presentes
+  legítimos sem alerta forte; capítulo e separador interrompem a sequência.
+- Corpus: sem mudança (desenvolvimento 37/46 e 3 alarmes falsos; validação 19/24 e 5).
+- Manuscritos A e B de referência: **não disponíveis nesta rodada** (os DOCX com SHA-256
+  `cffe0d51…` e `98248472…` saíram de `~/`). Comparação feita em outras versões dos mesmos livros
+  (`~/WattDownload/Originais Wattpadd/`: A `5d8f5008…`, editado em 03/10; B `3b618a66…`, a versão
+  usada na validação 0.9.5). A: 1270 → 1271; B: 539 → 539. A primeira rodada revelou presentes de
+  falas marcadas por hífen promovidos a confiança alta, um aposto lido como sujeito, um singular
+  marcado como plural e um comentário do narrador com demonstrativo; todos corrigidos antes do
+  registro. Restam 2 alertas novos de confiança alta, plausíveis; “Aponto…”, depois de parágrafos
+  de fala, perdeu o alerta médio (o estado local é interrompido pelo diálogo).
+- Pendente: repetir a comparação nos manuscritos A e B de referência quando os arquivos voltarem.
+
 ## Próxima versão — estado temporal local (03/10/2026)
 
 Comparação contra `54ca954`, mesma configuração; saídas locais em `build/sequencia2/`.

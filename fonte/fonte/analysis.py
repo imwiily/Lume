@@ -289,7 +289,8 @@ def analyze(blocks: list[Block], nlp, tense="auto", protect_italics=True, min_wo
                 item = finding(block, "Tempo verbal", "Verificar", token.idx, token.idx+len(token.text), reason)
                 # Presente que não é evento narrativo (estado, verdade geral, pensamento, comentário)
                 # continua visível, com confiança baixa; a sequência temporal trata os eventos.
-                if expected == "passado" and observed == "presente" and present_function(token) != "narrative_event":
+                if expected == "passado" and observed == "presente" and present_function(token) not in {
+                        "narrative_event", "transient_state"}:
                     low_confidence.add(item.id)
                 results.append(item)
         previous = None

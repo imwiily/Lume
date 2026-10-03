@@ -282,6 +282,16 @@ def singular(word):
             "hajam": "haja", "houvessem": "houvesse", "houverem": "houver"}[word]
 
 
+def partitive(head):
+    """Complemento “de + plural” do núcleo (“a lista de nomes”, “uma das portas”), fora de “um dos que”."""
+    for c in head.children:
+        if (c.dep_ == "nmod" and number(c) == "Plur" and c.lower_.endswith("s")
+                and any(k.dep_ == "case" and k.lower_ in {"de", "dos", "das"} for k in c.children)):
+            following = c.doc[c.i + 1] if c.i + 1 < len(c.doc) else None
+            return not (following is not None and following.lower_ == "que")
+    return False
+
+
 def agreement(block, doc, emit):
     # “Haviam turistas”: no sentido de existir, ‘haver’ é impessoal. Como
     # auxiliar (“haviam saído”) ou em “haviam de voltar”, concorda com o sujeito.
@@ -304,6 +314,12 @@ def agreement(block, doc, emit):
             continue
         if any(c.dep_ == "conj" for c in subject.children) or verb.lemma_.casefold() in {"haver", "fazer"}:
             continue
+        # Plural da 3ª pessoa termina em -m ou -ão; o modelo às vezes marca o singular como plural.
+        if verb_number == "Plur" and "3" in verb.morph.get("Person") and not verb.lower_.endswith(("m", "ão")):
+            continue
+        # Pontuação entre o sujeito e o verbo: aposto ou inciso lido como sujeito (“…, a dádiva de…, poderiam”).
+        if any(t.is_punct for t in doc[max(t.i for t in subject.subtree) + 1:verb.i]):
+            continue
         # “Abriu a porta saiu correndo”: um verbo finito antes, na mesma
         # oração, indica que o sintagma é objeto dele, não sujeito.
         left = min(t.i for t in subject.subtree)
@@ -323,21 +339,23 @@ def agreement(block, doc, emit):
                 continue
             emit("concordancia", "Concordância verbal", subject.idx, verb.idx + len(verb.text), "probable_error", .75,
                  f"O sujeito ‘{subject.text}’ está no plural, mas o verbo ‘{verb.text}’ está no singular.")
-        # O modelo às vezes etiqueta ‘nenhuma’ como numeral (“Nenhuma das respostas…”).
-        elif subject.lower_ in EACH and verb_number == "Plur" and subject.pos_ in {"DET", "PRON", "NUM"}:
+        # O modelo às vezes etiqueta ‘nenhuma’ como numeral (“Nenhuma das respostas…”). ‘Um/uma’ só
+        # com partitivo (“uma das portas”), fora de “um dos que…”, que admite o plural.
+        elif verb_number == "Plur" and subject.pos_ in {"DET", "PRON", "NUM"} and (
+                subject.lower_ in EACH or (subject.lower_ in {"um", "uma"} and partitive(subject))):
             emit("concordancia", "Concordância verbal", subject.idx, verb.idx + len(verb.text), "probable_error", .75,
                  f"Com ‘{subject.text}’ como núcleo do sujeito, o verbo fica no singular; ‘{verb.text}’ está no plural.")
         # Concordância por atração: núcleo singular com complemento “de + plural” e verbo no
         # plural (“a lista de objetos estavam”). Coletivos e partitivos (“a maioria dos alunos”)
         # admitem as duas concordâncias e ficam de fora.
+        # Núcleo singular marcado (complemento “de + plural” ou determinante singular, como “nenhuma
+        # palavra”) com verbo no plural. Concorda com o núcleo, não com o nome mais próximo.
         elif (subject.pos_ == "NOUN" and number(subject) == "Sing" and not subject.lower_.endswith("s")
               and verb_number == "Plur" and "3" in verb.morph.get("Person") and subject.lower_ not in COLLECTIVE
-              and any(c.dep_ == "nmod" and number(c) == "Plur" and c.lower_.endswith("s")
-                      and any(k.dep_ == "case" and k.lower_ in {"de", "dos", "das"} for k in c.children)
-                      for c in subject.children)):
+              and (partitive(subject) or any(c.dep_ == "det" and number(c) == "Sing" for c in subject.children))):
             emit("concordancia", "Concordância verbal", subject.idx, verb.idx + len(verb.text), "probable_error", .75,
-                 f"O núcleo do sujeito é ‘{subject.text}’, no singular; ‘{verb.text}’ está no plural, talvez atraído pelo "
-                 "complemento no plural. Confira a concordância.")
+                 f"O núcleo do sujeito é ‘{subject.text}’, no singular; ‘{verb.text}’ está no plural"
+                 + (", talvez atraído pelo complemento no plural" if partitive(subject) else "") + ". Confira a concordância.")
     for token in doc:
         if token.pos_ != "ADJ" or token.lower_ in INVARIABLE:
             continue

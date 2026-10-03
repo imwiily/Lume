@@ -240,3 +240,110 @@ class LocalNarrativeStateTests(unittest.TestCase):
             with self.subTest(text=text):
                 found = [f for f in self.temporal(text) if f["text"][f["start"]:f["end"]] == verb]
                 self.assertEqual([f["relation"] for f in found], [relation])
+
+
+class TemporalStructureTests(unittest.TestCase):
+    """Coordenação com locução e com outro sujeito, presente → passado, aspecto, condicionais e limites."""
+    @classmethod
+    def setUpClass(cls):
+        cls.nlp = spacy.load("pt_core_news_sm", disable=["ner"])
+
+    temporal = LocalNarrativeStateTests.temporal
+    one = LocalNarrativeStateTests.one
+
+    def findings(self, *paragraphs):
+        blocks = [Block(1, CONTEXTO)]
+        for i, text in enumerate(paragraphs):
+            block = Block(i + 2, text)
+            block.heading = text.isupper()
+            blocks.append(block)
+        found, _, meta = run(blocks, lambda: self.nlp, tense="passado", mode="ambas")
+        return [f for f in found if f["paragraph"] >= 2], meta
+
+    def test_coordination_with_progressive_and_other_subject(self):
+        # Locução no passado (“estava observando”) como âncora da coordenada no presente.
+        f = self.one("vira", "O vigia estava observando o pátio, mas vira o rosto quando ouviu o apito.")
+        self.assertEqual((f["relation"], f["confidence"]), ("coordinated_tense_mismatch", "alta"))
+        # Adversativa com outro sujeito: mesma cena, confiança média.
+        f = self.one("ficam", "Os ruídos ficam mais altos, mas ele ainda não conseguia entender nada.")
+        self.assertEqual((f["relation"], f["confidence"], f["temporal_evidence"]["same_subject"]),
+                         ("coordinated_tense_mismatch", "média", False))
+
+    def test_present_then_past(self):
+        for text, verb in [("Ela ergue a arma. O homem recuou.", "ergue"),
+                           ("O trem continua deslizando pelos trilhos. Então bateu na barreira.", "continua")]:
+            with self.subTest(text=text):
+                f = self.one(verb, text)
+                self.assertIn(f["relation"], {"past_present_past", "local_narrative_tense_shift"})
+
+    def test_suggestion_follows_anchor_aspect(self):
+        # Perfeito com perfeito (“caiu e se quebrou”), imperfeito com imperfeito; senão, nenhuma.
+        self.assertEqual(self.one("quebra", "O vaso caiu e se quebra.")["suggestion"], "quebrou")
+        self.assertEqual(self.one("vira", "O vigia estava observando o pátio, mas vira o rosto quando ouviu o apito.")["suggestion"], "virava")
+        self.assertIsNone(self.one("corre", "Carlos atravessou a praça. As pessoas observavam em silêncio. "
+                                            "Uma criança corre em sua direção.")["suggestion"])
+
+    def test_conditional_mismatch(self):
+        for text, verb in [("Se eu parar agora, morreria.", "morreria"),
+                           ("Se ela chegasse cedo, conseguirá entrar.", "conseguirá"),
+                           ("Se o guia não conseguisse abrir a porta, eu não consigo ajudar.", "consigo")]:
+            with self.subTest(text=text):
+                f = self.one(verb, text)
+                self.assertEqual((f["relation"], f["severity"]), ("conditional_tense_mismatch", "probable_error"))
+                self.assertIsNone(f["suggestion"])
+
+    def test_conditional_controls(self):
+        for text in ["Se chover amanhã, ficaremos em casa.", "Se eu pudesse escolher, viajaria amanhã.",
+                     "Ele disse que, se chovesse, ficaria em casa.", "Se a porta abrir, entramos."]:
+            with self.subTest(text=text):
+                found, _ = self.findings(text)
+                self.assertFalse([f for f in found if f.get("relation") == "conditional_tense_mismatch"], found)
+
+    def test_agreement_by_syntactic_head(self):
+        for text in ["Nenhuma palavra conseguiram sair.", "Cada uma das crianças correram.",
+                     "Uma das portas estavam abertas.", "A lista de nomes estavam sobre a mesa."]:
+            with self.subTest(text=text):
+                found, _ = self.findings(text)
+                self.assertTrue([f for f in found if f.get("rule") == "concordancia"])
+        for text in ["Uma série de acontecimentos aconteceu naquela noite.", "Um dos que chegaram cedo ajudou.",
+                     "As palavras não conseguiram sair.", "Cada criança correu."]:
+            with self.subTest(text=text):
+                found, _ = self.findings(text)
+                self.assertFalse([f for f in found if f.get("rule") == "concordancia"], found)
+
+    def test_legitimate_presents_not_strong(self):
+        for text in ["A água ferve em determinada temperatura.", "Meu irmão tem olhos verdes.",
+                     "Ele explicou que a Terra gira ao redor do Sol.", "Por que eu penso nisso?"]:
+            with self.subTest(text=text):
+                found, _ = self.findings(text)
+                self.assertFalse([f for f in found if f.get("confidence") == "alta"
+                                  or f.get("relation") in SEQUENCIA | {"local_narrative_tense_shift"}], found)
+
+    def test_structural_limits(self):
+        # Separador e capítulo: o presente do novo capítulo não herda o passado anterior.
+        found, _ = self.findings("Ele saiu de casa.", "***", "CAPÍTULO DOIS", "A chuva cai sobre a cidade.")
+        self.assertFalse([f for f in found if f.get("relation") in SEQUENCIA | {"local_narrative_tense_shift"}], found)
+
+    def test_proximal_demonstrative_is_narrator_comment(self):
+        # ‘Esse/este’ no sujeito aponta para o agora do narrador: não é ação da cena.
+        found, _ = self.findings("A aula começou tarde. Esse diretor me causa arrepios. O inspetor olhou para a turma.")
+        self.assertFalse([f for f in found if f.get("confidence") == "alta"], found)
+        f = self.one("abre", "A aula começou tarde. O diretor entrou na sala. Aquele homem abre a janela. Depois saiu.")
+        self.assertEqual(f["relation"], "past_present_past")
+
+    def test_hyphen_dialogue_stays_out_of_sequence(self):
+        # Fala marcada com hífen, mesmo sem essa marcação configurada: não entra na sequência narrativa.
+        found, _ = self.findings("O professor fechou o livro.", "- Assim você não precisa copiar nada.", "Ninguém respondeu.")
+        self.assertFalse([f for f in found if f.get("relation") in SEQUENCIA | {"local_narrative_tense_shift"}], found)
+
+    def test_agreement_guards(self):
+        # Aposto entre vírgulas lido como sujeito e singular marcado como plural pelo modelo: sem alerta.
+        for text in ["Se usassem a cabeça, a ferramenta mais simples, poderiam resolver.", "O olhar dela abaixou devagar."]:
+            with self.subTest(text=text):
+                found, _ = self.findings(text)
+                self.assertFalse([f for f in found if f.get("rule") == "concordancia"], found)
+
+    def test_metadata_lists_active_relations(self):
+        _, meta = self.findings("Ele saiu de casa.")
+        self.assertTrue({"conditional_tense_mismatch", "coordinated_tense_mismatch", "past_present_past",
+                         "same_subject_narrative_shift", "local_narrative_tense_shift"} <= set(meta["temporal_relations"]))
