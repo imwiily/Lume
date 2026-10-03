@@ -3,6 +3,22 @@
 Os registros abaixo pertencem às versões indicadas. Caminhos citados nos registros anteriores à 1.0 são da antiga pasta `LumeMac/` (correspondência em [README.md](../README.md#estrutura)); os comandos abaixo usam a raiz do repositório. As verificações do hotfix aparecem primeiro; os registros anteriores são mantidos para rastreabilidade.
 
 
+## Lume 1.3.1 / FONTE 1.2.1 · Coerencia 1.1.0 — 03/10/2026
+
+Fragmentos deliberados fora da estrutura da frase e mensagens reescritas (ação após fala,
+“chegar em”). Comparação feita nos fontes, contra a revisão `3bfcd16` (FONTE 1.2.0), com
+`--modo ambas --tempo passado --languagetool`.
+
+- 236 testes do analisador, 25 dos pacotes, 24 do Coerencia e o contrato Python aprovados.
+- Corpus (todos os textos, com LanguageTool): validação sem mudança (19/24 erros encontrados,
+  5 alarmes falsos); desenvolvimento 34/42, alarmes falsos 8 → 2. Os 6 removidos são os dos
+  dois controles novos; nenhum erro anotado deixou de ser encontrado.
+- Manuscrito A: 213 → 211 ocorrências. Saíram dois alertas de estrutura da frase, um de cada
+  classe nova; nenhum alerta novo. Mudaram só a mensagem de 17 alertas de ação após fala e 4 de
+  estrutura, e a prioridade de 1 alerta de “chegar em” (Verificar → Explorar).
+- Manuscrito B: 30 → 30 ocorrências; mudou só a mensagem de 3 alertas de estrutura.
+- SHA-256 dos dois DOCX igual antes e depois e igual ao registrado nos relatórios.
+
 ## Lume 1.2 / FONTE 1.2.0 · Coerencia 1.1.0 — 01/10/2026
 
 Interface do alerta reorganizada, extração de falsos positivos e remoção do relatório HTML.

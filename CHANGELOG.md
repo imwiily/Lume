@@ -2,6 +2,21 @@
 
 As seções antigas descrevem a cobertura e os resultados de cada entrega, não o estado atual. Nas seções anteriores à 1.0, caminhos citados são da antiga pasta `LumeMac/`; a correspondência com a estrutura atual está em [README.md](README.md#estrutura).
 
+## Lume 1.3.1 / FONTE 1.2.1 · Coerencia 1.1.0 — 03/10/2026
+
+Menos alertas sobre fragmentos deliberados e explicações mais claras. A interface não mudou.
+
+- Estrutura da frase: deixa de alertar o complemento solto que retoma o verbo da frase
+  anterior (“Pensei no jardim. Naquela mulher de chapéu azul.”), com a mesma preposição e sem
+  vírgula, e o pensamento suspenso por reticências concluído por expressão nominal curta
+  (“Depois do exame… nenhuma resposta.”). A mensagem passa a citar o trecho e não traz mais o
+  aviso técnico sobre o analisador.
+- Ação narrativa após fala: a explicação diz o que falta (pontuação para encerrar a fala,
+  maiúscula na ação) e dá um exemplo montado com o próprio texto.
+- Regência de “chegar em”: vira nota de registro, com prioridade “Explorar” e sem sugestão de
+  troca, já que a forma é corrente no português brasileiro.
+- Corpus de desenvolvimento: controles `dev-controle-elipse` e `dev-controle-reticencias`.
+
 ## Lume 1.3 / FONTE 1.2.0 · Coerencia 1.1.0 — 01/10/2026
 
 Só a interface mudou; o motor é o mesmo da 1.2 e os alertas não mudam.

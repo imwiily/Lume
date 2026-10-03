@@ -169,3 +169,62 @@ class FragmentVerbParaTests(unittest.TestCase):
 
     def test_preposition_para_keeps_nominal_fragment(self):
         self.assertTrue(self.fragments("Uma longa viagem de trem para o norte, sem destino algum."))
+
+
+class FragmentEllipsisTests(unittest.TestCase):
+    """Complemento solto que retoma o verbo da frase anterior (“[pensei] naquela…”)."""
+    @classmethod
+    def setUpClass(cls):
+        cls.nlp = spacy.load("pt_core_news_sm", disable=["ner"])
+
+    scan = LinguisticTests.scan
+    fragments = FragmentVerbParaTests.fragments
+
+    def test_parallel_complement_recovers_previous_verb(self):
+        for text in ["Pensei no jardim molhado. Naquela mulher de chapéu azul. Ela sorria.",
+                     "Lembrei da casa antiga. Daquele homem de casaco cinza.",
+                     "Confiei no velho capitão. No mapa amarelado do avô dele.",
+                     "Ele falava com a irmã mais nova. Com o cachorro do vizinho também.",
+                     "Corremos pela estrada de terra. Pelos campos molhados de chuva fina."]:
+            with self.subTest(text=text):
+                self.assertEqual(self.fragments(text), [])
+
+    def test_without_recoverable_verb_still_candidate(self):
+        for text in ["Do outro lado, um grupo de turistas.",
+                     # Preposição diferente: “pensei daquele…” não é retomada.
+                     "Pensei no jardim molhado. Daquele homem de casaco cinza escuro.",
+                     # Frase anterior sem verbo finito.
+                     "Uma tarde inteira de chuva. Na janela da sala de jantar.",
+                     # Adjunto anteposto e núcleo nominal: não é complemento solto.
+                     "Pensei no jardim molhado. No canto, um velho banco de pedra."]:
+            with self.subTest(text=text):
+                self.assertTrue(self.fragments(text))
+
+    def test_reason_names_segment_without_technical_disclaimer(self):
+        f, = self.fragments("Uma velha cadeira de madeira no canto da sala.")
+        self.assertIn("‘Uma velha cadeira de madeira no canto da sala’", f["reason"])
+        self.assertNotIn("analisador", f["reason"])
+
+
+class FragmentSuspensionTests(unittest.TestCase):
+    """Reticências suspendem o pensamento; segue uma constatação nominal curta."""
+    @classmethod
+    def setUpClass(cls):
+        cls.nlp = spacy.load("pt_core_news_sm", disable=["ner"])
+
+    scan = LinguisticTests.scan
+    fragments = FragmentVerbParaTests.fragments
+
+    def test_short_nominal_after_suspension_is_not_reported(self):
+        for text in ["Eu queria explicar tudo. Mas, depois daquela prova difícil… nota final zero.",
+                     "E aquela expressão no rosto dele… puro medo.",
+                     "Depois do exame de sangue da manhã... nenhuma resposta.",
+                     "Mas depois daquela noite tão longa… silêncio absoluto."]:
+            with self.subTest(text=text):
+                self.assertEqual(self.fragments(text), [])
+
+    def test_long_continuation_or_no_suspension_still_candidate(self):
+        for text in ["Depois daquele dia… uma longa fila de carros parados na avenida principal da cidade.",
+                     "Uma velha cadeira de madeira no canto da sala."]:
+            with self.subTest(text=text):
+                self.assertTrue(self.fragments(text))

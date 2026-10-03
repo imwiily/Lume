@@ -50,8 +50,8 @@ NON_PLACE = {"hora", "horas", "tempo", "momento", "instante", "silêncio", "minu
              "época", "idade", "primeiro", "último", "prantos", "lágrimas"}
 
 
-def item(block, rule, category, start, end, reason, severity, score, suggestion=None):
-    value = asdict(finding(block, category, "Verificar", start, end, reason, "FONTE Morfossintático · " + rule))
+def item(block, rule, category, start, end, reason, severity, score, suggestion=None, priority="Verificar"):
+    value = asdict(finding(block, category, priority, start, end, reason, "FONTE Morfossintático · " + rule))
     value.update(rule=rule, category_code=rule, severity=severity,
                  confidence="alta" if score >= .9 else "média" if score >= .6 else "baixa",
                  confidence_score=score, suggestion=suggestion,
@@ -356,8 +356,11 @@ def regency(block, doc, emit):
             noun = next((t for t in doc[nxt.i + 1:min(nxt.i + 4, len(doc))] if t.pos_ in {"NOUN", "PROPN"}), None)
             if noun is None or noun.lower_ in NON_PLACE or any(t.is_punct for t in doc[nxt.i:noun.i]):
                 continue
+            # Questão de registro, não erro: sem sugestão, para não trocar a voz do autor.
             emit("regencia", "Regência verbal", token.idx, nxt.idx + len(nxt.text), "editorial_attention", .6,
-                 "Na norma culta, ‘chegar’ pede a preposição ‘a’ para o destino (‘chegou à estação’, ‘chegou a casa’). A forma com ‘em’ é comum no uso brasileiro; confira o registro desejado.")
+                 "A regência tradicional de ‘chegar’, com sentido de destino, prefere a preposição ‘a’: ‘chegar a casa’, ‘chegar à estação’. "
+                 "No português brasileiro, porém, construções com ‘em’, como ‘chegar em casa’, são amplamente usadas. "
+                 "Considere alterar apenas se o texto exigir um registro normativo mais formal.", priority="Explorar")
         # “Ajudou ela a descer” → “ajudou-a”. Incisos de fala (“perguntou ela”) e
         # verbos sem objeto (“chegou ela”) têm o pronome como sujeito posposto.
         if (nxt.lower_ in {"ele", "ela", "eles", "elas"} and nxt.dep_ == "obj" and nxt.head == token
@@ -422,13 +425,13 @@ def analyze(blocks, nlp, settings, docs=None, skip=()):
         if block.heading or not block.text.strip():
             continue
 
-        def emit(rule, category, start, end, severity, score, reason, suggestion=None):
+        def emit(rule, category, start, end, severity, score, reason, suggestion=None, priority="Verificar"):
             if labels[start] not in SCOPES[rule] or (start, end) in seen:
                 return
             if any(p == block.number and s < end and e > start for p, s, e in skip):
                 return
             seen.add((start, end))
-            out.append(item(block, rule, category, start, end, reason, severity, score, suggestion))
+            out.append(item(block, rule, category, start, end, reason, severity, score, suggestion, priority))
 
         seen = set()
         for name, check in active:

@@ -181,6 +181,18 @@ class RegencyAndCommaTests(unittest.TestCase):
         self.assertEqual(excerpts(run("O navio chegou na hora certa."), "regencia"), [])
         self.assertTrue(excerpts(run("O chefe pediu para que todos saíssem."), "regencia"))
 
+    def test_chegar_em_is_register_note_without_correction(self):
+        # Uso brasileiro corrente: nota de registro, nunca troca automática.
+        for sentence in ["Meu tio chegava em casa sempre cansado.", "A carta chegou na secretaria ontem."]:
+            with self.subTest(sentence=sentence):
+                found, = [f for f in run(sentence) if f["rule"] == "regencia"]
+                self.assertEqual(found["severity"], "editorial_attention")
+                self.assertEqual(found["priority"], "Explorar")
+                self.assertIsNone(found["suggestion"])
+                self.assertIn("amplamente usadas", found["reason"])
+                self.assertIn("registro normativo mais formal", found["reason"])
+                self.assertNotIn("Na norma culta", found["reason"])
+
     def test_subject_pronoun_as_object(self):
         found = [f for f in run("O vizinho ajudou ela a descer as malas.") if f["rule"] == "regencia"]
         self.assertEqual([f["text"][f["start"]:f["end"]] for f in found], ["ajudou ela"])

@@ -24,6 +24,48 @@ def para_verbal(sent):
                and t.i > sent.start for t in sent)
 
 
+# Preposição de base de cada forma (simples ou contraída), para comparar complementos.
+_DEMONSTRATIVOS = "o a os as um uma uns umas aquele aquela aqueles aquelas aquilo este esta estes estas isto esse essa esses essas isso ele ela eles elas".split()
+PREPOSICOES = {**{"n" + d: "em" for d in _DEMONSTRATIVOS}, **{"d" + d: "de" for d in _DEMONSTRATIVOS},
+               **{"à" + d[1:]: "a" for d in _DEMONSTRATIVOS if d.startswith("a") and len(d) > 2},
+               "ao": "a", "aos": "a", "à": "a", "às": "a", "pelo": "por", "pela": "por", "pelos": "por",
+               "pelas": "por", **{p: p for p in "em de por com para sem sobre contra entre até desde".split()}}
+
+
+def elipse_de_complemento(sent, previous):
+    """Fragmento que é só um complemento preposicionado retomando o verbo da frase anterior.
+
+    “Pensei na sala. Naquela pessoa…” → “[pensei] naquela pessoa”. Exige a mesma
+    preposição depois de um verbo finito na frase anterior e nenhuma vírgula no
+    fragmento (adjunto anteposto + núcleo nominal não é retomada).
+    """
+    words = [t for t in sent if not t.is_space and not t.is_punct]
+    if previous is None or not words or any(t.text == "," for t in sent):
+        return False
+    base = PREPOSICOES.get(words[0].lower_)
+    if base is None:
+        return False
+    verb = next((t for t in previous if finite(t)), None)
+    return verb is not None and any(PREPOSICOES.get(t.lower_) == base and t.i > verb.i for t in previous)
+
+
+RETICENCIAS = re.compile(r"…|\.\.\.")
+
+
+def fragmento_suspenso(sent, limite=5):
+    """Pensamento suspenso por reticências internas e concluído por expressão nominal curta.
+
+    “Depois do exame… nenhuma resposta.” A frase toda já não tem verbo finito; o
+    que vem depois das últimas reticências tem até `limite` palavras.
+    """
+    text = sent.text.rstrip().rstrip(".!?…")
+    marks = list(RETICENCIAS.finditer(text))
+    if not marks:
+        return False
+    words = re.findall(r"[^\W\d_]+", text[marks[-1].end():])
+    return 0 < len(words) <= limite
+
+
 def verbo_de_fala(token):
     """Verbo de elocução ou pensamento, pelo lema ou pelo radical + terminação verbal."""
     return token.lemma_.casefold() in SPEECH or forma_de_fala(token.lower_)
@@ -153,10 +195,13 @@ def analyze(blocks: list[Block], nlp, tense="auto", protect_italics=True, min_wo
                 results.append(finding(block, "Tempo verbal", "Verificar", token.idx,
                     token.idx+len(token.text),
                     f"O modelo e o léxico sustentam uma leitura no {observed}, em texto configurado/inferido como {expected}. Isso não confirma erro: pensamento, comentário do narrador, presente geral e mudanças deliberadas de plano temporal precisam ser avaliados no contexto."))
+        previous = None
         for sent in doc.sents:
             words = [t for t in sent if t.is_alpha]
+            before, previous = previous, sent
             if ("estrutura" in active and len(words) >= min_words and not any(finite(t) for t in sent)
-                    and not para_verbal(sent)):
+                    and not para_verbal(sent) and not elipse_de_complemento(sent, before)
+                    and not fragmento_suspenso(sent)):
                 # Segunda leitura só dos candidatos, sem espaços da máscara e
                 # com inicial minúscula. Não modifica o texto nem seus offsets.
                 clean = sent.text.strip()
@@ -166,7 +211,8 @@ def analyze(blocks: list[Block], nlp, tense="auto", protect_italics=True, min_wo
                         continue
                 start, end = words[0].idx, words[-1].idx + len(words[-1].text)
                 results.append(finding(block, "Estrutura da frase", "Explorar", start, end,
-                    "Após consulta ao léxico e uma segunda leitura do segmento, não foi identificado verbo finito com segurança. Uma frase nominal ou um fragmento intencional pode ser válido; confira o contexto. O analisador ainda pode falhar."))
+                    f"O segmento ‘{block.text[start:end]}’ não tem verbo finito expresso. Frases nominais e fragmentos "
+                    "são comuns em prosa literária e podem ser deliberados; revise apenas se uma oração completa era pretendida."))
         for position in (closed if "pontuacao_dialogo" in active else []):
             tail = block.text[position+1:]
             match = re.match(r"\s*,\s*", tail)

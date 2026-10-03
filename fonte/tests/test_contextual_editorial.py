@@ -27,6 +27,25 @@ class ContextualEditorialTests(unittest.TestCase):
                 self.assertEqual(f['severity'], 'editorial_attention')
                 self.assertIsNone(f['suggestion'])
 
+    def test_action_reason_names_missing_punctuation_and_example(self):
+        # A mensagem diz o que falta e onde, com um exemplo montado do próprio texto.
+        f, = self.scan([Block(1, '— Você entendeu o que eu disse, Helena — O rosto de Helena ficou pálido.')])
+        self.assertIn('falta pontuação para encerrar a fala antes do travessão', f['reason'])
+        self.assertIn('“O rosto de Helena…”', f['reason'])
+        self.assertIn('Ex.: “…Helena. — O rosto de Helena…”', f['reason'])
+        self.assertNotIn('maiúscula', f['reason'])
+        # Fala aberta e ação em minúscula: as duas correções.
+        f, = self.scan([Block(1, '— Vamos embora, Helena — ela pegou a bolsa.')])
+        self.assertIn('falta pontuação para encerrar a fala antes do travessão', f['reason'])
+        self.assertIn('maiúscula', f['reason'])
+        self.assertIn('Ex.: “…Helena. — Ela pegou a bolsa…”', f['reason'])
+        # Fala já encerrada: só a maiúscula, com a pontuação original no exemplo.
+        f, = self.scan([Block(1, '— Você viu? — o rosto dela ficou vermelho.')])
+        self.assertNotIn('falta pontuação', f['reason'])
+        self.assertIn('Ex.: “…viu? — O rosto dela ficou…”', f['reason'])
+        # A ressalva sobre a lista de elocução continua, no fim.
+        self.assertTrue(f['reason'].endswith('a lista de verbos de elocução é limitada.'))
+
     def test_clitic_action_offsets_and_standalone_verb(self):
         # Regressão: is_alpha pulava o verbo e gerava início > fim.
         for action, marked in [('virou-se Helena.', 'virou-se'),

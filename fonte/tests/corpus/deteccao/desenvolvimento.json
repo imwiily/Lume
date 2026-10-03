@@ -213,6 +213,34 @@
       ],
       "erros": [],
       "aceitaveis": []
+    },
+    {
+      "id": "dev-controle-elipse",
+      "tempo": "passado",
+      "controle": true,
+      "nota": "Complemento preposicionado solto que retoma o verbo da frase anterior (elipse deliberada), escrito do zero em 02/10/2026.",
+      "paragrafos": [
+        "Capítulo 1",
+        "Pensei no jardim molhado da escola. Naquela mulher de chapéu azul. Ela sabia o meu nome.",
+        "Corremos pela estrada de terra. Pelos campos molhados de chuva fina. Ninguém nos seguiu.",
+        "Lembrei da casa antiga do meu avô. Daquele homem de casaco cinza no portão."
+      ],
+      "erros": [],
+      "aceitaveis": []
+    },
+    {
+      "id": "dev-controle-reticencias",
+      "tempo": "passado",
+      "controle": true,
+      "nota": "Pensamento suspenso por reticências e concluído por expressão nominal curta, escrito do zero em 02/10/2026.",
+      "paragrafos": [
+        "Capítulo 1",
+        "Eu queria contar tudo ao meu irmão. Mas, depois daquela prova difícil… nota final zero. Nem sei por que ainda tento.",
+        "Olhei para a porta fechada. E aquela expressão no rosto do guarda… puro medo.",
+        "Esperamos a tarde inteira. Depois do exame de sangue da manhã... nenhuma resposta."
+      ],
+      "erros": [],
+      "aceitaveis": []
     }
   ]
 }

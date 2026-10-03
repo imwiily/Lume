@@ -28,6 +28,25 @@ def window(blocks, index):
     return previous + [current] + following
 
 
+def action_reason(speech, action):
+    """Diz o que falta antes do travessão, com exemplo montado do próprio texto."""
+    words = action.split()[:4]
+    head = ' '.join(words).rstrip('.,;:!?…')
+    fixed = head[:1].upper() + head[1:]
+    tail = speech.split()[-1] if speech.split() else ''
+    if speech.endswith(('.', '!', '?', '…')):
+        problem = 'A fala já tem pontuação de encerramento; nesse caso, a ação deve começar com maiúscula.'
+    else:
+        tail = tail.rstrip(',;:') + '.' if tail else ''
+        problem = ('Nesse caso, falta pontuação para encerrar a fala antes do travessão '
+                   '(ponto, interrogação, exclamação ou reticências, conforme a fala)'
+                   + ('' if head[:1].isupper() else ', e a ação deve começar com maiúscula') + '.')
+    example = f'…{tail} — {fixed}…' if tail else f'— {fixed}…'
+    return (f'Após a fala, o trecho iniciado por “{head}…” parece ser uma ação narrativa independente, '
+            f'e não uma oração de elocução. {problem} Ex.: “{example}”. '
+            'Confira a pontuação adequada ao contexto; a lista de verbos de elocução é limitada.')
+
+
 def analyze(blocks, nlp, settings, *, docs=None):
     labels = classify(blocks, settings)
     if docs is None:
@@ -83,7 +102,7 @@ def analyze(blocks, nlp, settings, *, docs=None):
                         not block.text[:start-1].rstrip().endswith(('.', '!', '?', '…'))):
                     emit('dialogo_contextual', 'Ação narrativa após fala', start + first.idx,
                          start + verb.idx + len(verb.text),
-                         'O primeiro verbo finito após o travessão descreve uma ação, sem verbo de elocução reconhecido. Confira se a fala deve ser encerrada e a ação iniciada com maiúscula. A lista de elocução é limitada.')
+                         action_reason(block.text[:start - 1].rstrip(), fragment.lstrip()))
                 elif verbo_de_fala(verb) and end < len(block.text) and block.text[end] in '—–':
                     continuation = block.text[end + 1:].lstrip()
                     if (continuation and continuation[0].isupper()
