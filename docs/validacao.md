@@ -3,6 +3,27 @@
 Os registros abaixo pertencem às versões indicadas. Caminhos citados nos registros anteriores à 1.0 são da antiga pasta `LumeMac/` (correspondência em [README.md](../README.md#estrutura)); os comandos abaixo usam a raiz do repositório. As verificações do hotfix aparecem primeiro; os registros anteriores são mantidos para rastreabilidade.
 
 
+## Próxima versão — estado temporal local (03/10/2026)
+
+Comparação contra `54ca954`, mesma configuração; saídas locais em `build/sequencia2/`.
+
+- 267 testes do analisador (7 novos em `LocalNarrativeStateTests`: fim de sequência, sujeito
+  explícito e elíptico, outro sujeito na mesma cena, fronteira de parágrafo, quebra de cena e
+  diálogo, presentes legítimos depois de cena no passado, precedência, 1ª pessoa com maiúscula),
+  25 dos pacotes, 24 do Coerencia e contrato Python aprovados.
+- Exemplos do pedido (sonda, com contexto no passado): os 17 casos “deve detectar” recebem alerta
+  de sequência (11 de mesmo sujeito com confiança alta, 1 de mesmo sujeito atravessando parágrafo
+  com confiança média, 5 de cena com confiança média). Presentes legítimos sem alerta forte;
+  “o ferro conduz” e “a Terra gira” continuam com o genérico de confiança média, como antes.
+- Corpus: sem mudança (desenvolvimento 37/46 e 3 alarmes falsos; validação 19/24 e 5).
+- Manuscrito A: 209 → 215; nenhum alerta removido; 6 novos e 6 trocas de genérico por sequência,
+  revistos um a um como prováveis quebras reais; 2 genéricos para confiança baixa (memória do
+  narrador). Na primeira rodada, “Fico” (passado-presente-passado) tinha sumido pela segunda
+  leitura em minúscula e “não lembro” virou alerta de cena; ambos corrigidos antes do registro.
+- Manuscrito B: 30 → 30, sem mudança.
+- Limites: verdade geral sem marca (“o rio corre para o sul”) continua no genérico de confiança
+  média; correferência só por sujeito explícito igual ou elíptico compatível.
+
 ## Próxima versão — sequência temporal (03/10/2026)
 
 Comparação contra `551ad7c` (Lume 1.3.1), com `--modo ambas --tempo passado --languagetool`;

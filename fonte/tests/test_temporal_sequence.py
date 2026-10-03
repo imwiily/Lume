@@ -145,3 +145,98 @@ class AttractionAgreementTests(unittest.TestCase):
                      "Nenhuma das respostas estava correta."]:
             with self.subTest(text=text):
                 self.assertEqual(self.agreement(text), [])
+
+
+class LocalNarrativeStateTests(unittest.TestCase):
+    """Estado temporal local da cena: presente que quebra uma cadeia no passado, sem exigir passado depois."""
+    @classmethod
+    def setUpClass(cls):
+        cls.nlp = spacy.load("pt_core_news_sm", disable=["ner"])
+
+    def temporal(self, *paragraphs):
+        blocks = [Block(1, CONTEXTO)] + [Block(i + 2, p) for i, p in enumerate(paragraphs)]
+        found, _, _ = run(blocks, lambda: self.nlp, tense="passado", mode="ambas")
+        return [f for f in found if f["paragraph"] >= 2
+                and f["category"] in {"Tempo verbal", "Coerência temporal entre orações"}]
+
+    def one(self, verb, *paragraphs):
+        found = [f for f in self.temporal(*paragraphs) if f["text"][f["start"]:f["end"]] == verb]
+        self.assertEqual(len(found), 1, f"{paragraphs}: {[(f['text'][f['start']:f['end']], f.get('relation')) for f in self.temporal(*paragraphs)]}")
+        return found[0]
+
+    def test_same_subject_at_end_of_sequence(self):
+        # Presente no fim da sequência, sujeito explícito ou elíptico, sem passado depois.
+        for text, verb in [("O rapaz entrou na cozinha. Abriu a geladeira. Pega uma garrafa.", "Pega"),
+                           ("A mulher correu até a porta. Tentou abrir. Puxa a maçaneta novamente.", "Puxa"),
+                           ("Teresa desceu do ônibus. Ela atravessou a rua. Olhou para os lados. Levanta a mão.", "Levanta")]:
+            with self.subTest(text=text):
+                f = self.one(verb, text)
+                self.assertEqual((f["relation"], f["confidence"]), ("same_subject_narrative_shift", "alta"))
+                evidence = f["temporal_evidence"]
+                self.assertEqual((evidence["local_state"], evidence["same_subject"], evidence["function"]),
+                                 ("past", True, "narrative_event"))
+                self.assertGreaterEqual(len(evidence["previous_narrative_verbs"]), 2)
+
+    def test_first_person_capitalized_verb_keeps_original_reading(self):
+        # A segunda leitura em minúscula só entra quando a original falha: aqui a original acerta e a
+        # minúscula perde o verbo; no segundo caso é o contrário.
+        for sentence in ["Fico alguns instantes em silêncio.", "Fico alguns minutos parado na porta."]:
+            with self.subTest(sentence=sentence):
+                f = self.one("Fico", f"Enfim descansei. {sentence} Voltei para casa.")
+                self.assertEqual((f["relation"], f["confidence"]), ("past_present_past", "alta"))
+                self.assertIn("‘Voltei’", f["reason"])
+
+    def test_scene_shift_with_other_subject(self):
+        # O sujeito muda, a cena continua no passado: confiança média, não alta.
+        for text, verb in [("O carro derrapou. Bateu na barreira. Fumaça começa a sair do motor.", "começa"),
+                           ("O soldado recuou alguns metros. Seus companheiros permaneceram imóveis. Uma flecha atravessa o campo.", "atravessa"),
+                           ("O rapaz fechou a janela. A chuva continuou do lado de fora. Pequenas gotas escorrem pelo vidro.", "escorrem"),
+                           ("O impacto derrubou os objetos da estante. Alguns livros ainda caem pelo chão.", "caem")]:
+            with self.subTest(text=text):
+                f = self.one(verb, text)
+                self.assertEqual((f["relation"], f["confidence"]), ("local_narrative_tense_shift", "média"))
+                self.assertFalse(f["temporal_evidence"]["same_subject"])
+
+    def test_across_paragraph_boundary(self):
+        f = self.one("Observa", "Ela colocou os documentos na mesa. Afastou a cadeira.", "Observa os papéis por alguns segundos.")
+        self.assertIn(f["relation"], {"same_subject_narrative_shift", "local_narrative_tense_shift"})
+        # Um só passado antes, no parágrafo anterior: sujeito elíptico continua a ação; confiança média.
+        f = self.one("Observa", "Ela colocou os documentos na mesa.", "Observa os papéis por alguns segundos.")
+        self.assertEqual((f["relation"], f["confidence"]), ("same_subject_narrative_shift", "média"))
+        # Dois presentes coordenados no novo parágrafo: os dois são quebras (não é mudança deliberada).
+        found = {f["text"][f["start"]:f["end"]]: f.get("relation") for f in
+                 self.temporal("O inspetor examinou o corredor e voltou para a sala.", "Abre a gaveta da escrivaninha e observa o conteúdo.")}
+        self.assertIn(found.get("Abre"), {"same_subject_narrative_shift", "local_narrative_tense_shift"})
+
+    def test_scene_break_resets_state(self):
+        # Separador de cena e título interrompem o estado local: sem alerta de sequência.
+        for paragraphs in [("O guarda fechou o portão. Apagou a lanterna.", "* * *", "Pega o casaco no armário."),
+                           ("O guarda fechou o portão. Apagou a lanterna.", "— Vamos embora — disse alguém.", "— Já vou.",
+                            "Pega o casaco no armário.")]:
+            with self.subTest(paragraphs=paragraphs):
+                found = [f for f in self.temporal(*paragraphs) if f["text"][f["start"]:f["end"]] == "Pega"]
+                self.assertFalse([f for f in found if f.get("relation") in SEQUENCIA | {"local_narrative_tense_shift"}], found)
+
+    def test_legitimate_presents_after_past_scene(self):
+        for text in ["O guarda fechou o portão. Apagou a lanterna. O ferro conduz eletricidade.",
+                     "O guarda fechou o portão. Apagou a lanterna. A Terra gira ao redor do Sol.",
+                     "O guarda fechou o portão. Apagou a lanterna. Meu irmão tem vinte anos.",
+                     "O guarda fechou o portão. Apagou a lanterna. Por que eu penso assim?",
+                     "O guarda fechou o portão. Ele explicou que a empresa funciona durante a semana.",
+                     "O guarda fechou o portão. Apagou a lanterna. A casa é antiga, mas continua bem conservada.",
+                     "O guarda fechou o portão. Abriu o livro e releu a frase: “A coragem nasce do medo.”",
+                     "O guarda fechou o portão. Explicou que crianças aprendem rapidamente novos idiomas.",
+                     # Memória do narrador no presente: estado mental, não ação da cena.
+                     "A tia costurava aos domingos. Eu quase não lembro o rosto do bisavô."]:
+            with self.subTest(text=text):
+                found = self.temporal(text)
+                self.assertFalse([f for f in found if f.get("confidence") == "alta"
+                                  or f.get("relation") == "local_narrative_tense_shift"], found)
+
+    def test_precedence_one_alert_per_verb(self):
+        # Coordenação e passado-presente-passado prevalecem; nenhum verbo recebe dois alertas.
+        for text, verb, relation in [("Ela pega a chave e abriu o portão. Depois saiu. Desceu a rua.", "pega", "coordinated_tense_mismatch"),
+                                     ("Pedro abriu o armário. Entrou no quarto. Procura a chave. Depois fechou a porta.", "Procura", "past_present_past")]:
+            with self.subTest(text=text):
+                found = [f for f in self.temporal(text) if f["text"][f["start"]:f["end"]] == verb]
+                self.assertEqual([f["relation"] for f in found], [relation])

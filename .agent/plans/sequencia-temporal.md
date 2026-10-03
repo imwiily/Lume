@@ -84,3 +84,13 @@ na interface. Fica como proposta para o autor decidir.
   sujeito, então a coordenação compara o sujeito herdado; (4) formas só verbais no léxico
   (“Abri”, “Procuro”) bastam contra a etiqueta do modelo; (5) quantificadores partitivos na
   concordância. Resultados em `docs/validacao.md`.
+
+## Etapa 2 — estado temporal local (03/10/2026)
+
+Diagnóstico com os exemplos do pedido: `same_subject_narrative_shift` já detectava a maioria
+dos presentes no fim de sequência (sem exigir passado depois). Escapavam: outro sujeito na mesma
+cena (não havia detector de cena); presente seguido de outro presente na mesma frase (tratado
+como mudança deliberada); ‘ainda’ tratado como âncora no presente; verbos lidos pelo modelo
+como nome, adjetivo ou infinitivo; objeto posposto lido como sujeito; pessoa e número
+comparados como texto único. Implementado `local_state`, `local_narrative_tense_shift`,
+cadeia de sujeito consistente, quebras de cena, evidências. Resultados em `docs/validacao.md`.

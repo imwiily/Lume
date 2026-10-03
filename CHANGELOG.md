@@ -18,6 +18,21 @@ As seções antigas descrevem a cobertura e os resultados de cada entrega, não 
   ganha explicação própria, com confiança baixa.
 - Verbos que o modelo lê como nome ou adjetivo (“Procura…” no início da frase, “Ela segura a
   mochila”, “Abri”) são reconhecidos pelo léxico e pela sintaxe na sequência temporal.
+- Estado temporal local da cena (`local_state`: proporção de passados nos últimos verbos da
+  janela; passado firme com dois ou mais passados, três quartos da janela e o último verbo no
+  passado). O passado depois do presente confirma, mas não é exigido. Novo alerta
+  `local_narrative_tense_shift` (confiança média): ação de outro sujeito, ancorada na cena
+  (entidade nova, retomada, 1ª pessoa ou perífrase aspectual), no presente numa cena narrada no
+  passado. `same_subject_narrative_shift` usa a cadeia mais recente de sujeito consistente e
+  aceita um só passado quando o presente sem sujeito continua a ação anterior (confiança média).
+  Precedência, um alerta por verbo: coordenação, passado-presente-passado, mesmo sujeito, cena,
+  genérico. Separador de cena e parágrafos só de diálogo interrompem o estado; a troca de
+  parágrafo não.
+- `temporal_evidence` ganha `function`, `local_state`, `local_tense_score`,
+  `previous_narrative_verbs`, `same_scene` e `same_subject` (campos novos; os antigos ficam).
+- ‘Ainda’ só mantém no presente um estado que continua (“está quebrado ainda”), não uma ação
+  (“ainda caem pelo chão”). Verbos de memória e crença do narrador (“não lembro”) contam como
+  estado, mesmo com o lema errado do modelo (radical + terminação).
 - Resíduo de edição: dois auxiliares conjugados seguidos no mesmo predicado (“tinha havia
   percebido”), sob “Estrutura da frase”.
 - Concordância: “nenhum/cada” etiquetado como numeral e concordância por atração (“a lista de
