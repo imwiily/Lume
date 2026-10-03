@@ -35,6 +35,16 @@ SENTENCE_END = set(".!?…\"“”«»—–")
 IGNORED_RULES = {"INTERJECTIONS_PUNTUATION", "REGARDS_COMMA"}
 # Locuções de uso consagrado sem vírgulas internas (“Agora sim, …”).
 LOCUCOES_SEM_VIRGULA = {"agora sim"}
+# “Além de” + complemento (“além disso”, “além dele”, “além daquilo”, “além desse”…).
+ALEM_DE = re.compile(r"\balém\s+d[^\W\d_]*", re.I)
+# Pronomes e quantificadores que “além de” completa: “nada além disso” = “nada mais do que isso”.
+# Os pospostos (“coisa alguma”, “livro algum”) também entram.
+COMPLETADOS_POR_ALEM = {"nada", "ninguém", "algo", "alguém", "tudo", "mais", "nenhum", "nenhuma", "nenhuns",
+                        "nenhumas", "algum", "alguma", "alguns", "algumas"}
+NEGATIVOS = {"nenhum", "nenhuma", "nenhuns", "nenhumas"}
+FIM_DE_ORACAO = re.compile(r"[,.;:!?…—–()\[\]\"“”«»]")
+# Afirmação falsa das mensagens de VERB_COMMA_CONJUNCTION: o conector pode vir no meio da frase.
+SO_NO_INICIO = re.compile(r",?\s*e só deve ser utilizada no início duma frase para efeitos de estilo")
 PARTICIPIO = re.compile(r"\w+(?:ad|id)[oa]s", re.I)
 # Onomatopeias e interjeições expressivas: letras repetidas, caixa-alta ou formas como “Humm”, “Hm”.
 EXPRESSIVA = re.compile(r"(\w)\1\1|^(?:h+u*m+|h+a+m+|a+h+[mn]*|a+h+a+|h+[mn]+|hã+|u+é|u+h+|o+h+|a+i+)$", re.I)
@@ -48,6 +58,22 @@ def expressiva(palavra):
 class NoRedirect(HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, headers, newurl):
         return None
+
+
+def alem_integrado(text, start, end):
+    """‘Além de’ como complemento dentro da oração, e não o conector ‘além disso’ (= ademais).
+
+    “Não havia nada além disso”, “ninguém além dele”, “coisa alguma além daquilo”,
+    “nenhum caderno além desse”: a palavra anterior, na mesma oração, é pronome ou
+    quantificador que ‘além de’ completa, ou há ‘nenhum’ nas três palavras anteriores.
+    Depois de conjunção, adjetivo, verbo ou pontuação, é o conector.
+    """
+    alem = ALEM_DE.search(text, start, end)
+    if alem is None:
+        return False
+    oracao = FIM_DE_ORACAO.split(text[:alem.start()])[-1]
+    palavras = [p.casefold() for p in re.findall(r"[^\W\d_]+", oracao)]
+    return bool(palavras) and (palavras[-1] in COMPLETADOS_POR_ALEM or bool(NEGATIVOS & set(palavras[-3:])))
 
 
 def utf16_index(text, units):
@@ -146,6 +172,8 @@ def check(blocks, port=8081, protect_italics=True, settings=None, avancar=None):
                 continue
             if rule.get("id") == "VERB_COMMA_CONJUNCTION" and palavra.casefold() in LOCUCOES_SEM_VIRGULA:
                 continue
+            if rule.get("id") == "VERB_COMMA_CONJUNCTION" and alem_integrado(text, start, end):
+                continue
             # Onomatopeia reduplicada (“Au au”): palavra repetida fora do léxico.
             if rule.get("id") == "PORTUGUESE_WORD_REPEAT_RULE" and palavra and not flags(palavra.split()[0]):
                 continue
@@ -163,8 +191,11 @@ def check(blocks, port=8081, protect_italics=True, settings=None, avancar=None):
                              or any(s < end and start < e for s, e in italics)):
                 continue
             replacements = [r.get("value") for r in match.get("replacements", []) if r.get("value")]
-            item = asdict(finding(block, "Ortografia e gramática", "Verificar", start, end,
-                                  match.get("message", "Verifique este trecho."),
+            message = match.get("message", "Verifique este trecho.")
+            if rule.get("id") == "VERB_COMMA_CONJUNCTION" and SO_NO_INICIO.search(message):
+                message = ("Quando funciona como conector, a expressão costuma ficar entre vírgulas, inclusive no meio "
+                           "da frase. Se ela integra a oração, sem valor de conector, a vírgula não se aplica.")
+            item = asdict(finding(block, "Ortografia e gramática", "Verificar", start, end, message,
                                   "LanguageTool local · " + rule.get("id", "regra")))
             item.update(suggestion=replacements[0] if replacements else None, suggestion_kind="possible",
                         confidence="alta" if spelling else "média",

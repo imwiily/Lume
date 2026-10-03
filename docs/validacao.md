@@ -19,6 +19,20 @@ Fragmentos deliberados fora da estrutura da frase e mensagens reescritas (ação
 - Manuscrito B: 30 → 30 ocorrências; mudou só a mensagem de 3 alertas de estrutura.
 - SHA-256 dos dois DOCX igual antes e depois e igual ao registrado nos relatórios.
 
+### Vírgula em “além disso”
+
+- Antes/depois contra `ebe5314`, mesma configuração: 240 testes do analisador (4 novos em
+  `test_languagetool.py`: complemento, conector sem vírgula, mensagem e ambiguidade), 25 dos
+  pacotes, 24 do Coerencia e contrato Python aprovados.
+- Corpus com LanguageTool: validação sem mudança (19/24, 5 alarmes falsos); desenvolvimento
+  34/42, alarmes falsos 3 → 2 (o de `dev-controle-alem`). Total 71 → 70 ocorrências.
+- Manuscritos A (211) e B (30): nenhum alerta entrou, saiu ou mudou de mensagem; SHA-256 dos
+  DOCX preservados.
+- LanguageTool real: as frases com “nada/ninguém/coisa alguma … além de…” ficam sem alerta;
+  “e além disso precisava”, “cansado além disso precisava” e “Além disso estava” continuam
+  apontadas. Ambiguidade aceita: “nada além disso” seguido de outra oração sem pontuação
+  (“não viu nada além disso precisava…”) fica sem alerta.
+
 ### Decisões por livro
 
 - `tests/BookMemoryCheck.swift` (novo, na montagem): mesmo texto com outro SHA-256, parágrafo

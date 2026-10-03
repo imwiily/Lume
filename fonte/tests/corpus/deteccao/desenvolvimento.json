@@ -241,6 +241,21 @@
       ],
       "erros": [],
       "aceitaveis": []
+    },
+    {
+      "id": "dev-controle-alem",
+      "tempo": "passado",
+      "controle": true,
+      "nota": "‘Além de’ como complemento (‘nada além disso’) e ‘além disso’ como conector entre vírgulas, escrito do zero em 03/10/2026.",
+      "paragrafos": [
+        "Capítulo 1",
+        "A despensa estava vazia. Não sobrou nada além disso na prateleira de cima.",
+        "O carteiro não encontrou ninguém além dele no portão da fazenda.",
+        "A viagem foi longa e, além disso, o ônibus quebrou duas vezes.",
+        "O mercado já tinha fechado. Além disso, a chuva não parava."
+      ],
+      "erros": [],
+      "aceitaveis": []
     }
   ]
 }

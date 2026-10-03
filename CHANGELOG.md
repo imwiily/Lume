@@ -23,7 +23,13 @@ deliberados e explicações mais claras.
   maiúscula na ação) e dá um exemplo montado com o próprio texto.
 - Regência de “chegar em”: vira nota de registro, com prioridade “Explorar” e sem sugestão de
   troca, já que a forma é corrente no português brasileiro.
-- Corpus de desenvolvimento: controles `dev-controle-elipse` e `dev-controle-reticencias`.
+- Vírgula em “além disso” (LanguageTool, `VERB_COMMA_CONJUNCTION`): sem alerta quando “além de”
+  completa um pronome ou sintagma (“não havia nada além disso”, “ninguém além dele”, “coisa
+  alguma além daquilo”, “nenhum caderno além desse”); o conector sem vírgulas (“cansado e além
+  disso precisava”) continua apontado. A mensagem dessa regra deixa de afirmar que o conector
+  “só deve ser utilizado no início duma frase”.
+- Corpus de desenvolvimento: controles `dev-controle-elipse`, `dev-controle-reticencias` e
+  `dev-controle-alem`.
 
 ## Lume 1.3 / FONTE 1.2.0 · Coerencia 1.1.0 — 01/10/2026
 
