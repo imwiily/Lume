@@ -36,7 +36,9 @@ LOCUTIONS = re.compile(r"\b(em direção|devido|graças|junto|frente|em frente|e
 STATIC = {"estar", "ficar", "morar", "viver", "residir", "hospedar", "trabalhar", "esconder", "guardar",
           "nascer", "dormir", "estudar", "situar", "localizar", "encontrar"}
 COLLECTIVE = {"maioria", "parte", "metade", "grupo", "porção", "conjunto", "bando", "multidão", "resto",
-              "total", "série", "número", "maior", "minoria", "quantidade", "pessoal", "gente", "turma"}
+              "total", "série", "número", "maior", "minoria", "quantidade", "pessoal", "gente", "turma",
+              # Quantificadores partitivos (“um monte de pássaros pousaram”): as duas concordâncias.
+              "monte", "montão", "punhado", "infinidade", "dezena", "centena", "milhar", "milhão"}
 EACH = {"nenhum", "nenhuma", "cada", "qualquer", "ninguém"}
 INVARIABLE = {"cinza", "rosa", "laranja", "vinho", "creme", "gelo", "salmão", "musgo", "oliva", "turquesa",
               "anil", "caqui", "abóbora", "simples", "reles", "grátis", "vermelho-escuro", "azul-marinho"}
@@ -321,9 +323,21 @@ def agreement(block, doc, emit):
                 continue
             emit("concordancia", "Concordância verbal", subject.idx, verb.idx + len(verb.text), "probable_error", .75,
                  f"O sujeito ‘{subject.text}’ está no plural, mas o verbo ‘{verb.text}’ está no singular.")
-        elif subject.lower_ in EACH and verb_number == "Plur" and subject.pos_ in {"DET", "PRON"}:
+        # O modelo às vezes etiqueta ‘nenhuma’ como numeral (“Nenhuma das respostas…”).
+        elif subject.lower_ in EACH and verb_number == "Plur" and subject.pos_ in {"DET", "PRON", "NUM"}:
             emit("concordancia", "Concordância verbal", subject.idx, verb.idx + len(verb.text), "probable_error", .75,
                  f"Com ‘{subject.text}’ como núcleo do sujeito, o verbo fica no singular; ‘{verb.text}’ está no plural.")
+        # Concordância por atração: núcleo singular com complemento “de + plural” e verbo no
+        # plural (“a lista de objetos estavam”). Coletivos e partitivos (“a maioria dos alunos”)
+        # admitem as duas concordâncias e ficam de fora.
+        elif (subject.pos_ == "NOUN" and number(subject) == "Sing" and not subject.lower_.endswith("s")
+              and verb_number == "Plur" and "3" in verb.morph.get("Person") and subject.lower_ not in COLLECTIVE
+              and any(c.dep_ == "nmod" and number(c) == "Plur" and c.lower_.endswith("s")
+                      and any(k.dep_ == "case" and k.lower_ in {"de", "dos", "das"} for k in c.children)
+                      for c in subject.children)):
+            emit("concordancia", "Concordância verbal", subject.idx, verb.idx + len(verb.text), "probable_error", .75,
+                 f"O núcleo do sujeito é ‘{subject.text}’, no singular; ‘{verb.text}’ está no plural, talvez atraído pelo "
+                 "complemento no plural. Confira a concordância.")
     for token in doc:
         if token.pos_ != "ADJ" or token.lower_ in INVARIABLE:
             continue

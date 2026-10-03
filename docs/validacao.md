@@ -3,6 +3,30 @@
 Os registros abaixo pertencem às versões indicadas. Caminhos citados nos registros anteriores à 1.0 são da antiga pasta `LumeMac/` (correspondência em [README.md](../README.md#estrutura)); os comandos abaixo usam a raiz do repositório. As verificações do hotfix aparecem primeiro; os registros anteriores são mantidos para rastreabilidade.
 
 
+## Próxima versão — sequência temporal (03/10/2026)
+
+Comparação contra `551ad7c` (Lume 1.3.1), com `--modo ambas --tempo passado --languagetool`;
+saídas locais em `build/comparacao-sequencia/`.
+
+- 260 testes do analisador (13 em `test_temporal_sequence.py`), 25 dos pacotes, 24 do Coerencia
+  e contrato Python aprovados. Expectativas alteradas, pelo mesmo motivo (ações coordenadas do
+  mesmo sujeito passam de atenção editorial a provável erro de confiança alta): “O assistente
+  abriu a mala e retira…” em `test_temporal.py` e “Clara abriu a janela e observa…” no contrato
+  Python (`coordinated_tense_mismatch`; sugestão e âncora mantidas). Categoria `residuo_edicao`
+  aceita no corpus.
+- Corpus: validação sem mudança (19/24, 5 alarmes falsos); desenvolvimento 35/46 → 37/46, alarmes
+  falsos 3 → 3. Novo texto `dev-sequencia-temporal`: 3 de 4 erros (falta a atração em “a pilha
+  de cartas antigas estavam”). O controle `dev-controle-presente-legitimo` mantém 1 alarme falso
+  (hábito sem marca: “o rio corre para o sul durante todo o ano”), já presente antes.
+- Manuscrito A: 207 → 209. Seis alertas de confiança alta (dois novos e quatro promovidos de
+  `Tempo verbal`), todos revistos e considerados quebras reais de tempo. 27 `Tempo verbal`
+  passam a confiança baixa; revistos: perguntas, comentários do narrador, propriedades e fala
+  relatada, com 2 ou 3 casos de fronteira em trechos inteiros no presente. Um falso positivo de
+  concordância (“um monte de …”) foi visto na primeira rodada e corrigido (quantificadores
+  partitivos).
+- Manuscrito B: 30 → 30, sem mudança.
+- Não implementado: Auditor Final (fora do escopo atual); dêixis além de “há + tempo”.
+
 ## Lume 1.3.1 / FONTE 1.2.1 · Coerencia 1.1.0 — 03/10/2026
 
 Fragmentos deliberados fora da estrutura da frase e mensagens reescritas (ação após fala,

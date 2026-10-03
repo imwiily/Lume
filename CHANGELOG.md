@@ -2,6 +2,28 @@
 
 As seções antigas descrevem a cobertura e os resultados de cada entrega, não o estado atual. Nas seções anteriores à 1.0, caminhos citados são da antiga pasta `LumeMac/`; a correspondência com a estrutura atual está em [README.md](README.md#estrutura).
 
+## Próxima versão — em desenvolvimento
+
+- Sequência temporal: o tempo verbal passa a ser lido também na sequência de ações, com o
+  estado narrativo local (até 4 frases antes e 2 depois, no mesmo parágrafo ou no anterior).
+  Três alertas novos, de confiança alta, em `Coerência temporal entre orações`:
+  `past_present_past` (ação no presente entre ações no passado do mesmo plano),
+  `coordinated_tense_mismatch` (ações coordenadas do mesmo sujeito em tempos diferentes, nos
+  dois sentidos: “pega … e abriu”, “puxou … e solta”) e `same_subject_narrative_shift` (presente
+  depois de uma cadeia de ações no passado do mesmo sujeito).
+- O presente que não é evento narrativo (pergunta ou exclamação, verdade geral, hábito, fala
+  relatada, propriedade com ‘ser’, ‘ter’, ‘haver’ ou ‘parecer’, modal com infinitivo) continua
+  visível em `Tempo verbal`, com confiança baixa. ‘estar’ (estado passageiro, progressivo) e
+  ‘parecer’ + infinitivo seguem com confiança média. “Há dez minutos” numa narração no passado
+  ganha explicação própria, com confiança baixa.
+- Verbos que o modelo lê como nome ou adjetivo (“Procura…” no início da frase, “Ela segura a
+  mochila”, “Abri”) são reconhecidos pelo léxico e pela sintaxe na sequência temporal.
+- Resíduo de edição: dois auxiliares conjugados seguidos no mesmo predicado (“tinha havia
+  percebido”), sob “Estrutura da frase”.
+- Concordância: “nenhum/cada” etiquetado como numeral e concordância por atração (“a lista de
+  objetos estavam”); coletivos e quantificadores partitivos (“a maioria dos”, “um monte de”)
+  ficam de fora.
+
 ## Lume 1.3.1 / FONTE 1.2.1 · Coerencia 1.1.0 — 03/10/2026
 
 Decisões mantidas depois de editar o manuscrito fora do Lume, menos alertas sobre fragmentos

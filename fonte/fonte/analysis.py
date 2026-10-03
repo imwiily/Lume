@@ -274,12 +274,24 @@ def analyze(blocks: list[Block], nlp, tense="auto", protect_italics=True, min_wo
         for token in doc:
             observed = indicative_tense(token)
             if "tempo_verbal" in active and expected and observed and observed != expected:
-                from .temporal import legitimate_present
+                from .temporal import legitimate_present, present_function
                 if expected == "passado" and legitimate_present(token):
                     continue
-                results.append(finding(block, "Tempo verbal", "Verificar", token.idx,
-                    token.idx+len(token.text),
-                    f"O modelo e o léxico sustentam uma leitura no {observed}, em texto configurado/inferido como {expected}. Isso não confirma erro: pensamento, comentário do narrador, presente geral e mudanças deliberadas de plano temporal precisam ser avaliados no contexto."))
+                reason = (f"O modelo e o léxico sustentam uma leitura no {observed}, em texto configurado/inferido como {expected}. "
+                          "Isso não confirma erro: pensamento, comentário do narrador, presente geral e mudanças deliberadas "
+                          "de plano temporal precisam ser avaliados no contexto.")
+                elapsed = re.match(r"há\s+(?:\d+|[^\W\d_]+)\s+(?:segundos?|minutos?|horas?|dias?|semanas?|meses|anos?)\b",
+                                   block.text[token.idx:], re.I)
+                if expected == "passado" and elapsed:
+                    reason = (f"‘{elapsed[0]}’ mede o tempo a partir do presente. Numa narração no passado, ‘havia’ ou "
+                              "uma referência como ‘… antes’ situa o intervalo no plano da história; a leitura atual "
+                              "pode ser intencional (voz do narrador).")
+                item = finding(block, "Tempo verbal", "Verificar", token.idx, token.idx+len(token.text), reason)
+                # Presente que não é evento narrativo (estado, verdade geral, pensamento, comentário)
+                # continua visível, com confiança baixa; a sequência temporal trata os eventos.
+                if expected == "passado" and observed == "presente" and present_function(token) != "narrative_event":
+                    low_confidence.add(item.id)
+                results.append(item)
         previous = None
         sents = list(doc.sents)
         for index, sent in enumerate(sents):
@@ -330,6 +342,18 @@ def analyze(blocks: list[Block], nlp, tense="auto", protect_italics=True, min_wo
                 continue
             results.append(finding(block, "Palavra repetida", "Verificar", match.start(), match.end(),
                 "Palavra repetida consecutivamente na narração. Confira se é repetição expressiva ou digitação.", "Regras FONTE"))
+        # Resíduo de edição: dois auxiliares conjugados seguidos no mesmo predicado (“tinha havia
+        # percebido”). Na locução verbal só o primeiro é finito; os outros ficam no infinitivo,
+        # gerúndio ou particípio (“tinha sido”, “vai ter”, “estava sendo”).
+        for head in (doc if "estrutura" in active else []):
+            auxiliaries = [c for c in head.children if c.dep_ in {"aux", "aux:pass", "cop"} and finite(c)]
+            for first, second in zip(auxiliaries, auxiliaries[1:]):
+                if second.i == first.i + 1 and first.lower_ != second.lower_:
+                    excerpt = block.text[first.idx:second.idx + len(second.text)]
+                    results.append(finding(block, "Resíduo de edição", "Verificar", first.idx, second.idx + len(second.text),
+                        f"‘{excerpt}’: dois verbos auxiliares conjugados seguidos no mesmo predicado. Numa locução "
+                        "verbal só um deles fica conjugado; pode ser resto de uma edição. Confira qual forma deve ficar.",
+                        "Regras FONTE"))
     results.sort(key=lambda f: (f.paragraph, f.start, f.category))
     metadata = {"tempo": expected or "inconclusivo", "contagem_verbos": dict(counts),
                 "modelo": nlp.meta.get("name"), "versao_modelo": nlp.meta.get("version"),

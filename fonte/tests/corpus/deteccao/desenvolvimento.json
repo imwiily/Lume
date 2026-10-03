@@ -256,6 +256,40 @@
       ],
       "erros": [],
       "aceitaveis": []
+    },
+    {
+      "id": "dev-sequencia-temporal",
+      "tempo": "passado",
+      "nota": "Quebras de tempo em cadeias de ações no passado, concordância por atração e resíduo de edição, escrito do zero em 03/10/2026.",
+      "paragrafos": [
+        "Capítulo 1",
+        "Joana desceu a escada do sobrado. Atravessou o quintal molhado. Depois abriu o portão de ferro.",
+        "O carteiro tirou o envelope da bolsa e entrega a carta para ela.",
+        "Ela rasgou o papel com cuidado. Procura a assinatura no fim da página. Depois guardou a carta no bolso.",
+        "A pilha de cartas antigas estavam sobre a mesa da cozinha.",
+        "Joana tinha estava esperando aquela notícia havia semanas."
+      ],
+      "erros": [
+        {"p": 3, "trecho": "entrega", "categoria": "tempo_verbal", "camada": "linguistica"},
+        {"p": 4, "trecho": "Procura", "categoria": "tempo_verbal", "camada": "linguistica"},
+        {"p": 5, "trecho": "estavam", "categoria": "concordancia_verbal", "camada": "linguistica"},
+        {"p": 6, "trecho": "tinha estava", "categoria": "residuo_edicao", "camada": "linguistica"}
+      ],
+      "aceitaveis": []
+    },
+    {
+      "id": "dev-controle-presente-legitimo",
+      "tempo": "passado",
+      "controle": true,
+      "nota": "Presentes legítimos numa narração no passado (verdade geral, hábito, estado, pensamento), escrito do zero em 03/10/2026.",
+      "paragrafos": [
+        "Capítulo 1",
+        "O professor explicou que a água ferve a cem graus ao nível do mar.",
+        "Naquela tarde, Rui olhou para a irmã. Por que eu sempre faço isso?",
+        "A vila ficou para trás. O rio corre para o sul durante todo o ano."
+      ],
+      "erros": [],
+      "aceitaveis": []
     }
   ]
 }

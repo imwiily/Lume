@@ -9,7 +9,7 @@ import unicodedata
 
 from .analysis import finding
 from .editorial.common import evidence
-from .lexicon import FINITE, PAST, PRESENT, FUTURE, flags, finite, model_finite
+from .lexicon import FINITE, PAST, PRESENT, FUTURE, NONFINITE, NONVERB, flags, finite, model_finite
 from .segments import classify, spans
 
 TIME_SHIFTS = {"hoje", "agora", "atualmente", "amanhã", "ontem", "outrora", "antigamente",
@@ -176,7 +176,7 @@ def temporal_alert(block, offset, anchor, target, subtype, reason, severity, con
     result = asdict(finding(block, "Coerência temporal entre orações", "Verificar", start, end,
                             reason, "FONTE Morfossintático · " + subtype))
     result.update(rule="coerencia_temporal", category_code="temporal_consistency", relation=subtype,
-                  severity=severity, confidence="média" if confidence >= .6 else "baixa",
+                  severity=severity, confidence="alta" if confidence >= .85 else "média" if confidence >= .6 else "baixa",
                   confidence_score=confidence, suggestion=suggestion, suggestion_kind="possible",
                   related=[evidence(block, offset + anchor.idx, offset + anchor.idx + len(anchor.text))],
                   temporal_evidence={"anchor": anchor.text, "anchor_form": form(anchor),
@@ -253,6 +253,197 @@ def relations(block, offset, doc):
     return out
 
 
+# Propriedade, posse, aparência e existência: no presente, descrevem mais do que narram.
+# ‘estar’ fica de fora: estado passageiro (“está ali”) e progressivo (“está voando”) narram.
+STATE = STATIVE | {"ser", "ter", "haver", "parecer", "viver", "morar", "custar", "medir", "pesar"}
+# Modais com infinitivo (“posso garantir”, “deve haver”): atitude ou possibilidade, não evento.
+MODAL = {"poder", "dever", "precisar", "querer"}
+# Verbos que introduzem conteúdo relatado ou sabido: “explicou que a Terra gira”.
+REPORTING = {"dizer", "explicar", "contar", "afirmar", "saber", "aprender", "ensinar", "descobrir", "lembrar",
+             "perceber", "entender", "ler", "ouvir", "achar", "pensar", "acreditar", "notar", "garantir"}
+HABITUAL_MARKS = {"quando", "se", "sempre", "sempre que", "toda vez que"}
+MAIN_LINE = {"ROOT", "conj", "parataxis"}
+EVENT_RELATIONS = {"past_present_past", "coordinated_tense_mismatch", "same_subject_narrative_shift"}
+
+
+def event_tense(token):
+    """Passado ou presente de um predicado finito, combinando modelo, léxico e sintaxe.
+
+    O modelo às vezes etiqueta o verbo como adjetivo (“Ela segura a mochila”) ou como
+    verbo sem morfologia (“e solta o peixe”). Com o léxico admitindo a forma finita, o
+    modelo sem leitura não finita e um objeto ligado (particípio sem auxiliar não toma
+    objeto), a leitura verbal é aceita. Formas ambíguas não decidem.
+    """
+    value = form(token)
+    if value in {"past", "present"}:
+        return value
+    lex = flags(token.text)
+    verb_form = token.morph.get("VerbForm")
+    if value is not None or not lex & FINITE or (verb_form and "Fin" not in verb_form):
+        return None
+    # Forma só verbal e finita no léxico (“Abri”, “Procuro”): basta, mesmo etiquetada como nome.
+    exclusive = not lex & (NONVERB | NONFINITE) and finite(token)
+    if not exclusive:
+        if not any(c.dep_ in {"obj", "iobj"} for c in token.children):
+            return None
+        if not (finite(token) or token.pos_ == "VERB"):
+            return None
+    if lex & PRESENT and not lex & (PAST | FUTURE):
+        return "present"
+    if lex & PAST and not lex & (PRESENT | FUTURE):
+        return "past"
+    return None
+
+
+def present_function(token):
+    """Função provável de um verbo no presente na narração, por sinais transparentes.
+
+    `narrative_event` só quando nenhum sinal de pensamento, fala relatada, verdade geral,
+    hábito, estado ou comentário aparece. Na dúvida, não é evento.
+    """
+    sentence = token.sent
+    root = predicate(token)
+    if sentence.text.rstrip().endswith(("?", "!")):
+        return "thought"
+    if explicit_shift(root):
+        return "narrator_comment"
+    walk = root
+    while walk.head != walk:
+        if walk.dep_ in {"ccomp", "csubj", "acl:relcl", "acl", "advcl", "xcomp"} and walk.head.lemma_.casefold() in REPORTING:
+            return "general_truth"
+        walk = walk.head
+    # Hábito ou condição geral: “derrete quando a temperatura aumenta”. O modelo liga
+    # ‘quando’ como mark ou advmod; a oração principal não pode estar no passado.
+    def habitual(clause):
+        return bool({m.lower_ for m in clause.children if m.dep_ in {"mark", "advmod"}} & HABITUAL_MARKS)
+    if root.dep_ in {"advcl", "ccomp"} and habitual(root) and event_tense(root.head) != "past":
+        return "general_truth"
+    if any(c.dep_ in {"advcl", "ccomp"} and habitual(c) and event_tense(c) == "present" for c in root.children):
+        return "general_truth"
+    lemma = token.lemma_.casefold()
+    copula = token if token.dep_ == "cop" else next((c for c in root.children if c.dep_ == "cop"), None)
+    if copula is not None:
+        lemma = copula.lemma_.casefold()
+    # “Parece envolver”: aparência de um acontecimento, não propriedade.
+    if lemma in STATE and not (lemma == "parecer" and any(c.dep_ == "xcomp" and c.pos_ in {"VERB", "AUX"}
+                                                        for c in token.children)):
+        return "state"
+    if lemma in MODAL and any(c.dep_ == "xcomp" for c in token.children):
+        return "state"
+    # As mesmas exceções da regra de tempo verbal (marca explícita, ‘há muito tempo’, locuções).
+    if legitimate_present(token):
+        return "narrator_comment"
+    # A pessoa não decide: narradores em 1ª pessoa também quebram a sequência (“Abri… Olho…”).
+    return "narrative_event"
+
+
+def subject_key(token):
+    """Sujeito explícito (lema) ou elíptico; o coordenado sem sujeito herda o do núcleo."""
+    root = predicate(token)
+    current = root
+    while True:
+        subject = next((c for c in current.children if c.dep_ in {"nsubj", "nsubj:pass"}), None)
+        if subject is not None:
+            return subject.lemma_.casefold()
+        if current.dep_ != "conj" or current.head == current:
+            return None
+        current = current.head
+
+
+def compatible(a, b):
+    """Mesmo sujeito explícito, ou um deles elíptico com pessoa e número iguais."""
+    if a["subject"] and b["subject"]:
+        return a["subject"] == b["subject"]
+    return a["person"] == b["person"] or not a["person"] or not b["person"]
+
+
+def events(block, offset, doc, nlp, sentence_base):
+    """Predicados finitos da linha principal, com tempo, função, sujeito e posição."""
+    out = []
+    for index, sentence in enumerate(doc.sents):
+        tokens, base = sentence, offset
+        first = next((t for t in sentence if t.is_alpha), None)
+        # Segunda leitura com inicial minúscula: “Procura durante…” lido como substantivo.
+        if (first is not None and first.text[:1].isupper() and flags(first.text) & FINITE
+                and not any(event_tense(t) for t in sentence)):
+            start = first.idx - sentence.start_char
+            text = sentence.text
+            tokens = nlp(text[:start] + text[start].lower() + text[start + 1:])
+            base = offset + sentence.start_char
+        for token in tokens:
+            tense = event_tense(token)
+            if tense is None or token.dep_ in {"aux", "aux:pass"} or predicate(token).dep_ not in MAIN_LINE:
+                continue
+            idx = base + token.idx
+            out.append({"block": block, "start": idx, "end": idx + len(token.text), "token": token, "tense": tense,
+                        "function": present_function(token) if tense == "present" else "narrative_event",
+                        "subject": subject_key(token), "person": "".join(token.morph.get("Person")) +
+                        "".join(token.morph.get("Number")), "sentence": sentence_base + index})
+    return out
+
+
+def sequence_alert(event, anchors, subtype, reason, confidence, severity="probable_error"):
+    block, target = event["block"], event["token"]
+    result = asdict(finding(block, "Coerência temporal entre orações", "Verificar", event["start"], event["end"],
+                            reason, "FONTE Morfossintático · " + subtype))
+    result.update(rule="coerencia_temporal", category_code="temporal_consistency", relation=subtype,
+                  severity=severity, confidence="alta" if confidence >= .85 else "média" if confidence >= .6 else "baixa",
+                  confidence_score=confidence, suggestion=imperfect_suggestion(target) if target.morph.get("Person") else None,
+                  suggestion_kind="possible",
+                  related=[evidence(a["block"], a["start"], a["end"]) for a in anchors if a["block"] is block] or
+                          [evidence(anchors[0]["block"], anchors[0]["start"], anchors[0]["end"])],
+                  temporal_evidence={"anchor": anchors[0]["token"].text, "anchor_form": "past",
+                                     "target": target.text, "target_form": "present",
+                                     "function": event["function"]})
+    return result
+
+
+def sequence(evts):
+    """Estado narrativo local: presente que é evento entre ações no passado do mesmo plano.
+
+    Janela de até 4 frases antes e 2 depois. Exige função `narrative_event`; o sujeito
+    precisa ser o mesmo, ou elíptico compatível, para a confiança alta.
+    """
+    out = []
+    for i, event in enumerate(evts):
+        if event["tense"] != "present" or event["function"] != "narrative_event":
+            continue
+        before = [e for e in evts[:i] if event["sentence"] - e["sentence"] <= 4]
+        after = [e for e in evts[i + 1:] if e["sentence"] - event["sentence"] <= 2]
+        token = event["token"]
+        # Coordenação na mesma oração: “pega … e abriu”, “puxou … e solta”.
+        linked = [e for e in before + after if e["sentence"] == event["sentence"] and e["tense"] == "past"
+                  and ((token.dep_ == "conj" and e["token"] == token.head)
+                       or (e["token"].dep_ == "conj" and e["token"].head == token))
+                  # O coordenado sem sujeito próprio herda o do núcleo: compara o sujeito herdado,
+                  # não a pessoa da morfologia do modelo (que erra na 1ª pessoa sem sujeito).
+                  and e["subject"] == event["subject"]]
+        if linked:
+            reason = (f"‘{token.text}’ (presente) e ‘{linked[0]['token'].text}’ (passado) são ações coordenadas do mesmo "
+                      "sujeito, na mesma sequência. Provável inconsistência de tempo verbal: confira se as duas "
+                      "ações deveriam estar no mesmo tempo.")
+            out.append(sequence_alert(event, linked, "coordinated_tense_mismatch", reason, .88))
+            continue
+        previous = before[-1] if before else None
+        following = after[0] if after else None
+        if (previous and following and previous["tense"] == "past" and following["tense"] == "past"
+                and previous["sentence"] < event["sentence"] < following["sentence"]
+                and (compatible(previous, event) or compatible(following, event))):
+            reason = (f"Provável inconsistência de tempo verbal: ‘{token.text}’, uma ação no presente, aparece entre "
+                      f"‘{previous['token'].text}’ e ‘{following['token'].text}’, narradas no passado, no mesmo plano "
+                      "narrativo e sem marca de fala, pensamento ou mudança deliberada de tempo.")
+            out.append(sequence_alert(event, [previous, following], "past_present_past", reason, .9))
+            continue
+        chain = [e for e in before if e["sentence"] < event["sentence"]][-3:]
+        if (len(chain) >= 2 and all(e["tense"] == "past" and compatible(e, event) for e in chain)
+                and not (following and following["tense"] == "present")):
+            reason = (f"As ações anteriores do mesmo sujeito estão no passado ({', '.join(e['token'].text for e in chain)}); "
+                      f"‘{token.text}’ passa ao presente sem marca de mudança de plano. Provável inconsistência de "
+                      "tempo verbal; confira se a mudança é intencional.")
+            out.append(sequence_alert(event, chain, "same_subject_narrative_shift", reason, .85))
+    return out
+
+
 def accent_candidates(word):
     """Recupera hiatos em formas do imperfeito confirmadas pelo léxico.
 
@@ -313,10 +504,22 @@ def analyze(blocks, nlp, settings, expected_tense="auto"):
         for start, end, role in spans(labels, allowed):
             if block.text[start:end].strip():
                 jobs.append((block, start, end, role))
-    out = []
+    out, evts, sentences, last_block = [], [], 0, None
+    headings = [b.number for b in blocks if b.heading]
     for (block, start, end, role), doc in zip(jobs, nlp.pipe((b.text[s:e] for b, s, e, _ in jobs), batch_size=32)):
         if settings["rules"]["coerencia_temporal"] and role in settings["tense_scopes"]:
             out.extend(relations(block, start, doc))
+            # A sequência só considera a narração; um título (capítulo) recomeça a cena.
+            if role == "narracao" and expected_tense == "passado":
+                if last_block is not None and any(last_block.number < h < block.number for h in headings):
+                    out.extend(sequence(evts)); evts = []
+                if last_block is not None and last_block is not block:
+                    sentences += 2  # Mudança de parágrafo pesa como distância.
+                evts.extend(events(block, start, doc, nlp, sentences))
+                sentences += len(list(doc.sents)); last_block = block
         if settings["rules"]["acentuacao_contextual"] and role == "narracao":
             out.extend(accents(block, start, doc, expected_tense))
-    return out
+    out.extend(sequence(evts))
+    # O alerta de sequência substitui a relação genérica no mesmo verbo.
+    strong = {(f["paragraph"], f["start"], f["end"]) for f in out if f.get("relation") in EVENT_RELATIONS}
+    return [f for f in out if f.get("relation") in EVENT_RELATIONS or (f["paragraph"], f["start"], f["end"]) not in strong]

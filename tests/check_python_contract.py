@@ -41,7 +41,9 @@ def main():
             assert 0 <= finding["start"] <= finding["end"] <= len(finding["text"])
         temporal = next(f for f in report["findings"] if f["excerpt"] == "observa")
         assert temporal["rule"] == "coerencia_temporal"
-        assert temporal["relation"] == "coordinated_past_present"
+        # Ações coordenadas do mesmo sujeito em tempos diferentes (sequência temporal, 1.3.1).
+        assert temporal["relation"] == "coordinated_tense_mismatch"
+        assert temporal["confidence"] == "alta"
         assert temporal["suggestion"] == "observava"
         anchor = temporal["related"][0]
         assert anchor["text"][anchor["start"]:anchor["end"]] == "abriu"

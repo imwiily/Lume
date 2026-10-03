@@ -107,13 +107,18 @@ class TemporalTests(unittest.TestCase):
         self.assertFalse(self.scan('Ele gostava de poesia, enquanto ela prefere romances.'))
 
     def test_nested_coordination_and_simple_coordination(self):
+        # Estado no presente coordenado a um passado: atenção editorial.
         for text in ['Parecia estar ligado direito e não está desligado.',
-                     'O objeto parecia intacto e está quebrado.',
-                     'O assistente abriu a mala e retira o equipamento.']:
+                     'O objeto parecia intacto e está quebrado.']:
             with self.subTest(text=text):
                 f, = self.scan(text)
                 self.assertEqual(f['relation'], 'coordinated_past_present')
                 self.assertEqual(f['severity'], 'editorial_attention')
+        # Duas ações do mesmo sujeito em tempos diferentes: desde a sequência temporal, provável
+        # erro com confiança alta (antes, atenção editorial como os estados acima).
+        f, = self.scan('O assistente abriu a mala e retira o equipamento.')
+        self.assertEqual((f['relation'], f['severity'], f['confidence']),
+                         ('coordinated_tense_mismatch', 'probable_error', 'alta'))
 
     def test_resultative_and_explicit_present_preserved(self):
         for text in ['A ponte parecia sólida e agora está interditada.',
