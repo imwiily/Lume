@@ -2,7 +2,10 @@
 
 As seções antigas descrevem a cobertura e os resultados de cada entrega, não o estado atual. Nas seções anteriores à 1.0, caminhos citados são da antiga pasta `LumeMac/`; a correspondência com a estrutura atual está em [README.md](README.md#estrutura).
 
-## Próxima versão — em desenvolvimento
+## Lume 1.4 / FONTE 1.3.0 · Coerencia 1.1.0 — 04/10/2026
+
+O tempo verbal passa a ser lido na sequência de ações da cena, e não só verbo a verbo; menos
+alertas sobre presentes legítimos e fragmentos deliberados.
 
 - Sequência temporal: o tempo verbal passa a ser lido também na sequência de ações, com o
   estado narrativo local (até 4 frases antes e 2 depois, no mesmo parágrafo ou no anterior).
@@ -73,6 +76,24 @@ As seções antigas descrevem a cobertura e os resultados de cada entrega, não 
 - Concordância: “nenhum/cada” etiquetado como numeral e concordância por atração (“a lista de
   objetos estavam”); coletivos e quantificadores partitivos (“a maioria dos”, “um monte de”)
   ficam de fora.
+- Verbo único da frase sem objeto, abrindo-a ou logo depois do grupo nominal que a abre
+  (“Caminho até a janela.”, “O relógio demora a bater.”), entra na sequência temporal mesmo
+  quando o modelo o lê como nome. Palavra sozinha (“Nada.”) e palavras gramaticais que o léxico
+  também lista como verbo (“Aquela”, “Apenas”, “Pelo”) ficam de fora. A 1ª do plural igual no
+  presente e no perfeito (“passamos”) serve de âncora no passado.
+- ‘Ainda’ com ‘estar’ sem predicativo (“ainda está no quintal”) não libera o presente.
+- Função do presente: ‘parecer’ + adjetivo com sujeito pessoa é estado passageiro; hábito sem
+  conjunção (“durante todo o ano”, “normalmente”, ‘costumar’) e propriedade genérica (“O ferro
+  conduz eletricidade”) são verdade geral, com confiança baixa.
+- “era” nome depois de artigo indefinido ou contração (“uma era de ouro”, “nessa era”) não é
+  verbo; “Essa era a última carroça” continua cópula.
+- Fala aberta por hífen e espaço (“- Vamos.”) é reconhecida como o travessão, respeitando a
+  escolha de analisar ou não o tempo verbal no diálogo; o hífen de palavra composta continua
+  dentro da fala.
+- Nova suspeita em `Estrutura da frase` (confiança baixa,
+  `fragmentos_sem_verbo.subordinate_without_main`): oração subordinada sem principal (“Quando
+  saiu do consultório depois de assinar os papéis.”). Frase com vírgula, nome seguido só de
+  relativa (“Uma coisa que ninguém esperava.”) e subordinada intercalada ficam de fora.
 
 ## Lume 1.3.1 / FONTE 1.2.1 · Coerencia 1.1.0 — 03/10/2026
 

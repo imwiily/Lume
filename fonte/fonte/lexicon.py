@@ -70,9 +70,20 @@ def nominal_context(token, value):
     return False
 
 
+# Determinantes que só antecedem nome (“uma era de ouro”, “nessa era”). Ficam de fora os que
+# também são pronomes sujeito (“Essa era a última carroça”, “A minha era maior”) e ‘a’ e ‘o’,
+# também oblíquos (“a viu”); as contrações com preposição nunca são sujeito.
+NOMINAL_DETERMINERS = {'um', 'uma', 'uns', 'umas', 'num', 'numa', 'nuns', 'numas',
+                       'nessa', 'nesse', 'nesta', 'neste', 'naquela', 'naquele',
+                       'dessa', 'desse', 'desta', 'deste', 'daquela', 'daquele',
+                       'da', 'do', 'na', 'no', 'pela', 'pelo'}
+
+
 def finite(token):
     value = flags(token.text)
     if value and not value & FINITE:
+        return False
+    if token.i > 0 and token.doc[token.i - 1].text.casefold() in NOMINAL_DETERMINERS and value & NONVERB:
         return False
     if value & FINITE:
         if model_finite(token):

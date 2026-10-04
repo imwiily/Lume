@@ -107,3 +107,47 @@ e partitivo “uma das”. Pendente: comparação nos manuscritos de referência
 
 Instrumentação `trace` em `events`/`sequence`/`analyze` (lista opcional; não muda alertas).
 Causas e correções em `docs/validacao.md`.
+
+## Etapa 5 — limitações listadas em 04/10/2026 — concluída e lançada na 1.4
+
+**Código alterado sem executar testes, a pedido do autor. Na próxima sessão, antes de qualquer
+outra coisa:** rodar as suítes (FONTE, pacotes, contrato Python, Coerencia), os testes novos de
+`KnownLimitsTests` em `fonte/tests/test_temporal_sequence.py`, o corpus e a comparação antes/depois
+nos manuscritos (A: `.pages` atual do iCloud; B: versão Wattpad), e a busca de sobreposição de 5
+palavras. Só depois atualizar CHANGELOG e `docs/validacao.md` e fazer o commit (base: `87edbbe`).
+
+Alterações (não commitadas):
+- `temporal.event_tense`: verbo sem objeto quando é o único candidato da frase, abrindo-a ou logo
+  depois do sujeito (“Aponto para…”, “O relógio demora…”); 1ª do plural ambígua (“passamos”) lida
+  como passado (âncora, nunca alvo).
+- `temporal.explicit_shift`: ‘ainda’ com ‘estar’ sem predicativo (“ainda está no quintal”) não libera.
+- `temporal.present_function`: ‘parecer’ + adjetivo com sujeito pessoa → estado passageiro (peso
+  médio); hábito sem conjunção (“durante todo o ano”, “normalmente”, ‘costumar’) e propriedade
+  genérica (“O ferro conduz eletricidade”) → verdade geral (peso baixo).
+- `lexicon.finite`: forma com leitura nominal logo depois de determinante só nominal (“uma era”,
+  “nessa era”) não é verbo.
+- `analysis`: parágrafo aberto por hífen/travessão + espaço fora do alerta genérico de tempo;
+  nova checagem de oração subordinada ou relativa sem principal (Estrutura da frase, confiança
+  baixa, `fragmentos_sem_verbo.subordinate_without_main`).
+- Não tratado: limites do modelo pequeno em geral, correferência além do básico, e os casos do
+  corpus (crase da validação, ortografia e “a pilha de cartas antigas estavam”), que precisam de
+  investigação com execução.
+
+Resultado da execução (04/10/2026). A primeira rodada teve 5 falhas novas (a base `87edbbe` passava
+inteira), corrigidas assim:
+- Fala com hífen: a exclusão fixa em `analysis` ignorava `tense_scopes`; agora `segments.classify`
+  reconhece “- ” no início do parágrafo como travessão (o hífen de palavra composta continua na fala).
+- `lexicon.NOMINAL_DETERMINERS`: sem demonstrativos e possessivos soltos, que também são sujeito
+  (“Essa era a última carroça da feira”); ficam artigos indefinidos e contrações com preposição.
+- `temporal.sole_verb` (extraída de `event_tense` e aceita como linha principal): exige uma palavra
+  depois na frase (“Nada.” não é ‘nadar’), recusa classes fechadas (“Aquela”, “Apenas”, “Pelo”) e
+  reconhece o grupo nominal pela forma, porque o modelo às vezes faz do nome a raiz.
+- Subordinada sem principal: abertura por subordinante só sem vírgula e com um verbo finito; caso de
+  dois sujeitos pendurados no verbo da subordinada; retirada a variante “nome + relativa”, que só
+  gerou falsos positivos nos manuscritos (fragmento nominal comum, e o modelo engole a principal).
+
+Evidências: FONTE 299 testes OK; pacotes/contratos 25 OK; Coerencia 24 OK. Corpus (todos): igual à
+base, 46/59 encontrados, 6 alarmes falsos, 7 sobre trechos aceitáveis. Manuscritos sem LanguageTool:
+A 44 → 45 (+1 acerto: presente entre dois passados, verbo sem objeto); B 14 → 14. Sobreposição de 5
+palavras entre o diff desde `main` e A/B: duas encontradas em comentários (trocadas), nenhuma restante.
+Corpus: texto `dev-limites-conhecidos` em `desenvolvimento.json` (2/2, nenhum alarme falso).

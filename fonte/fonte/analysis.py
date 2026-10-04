@@ -328,6 +328,36 @@ def analyze(blocks: list[Block], nlp, tense="auto", protect_italics=True, min_wo
                 if classe == "uncertain":
                     low_confidence.add(item.id)
                 results.append(item)
+            # Oração subordinada sem principal (“Quando chegou ao quarto depois de falar com todos.”,
+            # “O homem que estava parado na porta enquanto todos conversavam.”): tem verbo finito,
+            # mas todos estão em orações dependentes. Confiança baixa: o fragmento pode ser estilo.
+            # Nome seguido só de relativa (“Uma coisa que nunca tinha visto.”) fica de fora: é
+            # fragmento nominal comum na prosa, e o modelo costuma engolir a principal na relativa.
+            if "estrutura" in active and len(words) >= 6 and sent.text.rstrip().endswith("."):
+                root = sent.root
+                opener = words[0].lower_
+                verbs = [t for t in sent if finite(t)]
+                # O modelo erra a árvore nessas frases; a forma confirma. Abertura por subordinante:
+                # sem vírgula e com um só verbo finito (“Quando o trem chegou, a menina…” tem a
+                # principal depois da vírgula).
+                subordinate_root = (opener in SUBORDINANTES and finite(root) and len(verbs) == 1
+                                    and "," not in sent.text
+                                    and any(c.dep_ == "mark" and c.lower_ == opener for c in root.children))
+                # O modelo às vezes pendura no verbo da subordinada o nome que a antecede (“O homem
+                # que … enquanto todos conversavam”): dois sujeitos, o primeiro antes da conjunção.
+                conj = next((c for c in root.children if c.dep_ in {"mark", "advmod"} and c.lower_ in SUBORDINANTES
+                             and c.i < root.i), None) if finite(root) else None
+                hanging = conj is not None and len([c for c in root.children if c.dep_ == "nsubj"]) >= 2 and any(
+                    c.dep_ == "nsubj" and c.pos_ in {"NOUN", "PROPN"} and c.i < conj.i for c in root.children)
+                if verbs and (subordinate_root or hanging):
+                    start, end = words[0].idx, words[-1].idx + len(words[-1].text)
+                    item = finding(block, "Estrutura da frase", "Explorar", start, end,
+                        f"O segmento ‘{block.text[start:end]}’ tem verbo, mas só em oração dependente "
+                        "(subordinada ou relativa); falta a oração principal. Pode ser fragmento deliberado; "
+                        "confira se a frase foi cortada ou deveria se ligar à anterior.")
+                    low_confidence.add(item.id)
+                    fragment_classes["subordinate_without_main"] += 1
+                    results.append(item)
         for position in (closed if "pontuacao_dialogo" in active else []):
             tail = block.text[position+1:]
             match = re.match(r"\s*,\s*", tail)

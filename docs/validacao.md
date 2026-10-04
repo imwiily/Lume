@@ -3,7 +3,37 @@
 Os registros abaixo pertencem às versões indicadas. Caminhos citados nos registros anteriores à 1.0 são da antiga pasta `LumeMac/` (correspondência em [README.md](../README.md#estrutura)); os comandos abaixo usam a raiz do repositório. As verificações do hotfix aparecem primeiro; os registros anteriores são mantidos para rastreabilidade.
 
 
-## Próxima versão — depuração dos detectores com o manuscrito real (04/10/2026)
+## Lume 1.4 / FONTE 1.3.0 · Coerencia 1.1.0 — 04/10/2026
+
+Limitações listadas na depuração, corrigidas e medidas contra `87edbbe`. Comparações sem
+LanguageTool (a mudança não toca `languagetool.py`); saídas locais fora do repositório.
+
+- Primeira execução: 5 falhas novas (a base passava inteira): exclusão fixa da fala com hífen
+  ignorava `tense_scopes`; “Essa era…” deixava de ser cópula; “Nada.” lido como ‘nadar’ zerava a
+  cena; dois casos novos sem efeito porque o modelo rotula o verbo como adjetivo ou junta dois
+  sujeitos no mesmo verbo. Corrigidas antes do registro, com casos negativos para cada uma.
+- 299 testes do analisador, 25 dos pacotes e do contrato Python e 24 do Coerencia aprovados.
+- Corpus (todos, sem LanguageTool): base 46/59, 6 alarmes falsos, 7 sobre trechos aceitáveis.
+  Agora 48/61 com o texto novo `dev-limites-conhecidos` (2/2, nenhum alarme falso; controles de
+  palavra sozinha, fala com hífen, demonstrativo sujeito e nome com relativa); demais números
+  iguais. Desenvolvimento 33/41 (2 alarmes falsos); validação 15/20 (4).
+- Manuscrito A (`.pages` atual do autor, copiado da pasta pessoal): 44 → 45. O alerta novo é uma
+  ação no presente entre dois passados, com verbo sem objeto, revista como quebra real. A
+  primeira rodada trouxe 10 alertas novos, 9 falsos (palavras gramaticais lidas como verbo,
+  fragmentos nominais com relativa, principal engolida pelo modelo numa relativa); a variante
+  “nome + relativa” da regra de subordinada foi retirada por isso.
+- Manuscrito B (`.pages` atual do autor): 14 → 14; os 2 falsos positivos da primeira rodada saíram
+  com as mesmas correções. Os números de B não são comparáveis aos registros anteriores, que
+  usavam a versão Wattpad.
+- Sobreposição de 5 palavras entre o diff desde `main` e os manuscritos A e B: duas frases de
+  comentários e testes da etapa anterior coincidiam com A e foram reescritas; nenhuma restante.
+  Uma frase de teste antigo (verbo de ligação) também coincidia e foi trocada.
+- Montagem `build/20261004-111033-E7D57476/`: regressões, `xcodebuild`, contratos Swift (relatório,
+  edição, falsos positivos, livro) e diagnóstico do motor aprovados. `release.json`: app 1.4
+  (build 23), motor 1.3.0, saudável, corretor gramatical e Coerência disponíveis; SHA-256 do ZIP
+  `13e4598e92d84d69253a5d33db4f937bb8361a20c2f7159208752478e888ffbb`.
+
+## Lume 1.4 (desenvolvimento) — depuração dos detectores com o manuscrito real (04/10/2026)
 
 Comparação contra `004f1af`; saídas locais em `build/sequencia4/`. Instrumentação `trace`
 (motivo de cada candidato descartado) rodada no manuscrito A atual.
@@ -24,7 +54,7 @@ Comparação contra `004f1af`; saídas locais em `build/sequencia4/`. Instrument
   (“em volta dele”, “Não importa.”) corrigidos; restam 3 promoções a alerta de sequência.
 - Os DOCX de referência continuam ausentes de `~/`.
 
-## Próxima versão — coordenação, condicionais e concordância pelo núcleo (03/10/2026)
+## Lume 1.4 (desenvolvimento) — coordenação, condicionais e concordância pelo núcleo (03/10/2026)
 
 Comparação contra `6264652`, mesma configuração; saídas locais em `build/sequencia3/`.
 
@@ -44,7 +74,7 @@ Comparação contra `6264652`, mesma configuração; saídas locais em `build/se
   de fala, perdeu o alerta médio (o estado local é interrompido pelo diálogo).
 - Pendente: repetir a comparação nos manuscritos A e B de referência quando os arquivos voltarem.
 
-## Próxima versão — estado temporal local (03/10/2026)
+## Lume 1.4 (desenvolvimento) — estado temporal local (03/10/2026)
 
 Comparação contra `54ca954`, mesma configuração; saídas locais em `build/sequencia2/`.
 
@@ -65,7 +95,7 @@ Comparação contra `54ca954`, mesma configuração; saídas locais em `build/se
 - Limites: verdade geral sem marca (“o rio corre para o sul”) continua no genérico de confiança
   média; correferência só por sujeito explícito igual ou elíptico compatível.
 
-## Próxima versão — sequência temporal (03/10/2026)
+## Lume 1.4 (desenvolvimento) — sequência temporal (03/10/2026)
 
 Comparação contra `551ad7c` (Lume 1.3.1), com `--modo ambas --tempo passado --languagetool`;
 saídas locais em `build/comparacao-sequencia/`.

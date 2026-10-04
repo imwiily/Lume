@@ -457,3 +457,97 @@ class DetectorDebugTests(unittest.TestCase):
                          validate({}), "passado", trace=trace)
         reasons = {t["discard_reason"] for t in trace}
         self.assertTrue({"função discourse_marker", "função state", "função thought"} <= reasons, reasons)
+
+
+class KnownLimitsTests(unittest.TestCase):
+    """Correções das limitações listadas em 04/10/2026 (escritas sem execução; rodar na sessão seguinte)."""
+    @classmethod
+    def setUpClass(cls):
+        cls.nlp = spacy.load("pt_core_news_sm", disable=["ner"])
+
+    temporal = LocalNarrativeStateTests.temporal
+    findings = TemporalStructureTests.findings
+
+    def at(self, verb, *paragraphs):
+        return [f for f in self.temporal(*paragraphs) if f["text"][f["start"]:f["end"]] == verb]
+
+    def test_only_verb_candidate_without_object(self):
+        # Único candidato a verbo da frase, sem objeto: abrindo a frase ou logo depois do sujeito.
+        for paragraphs, verb in [(("O médico examinou o paciente. Mediu a febre.", "Aponto para o termômetro."), "Aponto"),
+                                 (("O médico examinou o paciente. Mediu a febre. Seu pulso demora a voltar.",), "demora")]:
+            with self.subTest(paragraphs=paragraphs):
+                self.assertTrue(self.at(verb, *paragraphs))
+        # Palavra sozinha na frase continua nominal e não vira presente da cena (“Nada.”, “Fala.”).
+        from fonte.temporal import sole_verb
+        for text in ["Nada.", "O vento soprou. Nada."]:
+            with self.subTest(text=text):
+                self.assertFalse(any(sole_verb(t) for t in self.nlp(text) if t.lower_ == "nada"))
+        # Palavra gramatical com leitura verbal no léxico não vira o verbo da frase.
+        for text, word in [("Aquela tristeza antiga.", "aquela"), ("Apenas silêncio.", "apenas"),
+                           ("Pelo contrário.", "pelo")]:
+            with self.subTest(text=text):
+                self.assertFalse(any(sole_verb(t) for t in self.nlp(text) if t.lower_ == word))
+
+    def test_first_plural_ambiguous_form_anchors_the_past(self):
+        found = self.at("Olho", "Saímos cedo. Atravessamos a ponte. Paramos na margem. Olho para trás.")
+        self.assertTrue([f for f in found if f.get("relation") in SEQUENCIA | {"local_narrative_tense_shift"}], found)
+
+    def test_ainda_with_locative_estar_is_not_freed(self):
+        found = self.at("está", "O guarda fechou o portão. O balde ainda está no quintal.")
+        self.assertTrue(found and all(f.get("confidence") in {"média", "alta"} for f in found), found)
+
+    def test_parecer_with_person_subject_is_transient(self):
+        found = self.at("parece", "O guarda recuou. Ela parece assustada.")
+        self.assertTrue(found and all(f.get("confidence") in {"média", "alta"} for f in found), found)
+
+    def test_unmarked_general_truths_are_low(self):
+        for text, verb in [("A vila ficou para trás. O rio corre para o sul durante todo o ano.", "corre"),
+                           ("O guarda fechou o portão. O ferro conduz eletricidade.", "conduz"),
+                           ("O guarda fechou o portão. O gato costuma dormir no telhado.", "costuma")]:
+            with self.subTest(text=text):
+                found = self.at(verb, text)
+                self.assertTrue(all(f.get("confidence") == "baixa" for f in found), found)
+        # Objeto com artigo: personagem da cena, não classe.
+        self.assertTrue([f for f in self.at("morde", "O guarda fechou o portão. O cachorro morde a corda.")
+                         if f.get("confidence") in {"média", "alta"}])
+
+    def test_hyphen_speech_has_no_generic_tense_alert(self):
+        found, _ = self.findings("O professor fechou o livro.", "- Eu quero sair agora mesmo.", "Ninguém respondeu.")
+        self.assertFalse([f for f in found if f["category"] == "Tempo verbal" and f["paragraph"] == 3], found)
+
+    def test_hyphen_speech_respects_scopes(self):
+        from fonte.reader import Block
+        from fonte.segments import classify
+        from fonte.settings import validate
+        text = "- Seja bem-vindo - disse o porteiro."
+        roles = classify([Block(1, text)], validate({}))[0]
+        # Hífen isolado separa fala e narração; o de palavra composta continua dentro da fala.
+        self.assertEqual(roles[text.index("bem-vindo") + 3], "dialogo")
+        self.assertEqual(roles[text.index("disse")], "narracao")
+
+    def test_noun_era_after_determiner(self):
+        from fonte.lexicon import finite
+        for text in ["Uma era de ouro para a cidade.", "Nessa era distante e tranquila."]:
+            with self.subTest(text=text):
+                self.assertFalse(any(finite(t) for t in self.nlp(text) if t.lower_ == "era"))
+        self.assertTrue(any(finite(t) for t in self.nlp("Era como uma porta antiga.")))
+
+    def test_subordinate_without_main_clause(self):
+        for text in ["O homem que estava parado na porta enquanto todos conversavam.",
+                     "Quando chegou ao quarto depois de falar com todos."]:
+            with self.subTest(text=text):
+                found, _ = self.findings(text)
+                hits = [f for f in found if f["category"] == "Estrutura da frase"]
+                self.assertTrue(hits and all(f["confidence"] == "baixa" for f in hits), found)
+        for text in ["Quando chegou ao quarto, deitou na cama.", "O homem que estava parado na porta saiu cedo.",
+                     "O menino, enquanto todos conversavam, saiu da sala.",
+                     # Principal que o modelo pendura num nome ou depois da vírgula.
+                     "Embaixo da cama dela havia uma caixa velha, sem tampa, que alguém esquecera ali.",
+                     "Meses depois, quando o antigo prefeito partiu, ele foi eleito sem disputa.",
+                     "Quando o navio deixou o último porto, o marinheiro já tinha dormido havia horas.",
+                     # Nome com relativa é fragmento nominal comum, não falta de principal.
+                     "Uma coisa que ele nunca tinha visto antes.",
+                     "Sem nenhum motivo que pudesse justificar aquela pressa."]:
+            with self.subTest(text=text):
+                found, _ = self.findings(text)
+                self.assertFalse([f for f in found if f["category"] == "Estrutura da frase"], found)

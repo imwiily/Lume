@@ -290,6 +290,27 @@
       ],
       "erros": [],
       "aceitaveis": []
+    },
+    {
+      "id": "dev-limites-conhecidos",
+      "tempo": "passado",
+      "nota": "Verbo único sem objeto entre passados, subordinada sem principal e controles (palavra sozinha, fala com hífen, demonstrativo sujeito, nome com relativa), escrito do zero em 04/10/2026.",
+      "paragrafos": [
+        "Capítulo 1",
+        "Entrei no quarto escuro. Fechei a cortina pesada. Caminho até a janela. Depois sentei na poltrona.",
+        "O vento soprou contra o vidro. Nada.",
+        "- Seja bem-vinda - disse a médica, sorrindo.",
+        "Essa era a única saída do hospital.",
+        "Quando o elevador parou, a mulher desceu depressa.",
+        "Uma coisa que ninguém naquele andar esperava.",
+        "Quando saiu do consultório depois de assinar os papéis.",
+        "Apenas silêncio no corredor."
+      ],
+      "erros": [
+        {"p": 2, "trecho": "Caminho", "categoria": "tempo_verbal", "camada": "linguistica"},
+        {"p": 8, "trecho": "Quando saiu do consultório depois de assinar os papéis", "categoria": "estrutura_frase", "camada": "linguistica"}
+      ],
+      "aceitaveis": []
     }
   ]
 }

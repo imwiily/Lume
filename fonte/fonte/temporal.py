@@ -103,7 +103,8 @@ def explicit_shift(root):
     # ‘Ainda’ mantém no presente um estado que continua (“está quebrado ainda”), não uma ação
     # da cena (“ainda caem pelo chão”).
     # ‘Ficar’ muda de estado: “fica mais alto ainda” é intensidade, não continuidade.
-    if markers == {"ainda"} and not (root.lemma_.casefold() in STATIVE | {"ser", "estar", "permanecer", "ter", "haver"}
+    # ‘Estar’ sem predicativo (“ainda está no quintal”) é posição na cena; “está quebrado ainda” conta pela cópula.
+    if markers == {"ainda"} and not (root.lemma_.casefold() in STATIVE | {"ser", "permanecer", "ter", "haver"}
                                      or root.pos_ in {"ADJ", "NOUN"} or any(c.dep_ == "cop" for c in root.children)):
         markers = set()
     if markers:
@@ -379,6 +380,10 @@ MODAL = {"poder", "dever", "precisar", "querer"}
 REPORTING = {"dizer", "explicar", "contar", "afirmar", "saber", "aprender", "ensinar", "descobrir", "lembrar",
              "perceber", "entender", "ler", "ouvir", "achar", "pensar", "acreditar", "notar", "garantir"}
 HABITUAL_MARKS = {"quando", "se", "sempre", "sempre que", "toda vez que"}
+# Hábito sem conjunção: “durante todo o ano”, “todos os dias”, “normalmente”, “costuma”.
+HABITUAL_WORDS = {"normalmente", "geralmente", "habitualmente", "frequentemente", "costumar"}
+HABITUAL_TIME = re.compile(r"\b(?:tod[oa]s?\s+(?:o|a|os|as)\s+(?:anos?|dias?|semanas?|meses|noites?|manhãs?|tardes?|vezes|inverno|verão)"
+                           r"|o\s+ano\s+(?:todo|inteiro)|a\s+vida\s+toda)\b", re.I)
 PROXIMAL = {"este", "esta", "estes", "estas", "esse", "essa", "esses", "essas"}
 MAIN_LINE = {"ROOT", "conj", "parataxis"}
 EVENT_RELATIONS = {"past_present_past", "coordinated_tense_mismatch", "same_subject_narrative_shift",
@@ -398,6 +403,29 @@ def verbal_para(token):
     doc = token.doc
     return (token.lower_ == "para" and token.i + 1 < len(doc) and doc[token.i + 1].lower_ in DEPOIS_DE_PARAR
             and token.i > 0 and doc[token.i - 1].pos_ in {"NOUN", "PROPN", "PRON"})
+
+
+def sole_verb(token):
+    """Único candidato a verbo da frase, abrindo-a (sujeito elíptico: “Aponto para o cristal”) ou
+    logo depois do grupo nominal que a abre (“O relógio da sala demora a bater”): a frase precisa
+    de um verbo e só ele pode sê-lo, mesmo sem objeto e com leitura nominal no léxico. O grupo
+    nominal vale pela forma, não pelo rótulo do modelo, que às vezes faz do nome a raiz e do verbo
+    um adjetivo. Palavra sozinha na frase (“Nada.”) fica de fora: sem complemento, a leitura
+    nominal prevalece."""
+    lex = flags(token.text)
+    if not token.is_alpha or not lex & PRESENT or lex & (PAST | FUTURE | NONFINITE):
+        return False
+    # Palavra gramatical que o léxico também lista como verbo (“Aquela”, “Apenas”, “Pelo”, “dele”).
+    if token.pos_ in {"DET", "PRON", "ADP", "ADV", "CCONJ", "SCONJ", "NUM", "PUNCT"}:
+        return False
+    sent = token.sent
+    first = next((t for t in sent if t.is_alpha), None)
+    previous = token.doc[token.i - 1] if token.i > sent.start else None
+    after_subject = (previous is not None and previous.pos_ in {"NOUN", "PROPN", "PRON"}
+                     and all(t.pos_ in {"DET", "ADJ", "NUM"} for t in token.doc[sent.start:previous.i]))
+    return ((token == first or after_subject)
+            and any(t.is_alpha for t in token.doc[token.i + 1:sent.end])
+            and not any(finite(t) or form(t) for t in sent if t.i != token.i))
 
 
 def event_tense(token):
@@ -423,6 +451,11 @@ def event_tense(token):
     if (value == "ambiguous_past_present" and lemma.endswith("ar")
             and word in {lemma[:-2] + "a", lemma[:-2] + "am"}):
         return "present"
+    # 1ª do plural igual no presente e no perfeito (“passamos”, “chegamos”, “saímos”): só é
+    # analisada numa narração no passado, onde o perfeito é a leitura natural. Serve de âncora,
+    # nunca de alvo.
+    if value == "ambiguous_past_present" and re.search(r"(?:a|e|i|í)mos$", word):
+        return "past"
     lex = flags(token.text)
     verb_form = token.morph.get("VerbForm")
     # Forma só verbal e finita no léxico (“Abri”, “Procuro”, “escorrem”): prevalece sobre a
@@ -434,7 +467,7 @@ def event_tense(token):
     first = next((t for t in token.sent if t.is_alpha), None)
     exclusive = only_finite and (token == first or token.dep_ == "ROOT"
                                  or (token.dep_ == "acl" and token.head.dep_ == "ROOT"))
-    if not exclusive:
+    if not exclusive and not sole_verb(token):
         if not any(c.dep_ in {"obj", "iobj"} for c in token.children):
             return None
         if not (finite(token) or token.pos_ == "VERB"):
@@ -522,6 +555,17 @@ def present_function(token):
         return "general_truth"
     if any(c.dep_ in {"advcl", "ccomp"} and habitual(c) and event_tense(c) == "present" for c in root.children):
         return "general_truth"
+    clause_text = " ".join(t.text for t in own_clause(root))
+    if (HABITUAL_TIME.search(clause_text) or {t.lower_ for t in own_clause(root)} & HABITUAL_WORDS
+            or lemma_of(token, {"costumar"})):
+        return "general_truth"
+    # Propriedade genérica: sujeito com artigo definido e nada mais, objeto sem determinante
+    # (“O ferro conduz eletricidade”): classe, não personagem da cena.
+    subj = next((c for c in root.children if c.dep_ in {"nsubj", "nsubj:pass"}), None)
+    obj = next((c for c in root.children if c.dep_ == "obj"), None)
+    if (subj is not None and subj.pos_ == "NOUN" and [c.lower_ for c in subj.children] in (["o"], ["a"])
+            and obj is not None and obj.pos_ == "NOUN" and not any(c.dep_ == "det" for c in obj.children)):
+        return "general_truth"
     copula = token if token.dep_ == "cop" else next((c for c in root.children if c.dep_ == "cop"), None)
     lemma = lemma_of(copula if copula is not None else token, STATE) or token.lemma_.casefold()
     # ‘Estar’ + adjetivo ou particípio (“está quebrado”, “está acesa”): estado passageiro. Não é
@@ -532,6 +576,12 @@ def present_function(token):
     if token.dep_ == "aux" and "Ger" in token.head.morph.get("VerbForm") or any(
             c.dep_ in {"xcomp", "aux"} and "Ger" in c.morph.get("VerbForm") for c in token.children):
         return "narrative_event"
+    # “Ela parece assustada”: aparência passageira de uma pessoa da cena, como ‘estar’; “Aquele
+    # lugar parece estranho” (coisa) continua avaliação.
+    subject = next((c for c in root.children if c.dep_ in {"nsubj", "nsubj:pass"}), None)
+    if (lemma == "parecer" and subject is not None and subject.pos_ in {"PRON", "PROPN"}
+            and any(c.dep_ == "xcomp" and c.pos_ == "ADJ" for c in token.children)):
+        return "transient_state"
     # “Parece envolver”: aparência de um acontecimento, não propriedade.
     if lemma in STATE and not (lemma == "parecer" and any(c.dep_ == "xcomp" and c.pos_ in {"VERB", "AUX"}
                                                         for c in token.children)):
@@ -641,7 +691,7 @@ def events(block, offset, doc, nlp, sentence_base, trace=None):
             # finita que abre a frase é o auxiliar da linha principal.
             periphrasis = (token == opener and head.dep_ != "ROOT" and head.head.dep_ == "ROOT"
                            and set(head.head.morph.get("VerbForm")) & {"Ger", "Inf"})
-            main = head.dep_ in MAIN_LINE or verbal_para(token) or periphrasis or (head.dep_ == "acl" and head.head.dep_ == "ROOT"
+            main = head.dep_ in MAIN_LINE or verbal_para(token) or periphrasis or sole_verb(token) or (head.dep_ == "acl" and head.head.dep_ == "ROOT"
                                               and head.head.pos_ in {"NOUN", "PROPN"}
                                               and not any(c.lower_ in {"que", "onde", "cujo", "cuja"} for c in head.children))
             # O auxiliar finito de uma locução (“estava observando”) dá o tempo ao predicado.

@@ -13,10 +13,14 @@ def classify(blocks, settings):
             closer=None
             result.append(['titulo']*len(text))
             continue
-        if settings['dialogue_dashes'] and text.lstrip().startswith(('—','–')):
+        # Hífen seguido de espaço abre fala como o travessão (“- Vamos.”); no meio da linha, só o
+        # hífen isolado por espaços separa, nunca o de palavra composta (“bem-vindo”).
+        hyphen=text.lstrip().startswith('- ')
+        if settings['dialogue_dashes'] and (text.lstrip().startswith(('—','–')) or hyphen):
             spoken=False
             for i,char in enumerate(text):
-                if char in '—–':
+                if char in '—–' or (hyphen and char=='-' and (i==0 or text[i-1].isspace())
+                                    and (i+1==len(text) or text[i+1].isspace())):
                     spoken=not spoken
                     roles[i]='separador'
                 elif spoken:

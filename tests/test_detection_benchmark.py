@@ -8,7 +8,7 @@ import avaliar_deteccao as bench
 
 CATEGORIES = {'ortografia', 'acentuacao', 'concordancia_verbal', 'concordancia_nominal', 'crase',
               'regencia', 'homofonos', 'verbo_impessoal', 'pontuacao', 'pontuacao_mecanica',
-              'repeticao', 'tempo_verbal', 'contradicao', 'residuo_edicao'}
+              'repeticao', 'tempo_verbal', 'contradicao', 'residuo_edicao', 'estrutura_frase'}
 
 
 def finding(paragraph, start, end, related=()):

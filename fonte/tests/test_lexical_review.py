@@ -73,7 +73,7 @@ class LexicalReviewTests(unittest.TestCase):
     def test_copulas_are_finite(self):
         for text in ['— Não, pode entrar. — Era aquela vizinha de antes.',
                      'Não era um sorriso normal.',
-                     'Essa era minha única esperança.',
+                     'Essa era a última carroça da feira.',
                      'Eles são iguais aos da Beatriz.']:
             self.assert_no_category(text,'Estrutura da frase')
 

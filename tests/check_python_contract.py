@@ -30,7 +30,7 @@ def main():
         assert document.read_bytes() == original, "O original mudou"
         assert report["schema_version"] == 1
         assert report["sha256"] == hashlib.sha256(original).hexdigest()
-        assert report["metadata"]["versao_fonte"] == "1.2.1"
+        assert report["metadata"]["versao_fonte"] == "1.3.0"
         assert isinstance(report["metadata"]["paragrafos"], int)
         assert isinstance(report["metadata"]["languagetool"], bool)
         ids = set()
@@ -41,7 +41,7 @@ def main():
             assert 0 <= finding["start"] <= finding["end"] <= len(finding["text"])
         temporal = next(f for f in report["findings"] if f["excerpt"] == "observa")
         assert temporal["rule"] == "coerencia_temporal"
-        # Ações coordenadas do mesmo sujeito em tempos diferentes (sequência temporal, 1.3.1).
+        # Ações coordenadas do mesmo sujeito em tempos diferentes (sequência temporal, 1.4).
         assert temporal["relation"] == "coordinated_tense_mismatch"
         assert temporal["confidence"] == "alta"
         # A sugestão segue o aspecto da âncora: ‘abriu’ (perfeito) → ‘observou’.
