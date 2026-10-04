@@ -102,3 +102,8 @@ Diagnóstico: a maior parte dos exemplos já era detectada. Faltavam: locução 
 marca de tempo da oração coordenada contaminando a principal, “?” separado pelo modelo,
 pronome × nome na cadeia, regra de condicional (inexistente), núcleo singular com determinante
 e partitivo “uma das”. Pendente: comparação nos manuscritos de referência (arquivos ausentes).
+
+## Etapa 4 — depuração com o manuscrito real (04/10/2026)
+
+Instrumentação `trace` em `events`/`sequence`/`analyze` (lista opcional; não muda alertas).
+Causas e correções em `docs/validacao.md`.

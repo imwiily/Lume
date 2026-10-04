@@ -347,3 +347,113 @@ class TemporalStructureTests(unittest.TestCase):
         _, meta = self.findings("Ele saiu de casa.")
         self.assertTrue({"conditional_tense_mismatch", "coordinated_tense_mismatch", "past_present_past",
                          "same_subject_narrative_shift", "local_narrative_tense_shift"} <= set(meta["temporal_relations"]))
+
+
+class DetectorDebugTests(unittest.TestCase):
+    """Causas reais de falsos negativos e do falso positivo de marcador discursivo."""
+    @classmethod
+    def setUpClass(cls):
+        cls.nlp = spacy.load("pt_core_news_sm", disable=["ner"])
+
+    temporal = LocalNarrativeStateTests.temporal
+    one = LocalNarrativeStateTests.one
+    findings = TemporalStructureTests.findings
+
+    def relation(self, verb, *paragraphs):
+        return self.one(verb, *paragraphs)["relation"]
+
+    def test_required_patterns(self):
+        cases = [(("Ela segura a caixa e saiu da sala.",), "segura", {"coordinated_tense_mismatch"}),
+                 (("Ele entrou. Sentou. Abre o livro.",), "Abre", SEQUENCIA | {"local_narrative_tense_shift"}),
+                 (("Ela levanta a mão. O homem recuou.",), "levanta", SEQUENCIA | {"local_narrative_tense_shift"}),
+                 (("O objeto continua girando. Então parou.",), "continua", SEQUENCIA | {"local_narrative_tense_shift"}),
+                 (("Ele fechou a porta.", "Caminha até o carro."), "Caminha", SEQUENCIA | {"local_narrative_tense_shift"}),
+                 (("O carro bateu. Os passageiros ficaram imóveis. Uma pessoa abre a porta.",), "abre",
+                  {"local_narrative_tense_shift"}),
+                 (("A máquina continua funcionando. Depois desligou.",), "continua", SEQUENCIA | {"local_narrative_tense_shift"})]
+        for paragraphs, verb, relations in cases:
+            with self.subTest(paragraphs=paragraphs):
+                self.assertIn(self.relation(verb, *paragraphs), relations)
+
+    def test_parse_failure_uses_surface_fallback(self):
+        # O modelo lê “segura” como adjetivo de “Mariana”: o fallback superficial dá confiança média.
+        f = self.one("segura", "Mariana segura a bolsa e saiu da sala.")
+        self.assertEqual((f["relation"], f["confidence"], f["temporal_evidence"].get("surface")),
+                         ("coordinated_tense_mismatch", "média", True))
+
+    def test_discourse_markers_are_not_temporal(self):
+        for text in ["Ok. Aquilo era estranho.", "Certo. Ele havia entendido.", "Tá. Aquilo era estranho.",
+                     "Soldados? Guardas? Não importa. Todos corriam para a saída.",
+                     "O cão correu pelo pátio. Deu uma volta. Ficou em volta dele.",
+                     "Tá bom. Ele havia entendido.", "Beleza. Tudo bem. Ninguém respondeu."]:
+            with self.subTest(text=text):
+                self.assertEqual(self.temporal(text), [])
+
+    def test_no_strong_alert_for_legitimate_presents(self):
+        for text in ["Ele explicou que o gelo derrete com calor.", "A casa é antiga.", "Por que eu faço isso?",
+                     "Se eu parar, vou cair."]:
+            with self.subTest(text=text):
+                self.assertFalse([f for f in self.temporal(text) if f.get("confidence") in {"alta", "média"}])
+
+    def test_short_dialogue_keeps_the_scene(self):
+        # Fala intercalada curta não zera o estado; fragmentos sem verbo não consomem a janela.
+        self.assertIn(self.relation("Levanto", "Abri a porta do quarto. Olhei em volta.", "— Tem alguém aí?",
+                                    "Levanto a lanterna devagar."), SEQUENCIA | {"local_narrative_tense_shift"})
+        self.assertIn(self.relation("Fico", "Olhei para as mãos. Nenhum arranhão. Nenhuma marca. Nada.",
+                                    "Fico olhando para elas."), SEQUENCIA | {"local_narrative_tense_shift"})
+
+    def test_subordinate_and_nominal_time_words_do_not_free_the_main_verb(self):
+        # “desde que” pertence à subordinada; “de hoje” modifica o nome.
+        for text, verb in [("O guia fechou o mapa. Pela segunda vez desde que chegamos, ele tropeça na pedra.", "tropeça"),
+                           ("O guia fechou o mapa. Olhou o céu. A nuvem me faz lembrar da prova de hoje.", "faz")]:
+            with self.subTest(text=text):
+                self.assertTrue([f for f in self.temporal(text) if f["text"][f["start"]:f["end"]] == verb
+                                 and f.get("confidence") in {"média", "alta"}])
+
+    def test_evidence_is_never_empty(self):
+        for paragraphs in [("Ela levanta a mão. O homem recuou.",), ("Ele entrou. Sentou. Abre o livro.",)]:
+            with self.subTest(paragraphs=paragraphs):
+                for f in self.temporal(*paragraphs):
+                    if f.get("relation") in SEQUENCIA | {"local_narrative_tense_shift"}:
+                        ev = f["temporal_evidence"]
+                        self.assertTrue(ev["previous_narrative_verbs"] or ev.get("following_narrative_verbs"), ev)
+                        self.assertIn(ev["local_state"], {"past", "mixed", "unknown"})
+                        self.assertTrue(ev["local_tense_score"])
+
+    def test_conditionals_and_modality(self):
+        self.assertEqual(self.relation("cairia", "Se eu parar, cairia."), "conditional_tense_mismatch")
+        self.assertEqual(self.relation("sobraria", "Se isso acertar o alvo, não sobraria nada."), "conditional_tense_mismatch")
+        for text in ["Se eu parasse, cairia.", "Se eu parar, vou cair.", "Talvez ele chegue amanhã.",
+                     "Talvez, se tivesse tempo, ele ajudaria."]:
+            with self.subTest(text=text):
+                found, _ = self.findings(text)
+                self.assertFalse([f for f in found if f.get("relation") in {"conditional_tense_mismatch", "modal_mood_mismatch"}])
+        f = self.one("funcionaria", "Talvez essa estratégia funcionaria.")
+        self.assertEqual((f["relation"], f["confidence"], f["suggestion"]), ("modal_mood_mismatch", "média", None))
+
+    def test_fallback_and_modality_controls(self):
+        # Verbo antes de ‘para’ não é sujeito; ‘talvez’ não alcança a comparativa (“do que deveria”).
+        for text in ["Desci para o porão e acendi a luz.",
+                     "Fechei a janela. Talvez com mais força do que deveria."]:
+            with self.subTest(text=text):
+                found, _ = self.findings(text)
+                self.assertFalse([f for f in found if f.get("relation") in {"coordinated_tense_mismatch", "modal_mood_mismatch"}], found)
+
+    def test_appositive_vocative(self):
+        for text, suggestion in [("Pedro meu amigo venha aqui.", "Pedro, meu amigo,"), ("Maria querida espere.", "Maria, querida,")]:
+            with self.subTest(text=text):
+                found, _ = self.findings(text)
+                self.assertEqual([f["suggestion"] for f in found if f.get("rule") == "vocativo"], [suggestion])
+        for text in ["Pedro abriu a porta.", "Maria Clara saiu cedo.", "João Pedro venha aqui.", "Pedro meu amigo chegou cedo."]:
+            with self.subTest(text=text):
+                found, _ = self.findings(text)
+                self.assertFalse([f for f in found if f.get("rule") == "vocativo" and "meu" in (f.get("suggestion") or "")])
+
+    def test_trace_records_discard_reasons(self):
+        from fonte import temporal
+        from fonte.settings import validate
+        trace = []
+        temporal.analyze([Block(1, CONTEXTO), Block(2, "Tá. A casa é antiga. Por que eu faço isso?")], self.nlp,
+                         validate({}), "passado", trace=trace)
+        reasons = {t["discard_reason"] for t in trace}
+        self.assertTrue({"função discourse_marker", "função state", "função thought"} <= reasons, reasons)

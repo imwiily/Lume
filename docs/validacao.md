@@ -3,6 +3,27 @@
 Os registros abaixo pertencem às versões indicadas. Caminhos citados nos registros anteriores à 1.0 são da antiga pasta `LumeMac/` (correspondência em [README.md](../README.md#estrutura)); os comandos abaixo usam a raiz do repositório. As verificações do hotfix aparecem primeiro; os registros anteriores são mantidos para rastreabilidade.
 
 
+## Próxima versão — depuração dos detectores com o manuscrito real (04/10/2026)
+
+Comparação contra `004f1af`; saídas locais em `build/sequencia4/`. Instrumentação `trace`
+(motivo de cada candidato descartado) rodada no manuscrito A atual.
+
+- Causas encontradas no rastreamento: fala intercalada zerava a cena; fragmentos consumiam a
+  janela; estado exigia dois passados; marcas de tempo de subordinadas e de adjuntos de nome
+  liberavam o verbo principal; “Tá.” sem predicação virava evento e o ramo presente → passado
+  disparava com estado vazio.
+- 290 testes do analisador (10 novos em `DetectorDebugTests` + 1 de controles), 25 dos pacotes,
+  24 do Coerencia e contrato Python aprovados.
+- Corpus: sem mudança (37/46 e 3 alarmes falsos; 19/24 e 5).
+- Manuscrito A (o `.pages` atual do autor, lido do iCloud): 30 → 44. Saiu o falso “Tá.”;
+  entraram 11 alertas de sequência e 4 genéricos médios (presentes antes liberados por marcas
+  mal atribuídas), revistos um a um como prováveis quebras reais; 1 de confiança baixa
+  (pergunta). Dois falsos positivos da primeira rodada (comparativa com ‘talvez’; verbo antes de
+  ‘para’ tomado como sujeito no fallback) corrigidos antes do registro.
+- Manuscrito B (versão Wattpad, `3b618a66…`): 537 → 536. Dois falsos positivos da primeira rodada
+  (“em volta dele”, “Não importa.”) corrigidos; restam 3 promoções a alerta de sequência.
+- Os DOCX de referência continuam ausentes de `~/`.
+
 ## Próxima versão — coordenação, condicionais e concordância pelo núcleo (03/10/2026)
 
 Comparação contra `6264652`, mesma configuração; saídas locais em `build/sequencia3/`.

@@ -7,7 +7,7 @@ Trechos de papéis diferentes nunca são concatenados.
 from dataclasses import asdict
 import re
 from .analysis import finding
-from .lexicon import FINITE, NONVERB, flags
+from .lexicon import FINITE, FUTURE, NONVERB, PAST, flags
 from .segments import classify, spans
 
 RULES = {
@@ -56,7 +56,21 @@ ADDRESS = re.compile(r"(?:^|(?<=[—–.!?…])\s*|(?<=[—–]))\s*(?P<lead>Sim
                      r"(?=[ \t]*(?:[.!?…,—–]|$))")
 
 
+# Nome inicial + aposto de afeto (“meu amigo”, “querida”) + verbo, sem vírgulas: vocativo com aposto.
+APPOSITIVE_VOCATIVE = re.compile(r"(?:^|(?<=[.!?…])[ \t]+)(?P<name>" + NAME + r")[ \t]+(?P<apposto>(?:meu|minha|meus|minhas)[ \t]+"
+                                 r"[a-zà-öø-ÿ]+|querid[oa]s?|amad[oa]s?)[ \t]+(?P<verbo>[a-zà-öø-ÿ]+)\b")
+
+
 def vocatives(block, start, text):
+    for match in APPOSITIVE_VOCATIVE.finditer(text):
+        verbo, nome = flags(match['verbo']), flags(match['name'])
+        # O verbo só pode ser forma verbal finita que não é passado nem futuro (“venha”, “espere”); o nome, nunca verbo.
+        if not (verbo & FINITE and not verbo & (NONVERB | PAST | FUTURE)) or nome & FINITE:
+            continue
+        yield vocative_item(block, start + match.start('name'), start + match.end('apposto'),
+                            f"{match['name']}, {match['apposto']},",
+                            "O nome inicial e o aposto que o qualifica parecem chamar o interlocutor antes de um pedido. "
+                            "Se forem vocativo, separe-os por vírgulas; confira se não são o sujeito da frase.")
     for match in VOCATIVE.finditer(text):
         name = match['name']
         primeira = name.split()[0]

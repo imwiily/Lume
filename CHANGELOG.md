@@ -47,6 +47,22 @@ As seções antigas descrevem a cobertura e os resultados de cada entrega, não 
 - Concordância pelo núcleo: determinante singular (“nenhuma palavra conseguiram”) e partitivo
   “um/uma de” (“uma das portas estavam”), fora de “um dos que”; aposto entre vírgulas e plural
   sem -m/-ão ficam de fora.
+- Depuração com o manuscrito real (instrumentação `trace` em `temporal.analyze`, só para
+  desenvolvimento): fala intercalada curta não zera mais a cena (cada parágrafo de fala pesa uma
+  frase); frases sem verbo não consomem a janela; um só passado sem presente na janela já
+  estabelece o estado; marcas de tempo valem só para o verbo que as governa (“desde que saímos”,
+  “o exame de hoje”, “mais alto ainda” não liberam o verbo principal); perífrase em que o modelo
+  pôs o gerúndio como raiz (“Fico olhando”); ‘para’ verbo (“o braço para no meio”); verbo
+  finito nunca logo depois de preposição (“em volta dele”).
+- Marcador discursivo (“Tá.”, “Tá bom.”, “Não importa.”): sem alerta temporal. O ramo presente →
+  passado não dispara mais com estado vazio: sem verbos antes, `local_state` é `unknown` e o
+  passado que confirma aparece em `following_narrative_verbs`.
+- Fallback superficial de coordenação quando a análise sintática se perde (“Mariana segura a
+  bolsa e saiu”), com confiança média e `temporal_evidence.surface`.
+- ‘Talvez’ + futuro do pretérito (`modal_mood_mismatch`, confiança média, sem sugestão), fora de
+  condicional e de comparativa; condicional com “se” + forma igual ao infinitivo (futuro do
+  subjuntivo); consequência de condicional é hipótese, não ação.
+- Vocativo com aposto de afeto sem vírgulas (“Pedro meu amigo venha aqui” → “Pedro, meu amigo,”).
 - `temporal_evidence` ganha `function`, `local_state`, `local_tense_score`,
   `previous_narrative_verbs`, `same_scene` e `same_subject` (campos novos; os antigos ficam).
 - ‘Ainda’ só mantém no presente um estado que continua (“está quebrado ainda”), não uma ação

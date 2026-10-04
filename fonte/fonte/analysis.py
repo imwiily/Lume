@@ -286,11 +286,14 @@ def analyze(blocks: list[Block], nlp, tense="auto", protect_italics=True, min_wo
                     reason = (f"‘{elapsed[0]}’ mede o tempo a partir do presente. Numa narração no passado, ‘havia’ ou "
                               "uma referência como ‘… antes’ situa o intervalo no plano da história; a leitura atual "
                               "pode ser intencional (voz do narrador).")
+                function = present_function(token) if expected == "passado" and observed == "presente" else None
+                # Marcador discursivo (“Tá.”, “Tá bom.”): resposta curta, não verbo da narração.
+                if function == "discourse_marker":
+                    continue
                 item = finding(block, "Tempo verbal", "Verificar", token.idx, token.idx+len(token.text), reason)
                 # Presente que não é evento narrativo (estado, verdade geral, pensamento, comentário)
                 # continua visível, com confiança baixa; a sequência temporal trata os eventos.
-                if expected == "passado" and observed == "presente" and present_function(token) not in {
-                        "narrative_event", "transient_state"}:
+                if function is not None and function not in {"narrative_event", "transient_state"}:
                     low_confidence.add(item.id)
                 results.append(item)
         previous = None
