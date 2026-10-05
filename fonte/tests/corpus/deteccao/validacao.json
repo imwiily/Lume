@@ -36,20 +36,78 @@
         "Quando Raul chegou em casa, já passava da meia-noite. Ele se deitou, mas não conseguiu dormir."
       ],
       "erros": [
-        {"p": 5, "trecho": "a quinze anos", "categoria": "homofonos", "camada": "linguistica"},
-        {"p": 6, "trecho": "as pressas", "categoria": "crase", "camada": "linguistica"},
-        {"p": 11, "trecho": "a muito tempo", "categoria": "homofonos", "camada": "linguistica"},
-        {"p": 15, "trecho": "à descobrir", "categoria": "crase", "camada": "linguistica"},
-        {"p": 17, "trecho": "paredes ainda estava", "categoria": "concordancia_verbal", "camada": "linguistica"},
-        {"p": 20, "trecho": "haviam", "categoria": "verbo_impessoal", "camada": "linguistica"},
-        {"p": 21, "trecho": "paralizado", "categoria": "ortografia", "camada": "linguistica"},
-        {"p": 27, "trecho": "chegou em", "categoria": "regencia", "camada": "linguistica"},
-        {"p": 23, "trecho": "tinha apenas doze anos", "categoria": "contradicao", "camada": "narrativa", "nota": "vinte e dois anos na época do incêndio (parágrafo 7)"}
+        {
+          "p": 5,
+          "trecho": "a quinze anos",
+          "categoria": "homofonos",
+          "camada": "linguistica"
+        },
+        {
+          "p": 6,
+          "trecho": "as pressas",
+          "categoria": "crase",
+          "camada": "linguistica"
+        },
+        {
+          "p": 11,
+          "trecho": "a muito tempo",
+          "categoria": "homofonos",
+          "camada": "linguistica"
+        },
+        {
+          "p": 15,
+          "trecho": "à descobrir",
+          "categoria": "crase",
+          "camada": "linguistica"
+        },
+        {
+          "p": 17,
+          "trecho": "paredes ainda estava",
+          "categoria": "concordancia_verbal",
+          "camada": "linguistica"
+        },
+        {
+          "p": 20,
+          "trecho": "haviam",
+          "categoria": "verbo_impessoal",
+          "camada": "linguistica"
+        },
+        {
+          "p": 21,
+          "trecho": "paralizado",
+          "categoria": "ortografia",
+          "camada": "linguistica"
+        },
+        {
+          "p": 27,
+          "trecho": "chegou em",
+          "categoria": "regencia",
+          "camada": "linguistica"
+        },
+        {
+          "p": 23,
+          "trecho": "tinha apenas doze anos",
+          "categoria": "contradicao",
+          "camada": "narrativa",
+          "nota": "vinte e dois anos na época do incêndio (parágrafo 7)"
+        }
       ],
       "aceitaveis": [
-        {"p": 4, "trecho": "estava uma fotografia", "nota": "concordância com o núcleo mais próximo do sujeito posposto"},
-        {"p": 11, "trecho": "Não tem nada", "nota": "fala coloquial"},
-        {"p": 13, "trecho": "as mãos dele", "nota": "ambiguidade possível de referente"}
+        {
+          "p": 4,
+          "trecho": "estava uma fotografia",
+          "nota": "concordância com o núcleo mais próximo do sujeito posposto"
+        },
+        {
+          "p": 11,
+          "trecho": "Não tem nada",
+          "nota": "fala coloquial"
+        },
+        {
+          "p": 13,
+          "trecho": "as mãos dele",
+          "nota": "ambiguidade possível de referente"
+        }
       ]
     },
     {
@@ -81,24 +139,97 @@
         "Passo a noite inteira pensando nisso. Quando o dia amanhece, já tomei minha decisão."
       ],
       "erros": [
-        {"p": 4, "trecho": "esta", "categoria": "acentuacao", "camada": "linguistica"},
-        {"p": 9, "trecho": "percebi", "categoria": "tempo_verbal", "camada": "linguistica"},
-        {"p": 10, "trecho": "chego no", "categoria": "regencia", "camada": "linguistica"},
-        {"p": 12, "trecho": "sera", "categoria": "acentuacao", "camada": "linguistica"},
-        {"p": 15, "trecho": "rua ,", "categoria": "pontuacao_mecanica", "camada": "linguistica"},
-        {"p": 19, "trecho": "Seu Jorge está atrás do balcão", "categoria": "contradicao", "camada": "narrativa", "nota": "o dono da padaria faleceu (parágrafo 4)"},
-        {"p": 20, "trecho": "cinco anos mais velha", "categoria": "contradicao", "camada": "narrativa", "nota": "a irmã é chamada de mais nova na mesma frase"}
+        {
+          "p": 4,
+          "trecho": "esta",
+          "categoria": "acentuacao",
+          "camada": "linguistica"
+        },
+        {
+          "p": 9,
+          "trecho": "percebi",
+          "categoria": "tempo_verbal",
+          "camada": "linguistica"
+        },
+        {
+          "p": 10,
+          "trecho": "chego no",
+          "categoria": "regencia",
+          "camada": "linguistica"
+        },
+        {
+          "p": 12,
+          "trecho": "sera",
+          "categoria": "acentuacao",
+          "camada": "linguistica"
+        },
+        {
+          "p": 15,
+          "trecho": "rua ,",
+          "categoria": "pontuacao_mecanica",
+          "camada": "linguistica"
+        },
+        {
+          "p": 19,
+          "trecho": "Seu Jorge está atrás do balcão",
+          "categoria": "contradicao",
+          "camada": "narrativa",
+          "nota": "o dono da padaria faleceu (parágrafo 4)"
+        },
+        {
+          "p": 20,
+          "trecho": "cinco anos mais velha",
+          "categoria": "contradicao",
+          "camada": "narrativa",
+          "nota": "a irmã é chamada de mais nova na mesma frase"
+        }
       ],
       "aceitaveis": [
-        {"p": 8, "trecho": "tava", "nota": "fala coloquial"},
-        {"p": 8, "trecho": "né", "nota": "fala coloquial"},
-        {"p": 22, "trecho": "Então vai", "nota": "fala coloquial"},
-        {"p": 5, "trecho": "atendia", "nota": "passado legítimo em narração no presente"},
-        {"p": 14, "trecho": "sabiam", "nota": "passado legítimo em narração no presente"},
-        {"p": 21, "trecho": "adiei", "nota": "passado legítimo em narração no presente"},
-        {"p": 23, "trecho": "tomei", "nota": "passado legítimo em narração no presente"},
-        {"p": 4, "trecho": "faleceu", "nota": "passado legítimo em narração no presente"},
-        {"p": 21, "trecho": "devia", "nota": "uso modal corrente"}
+        {
+          "p": 8,
+          "trecho": "tava",
+          "nota": "fala coloquial"
+        },
+        {
+          "p": 8,
+          "trecho": "né",
+          "nota": "fala coloquial"
+        },
+        {
+          "p": 22,
+          "trecho": "Então vai",
+          "nota": "fala coloquial"
+        },
+        {
+          "p": 5,
+          "trecho": "atendia",
+          "nota": "passado legítimo em narração no presente"
+        },
+        {
+          "p": 14,
+          "trecho": "sabiam",
+          "nota": "passado legítimo em narração no presente"
+        },
+        {
+          "p": 21,
+          "trecho": "adiei",
+          "nota": "passado legítimo em narração no presente"
+        },
+        {
+          "p": 23,
+          "trecho": "tomei",
+          "nota": "passado legítimo em narração no presente"
+        },
+        {
+          "p": 4,
+          "trecho": "faleceu",
+          "nota": "passado legítimo em narração no presente"
+        },
+        {
+          "p": 21,
+          "trecho": "devia",
+          "nota": "uso modal corrente"
+        }
       ]
     },
     {
@@ -132,19 +263,72 @@
         "Anos depois, quando o velho rei morreu, ela foi coroada rainha. E o reino nunca mais foi invadido."
       ],
       "erros": [
-        {"p": 7, "trecho": "a luz", "categoria": "crase", "camada": "linguistica"},
-        {"p": 8, "trecho": "ninguem", "categoria": "acentuacao", "camada": "linguistica"},
-        {"p": 9, "trecho": "a capital", "categoria": "crase", "camada": "linguistica"},
-        {"p": 10, "trecho": "nenhum deles conseguiam", "categoria": "concordancia_verbal", "camada": "linguistica"},
-        {"p": 15, "trecho": "começa", "categoria": "tempo_verbal", "camada": "linguistica"},
-        {"p": 19, "trecho": "a a", "categoria": "repeticao", "camada": "linguistica"},
-        {"p": 24, "trecho": "à estudar", "categoria": "crase", "camada": "linguistica"},
-        {"p": 12, "trecho": "capa azul", "categoria": "contradicao", "camada": "narrativa", "nota": "capa de couro vermelho no parágrafo 6"}
+        {
+          "p": 7,
+          "trecho": "a luz",
+          "categoria": "crase",
+          "camada": "linguistica"
+        },
+        {
+          "p": 8,
+          "trecho": "ninguem",
+          "categoria": "acentuacao",
+          "camada": "linguistica"
+        },
+        {
+          "p": 9,
+          "trecho": "a capital",
+          "categoria": "crase",
+          "camada": "linguistica"
+        },
+        {
+          "p": 10,
+          "trecho": "nenhum deles conseguiam",
+          "categoria": "concordancia_verbal",
+          "camada": "linguistica"
+        },
+        {
+          "p": 15,
+          "trecho": "começa",
+          "categoria": "tempo_verbal",
+          "camada": "linguistica"
+        },
+        {
+          "p": 19,
+          "trecho": "a a",
+          "categoria": "repeticao",
+          "camada": "linguistica"
+        },
+        {
+          "p": 24,
+          "trecho": "à estudar",
+          "categoria": "crase",
+          "camada": "linguistica"
+        },
+        {
+          "p": 12,
+          "trecho": "capa azul",
+          "categoria": "contradicao",
+          "camada": "narrativa",
+          "nota": "capa de couro vermelho no parágrafo 6"
+        }
       ],
       "aceitaveis": [
-        {"p": 22, "trecho": "se aproximou", "nota": "próclise corrente no português brasileiro"},
-        {"p": 23, "trecho": "Me perdoa", "nota": "fala coloquial"},
-        {"p": 25, "trecho": "E o reino", "nota": "início com conjunção é recurso estilístico"}
+        {
+          "p": 22,
+          "trecho": "se aproximou",
+          "nota": "próclise corrente no português brasileiro"
+        },
+        {
+          "p": 23,
+          "trecho": "Me perdoa",
+          "nota": "fala coloquial"
+        },
+        {
+          "p": 25,
+          "trecho": "E o reino",
+          "nota": "início com conjunção é recurso estilístico"
+        }
       ]
     },
     {
@@ -169,8 +353,66 @@
       ],
       "erros": [],
       "aceitaveis": [
-        {"p": 11, "trecho": "não tem mais ninguém", "nota": "fala coloquial"},
-        {"p": 12, "trecho": "Toma", "nota": "fala coloquial"}
+        {
+          "p": 11,
+          "trecho": "não tem mais ninguém",
+          "nota": "fala coloquial"
+        },
+        {
+          "p": 12,
+          "trecho": "Toma",
+          "nota": "fala coloquial"
+        }
+      ]
+    },
+    {
+      "id": "val-auditoria-biblioteca",
+      "tempo": "passado",
+      "paragrafos": [
+        "Capítulo 1",
+        "Às oito em ponto, Teodoro abriu a biblioteca municipal e acendeu as luzes do salão principal.",
+        "Os livros devolvidos na véspera, empilhados perto da porta, precisava ser catalogados antes do almoço.",
+        "Ele guardou os óculos de leitura no bolso da camisa e começou pelo primeiro volume da pilha.",
+        "Ajeitou os óculos no nariz e leu as letras miúdas da ficha, uma por uma.",
+        "— Bom dia, seu Teodoro, chegou aquele livro de receitas? — perguntou uma senhora, encostada no balcão.",
+        "— Chegou sim, mas tá emprestado até sexta — respondeu ele.",
+        "Capítulo 2",
+        "Teodoro aspirava o cargo de diretor havia anos, mas ninguém na prefeitura parecia notar.",
+        "À tarde, separou os livros infantis por idade, etiquetou as prateleiras e varreu o tapete colorido.",
+        "Antes de trancar a porta, conferiu as janelas uma por e saiu sem olhar para trás."
+      ],
+      "erros": [
+        {
+          "p": 3,
+          "trecho": "precisava",
+          "categoria": "concordancia_verbal",
+          "camada": "linguistica"
+        },
+        {
+          "p": 5,
+          "trecho": "Ajeitou os óculos no nariz",
+          "categoria": "continuidade_local",
+          "camada": "narrativa"
+        },
+        {
+          "p": 9,
+          "trecho": "aspirava o cargo",
+          "categoria": "regencia",
+          "camada": "linguistica"
+        },
+        {
+          "p": 11,
+          "trecho": "uma por e",
+          "categoria": "estrutura_frase",
+          "camada": "linguistica"
+        }
+      ],
+      "aceitaveis": [
+        {
+          "p": 7,
+          "trecho": "tá emprestado",
+          "nota": "fala coloquial"
+        }
       ]
     }
   ]

@@ -8,12 +8,13 @@ import avaliar_deteccao as bench
 
 CATEGORIES = {'ortografia', 'acentuacao', 'concordancia_verbal', 'concordancia_nominal', 'crase',
               'regencia', 'homofonos', 'verbo_impessoal', 'pontuacao', 'pontuacao_mecanica',
-              'repeticao', 'tempo_verbal', 'contradicao', 'residuo_edicao', 'estrutura_frase'}
+              'repeticao', 'tempo_verbal', 'contradicao', 'residuo_edicao', 'estrutura_frase',
+              'continuidade_local'}
 
 
-def finding(paragraph, start, end, related=()):
+def finding(paragraph, start, end, related=(), module='linguistic'):
     return {'paragraph': paragraph, 'start': start, 'end': end, 'text': '', 'category': 'x',
-            'excerpt': '', 'related': list(related)}
+            'excerpt': '', 'related': list(related), 'module': module}
 
 
 class CorpusTests(unittest.TestCase):
@@ -69,6 +70,46 @@ class ScoreTests(unittest.TestCase):
     def test_summary_keeps_denominators(self):
         summary = bench.summarize([bench.score(self.text, [])])
         self.assertEqual(summary['por_camada']['linguistica'], {'esperados': 1, 'encontrados': 0})
+
+
+class AuditScoreTests(unittest.TestCase):
+    """A Auditoria final é medida à parte: o que só ela encontra e o que ela aponta à toa."""
+    text = {'id': 't', 'conjunto': 'desenvolvimento',
+            'paragrafos': ['Ela disse que que sim. Tá bom.', 'As caixas estava ali.'],
+            'erros': [{'p': 1, 'trecho': 'que que', 'categoria': 'repeticao', 'camada': 'linguistica'},
+                      {'p': 2, 'trecho': 'estava', 'categoria': 'concordancia_verbal', 'camada': 'linguistica'}],
+            'aceitaveis': [{'p': 1, 'trecho': 'Tá'}]}
+
+    def test_audit_findings_are_split_by_what_the_rules_missed(self):
+        findings = [finding(1, 10, 17),                       # regra acha a repetição
+                    finding(1, 14, 17, module='audit'),       # auditoria repete o mesmo erro
+                    finding(2, 10, 16, module='audit'),       # só a auditoria acha a concordância
+                    finding(1, 23, 25, module='audit'),       # trecho aceitável
+                    finding(2, 0, 2, module='audit')]         # alarme falso
+        result = bench.score(self.text, findings)
+        self.assertEqual([(e['encontrado'], e['encontrado_regras']) for e in result['erros']],
+                         [(True, True), (True, False)])
+        auditoria = result['auditoria']
+        self.assertEqual((auditoria['achados'], auditoria['sobre_erros_perdidos'], auditoria['sobre_erros_ja_apontados'],
+                          auditoria['neutros'], len(auditoria['alarmes_falsos'])), (4, 1, 1, 1, 1))
+
+    def test_summary_counts_audit_and_cost(self):
+        result = bench.score(self.text, [finding(2, 10, 16, module='audit')])
+        result['custo_auditoria'] = 0.05
+        summary = bench.summarize([result, bench.score(self.text, [])])
+        self.assertEqual(summary['auditoria'], {'achados': 1, 'erros_so_auditoria': 1, 'erros_perdidos_pelas_regras': 4,
+                                                'sobre_erros_ja_apontados': 0, 'neutros': 0, 'alarmes_falsos': 0,
+                                                'custo_usd': 0.05})
+        self.assertIn('Auditoria final', bench.table(summary))
+
+    def test_without_audit_summary_has_no_audit_section(self):
+        summary = bench.summarize([bench.score(self.text, [finding(1, 10, 17)])])
+        self.assertNotIn('auditoria', summary)
+        self.assertNotIn('Auditoria final', bench.table(summary))
+
+    def test_total_budget_stops_before_next_text(self):
+        self.assertTrue(bench.within_budget(spent=0.5, per_text=0.2, total=1.0))
+        self.assertFalse(bench.within_budget(spent=0.85, per_text=0.2, total=1.0))
 
 
 if __name__ == '__main__':

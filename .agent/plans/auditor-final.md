@@ -404,7 +404,7 @@ cd fonte && .venv/bin/python -m fonte revisar <copia.pages> --saida <nova> --tem
 - [x] Etapa 3 — incremental, teto e estimativa (05/10)
 - [x] Etapa 4 — app (05/10)
 - [x] Etapa 5 — ponta a ponta com a API (05/10, autorizada)
-- [ ] Etapa 6 — medição no corpus (autorização)
+- [x] Etapa 6 — medição no corpus (05/10, autorizada; US$ 0,56 de US$ 2,00)
 - [ ] Etapa 7 — manuscritos, documentação e montagem (autorização)
 
 05/10/2026: plano criado a partir do código em `290f439` mais as alterações locais da
@@ -535,7 +535,24 @@ teto. O auditor o reaproveita em vez de criar outro cliente.
   mais em pensamento e saída.
 - `metadata.auditoria_ia` ganhou `tokens_entrada`, `tokens_cache` e `tokens_saida`.
 
+05/10/2026, Etapa 6: números e decisões em `docs/validacao.md` (“Auditoria final com IA — medição
+no corpus”). Em resumo:
+
+- **Script:** `scripts/avaliar_deteccao.py --auditoria`, com teto por texto e teto total.
+- **Corpus:** 3 textos novos e a categoria `continuidade_local`.
+- **Prompt:** v3 (`VERSAO_PROMPT = 3`).
+- **Validação:** só regras 20/28; com a auditoria 26/28, com 0 alarmes falsos da auditoria.
+- **Decisão:** parei de ajustar o prompt depois da v3, porque as diferenças ficaram no nível
+  do ruído entre rodadas.
+
 ## Validação realizada e resultado final
+
+Etapa 6 (05/10/2026):
+
+- 4 rodadas com a API, total de US$ 0,5647: desenvolvimento 0,1625 + 0,1574 + 0,1712 e
+  validação 0,0736.
+- Suítes aprovadas: 341 do analisador, 29 dos pacotes e do contrato Python, 25 do Coerencia.
+
 
 Etapa 5 (05/10/2026):
 

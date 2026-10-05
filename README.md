@@ -116,6 +116,8 @@ fonte/.venv/bin/python scripts/avaliar_deteccao.py --conjunto validacao --langua
 
 O conjunto `desenvolvimento` orienta correções; `validacao` fica reservado para medir. Os dois são sintéticos e foram escritos junto com as regras, por isso não substituem textos anotados por outra pessoa.
 
+Com `--auditoria`, a Auditoria final com IA roda em cada texto e é medida à parte: erros que só ela encontrou, achados repetidos, sobre trechos aceitáveis e alarmes falsos. Isso chama a API da Anthropic e custa dinheiro; `--auditoria-teto-texto` e `--auditoria-teto-total` limitam o gasto, e a rodada para antes de um texto que poderia ultrapassar o teto total.
+
 ## Limites
 
 A revisão é heurística e parcial. Confiança não é probabilidade calibrada, e a ausência de alertas não garante ausência de erros. O Auditor Final ainda não existe. Os manuscritos usados no desenvolvimento não constituem uma avaliação independente de precisão.

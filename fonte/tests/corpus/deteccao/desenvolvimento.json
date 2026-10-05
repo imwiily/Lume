@@ -32,35 +32,169 @@
         "Fazem dois anos que eles não passavam o Natal juntos."
       ],
       "erros": [
-        {"p": 2, "trecho": "chegou na", "categoria": "regencia", "camada": "linguistica"},
-        {"p": 2, "trecho": "as seis horas", "categoria": "crase", "camada": "linguistica"},
-        {"p": 2, "trecho": "ceu", "categoria": "acentuacao", "camada": "linguistica"},
-        {"p": 3, "trecho": "passageiros estava", "categoria": "concordancia_verbal", "camada": "linguistica"},
-        {"p": 3, "trecho": "ninguem", "categoria": "acentuacao", "camada": "linguistica"},
-        {"p": 4, "trecho": "mais não", "categoria": "homofonos", "camada": "linguistica"},
-        {"p": 5, "trecho": "Voce", "categoria": "acentuacao", "camada": "linguistica"},
-        {"p": 6, "trecho": "Não senhora", "categoria": "pontuacao", "camada": "linguistica"},
-        {"p": 6, "trecho": "a pouco tempo", "categoria": "homofonos", "camada": "linguistica"},
-        {"p": 7, "trecho": "saída..", "categoria": "pontuacao_mecanica", "camada": "linguistica"},
-        {"p": 8, "trecho": "vê", "categoria": "tempo_verbal", "camada": "linguistica"},
-        {"p": 9, "trecho": "Haviam", "categoria": "verbo_impessoal", "camada": "linguistica"},
-        {"p": 10, "trecho": "esperou  por", "categoria": "pontuacao_mecanica", "camada": "linguistica"},
-        {"p": 13, "trecho": "Porque", "categoria": "homofonos", "camada": "linguistica"},
-        {"p": 17, "trecho": "chegaram em", "categoria": "regencia", "camada": "linguistica"},
-        {"p": 17, "trecho": "estavam apagada", "categoria": "concordancia_nominal", "camada": "linguistica"},
-        {"p": 22, "trecho": "a irmã", "categoria": "crase", "camada": "linguistica"},
-        {"p": 23, "trecho": "Fazem", "categoria": "verbo_impessoal", "camada": "linguistica"},
-        {"p": 16, "trecho": "olhos castanhos", "categoria": "contradicao", "camada": "narrativa", "nota": "olhos verdes no parágrafo 12"},
-        {"p": 15, "trecho": "não tinha guarda-chuva", "categoria": "contradicao", "camada": "narrativa", "nota": "abriu o guarda-chuva vermelho no parágrafo 8"},
-        {"p": 21, "trecho": "mala preta", "categoria": "contradicao", "camada": "narrativa", "nota": "mala marrom no parágrafo 12"},
-        {"p": 19, "trecho": "a mãe deles preparou o café", "categoria": "contradicao", "camada": "narrativa", "nota": "a mãe é dita falecida na frase seguinte e continua agindo"}
+        {
+          "p": 2,
+          "trecho": "chegou na",
+          "categoria": "regencia",
+          "camada": "linguistica"
+        },
+        {
+          "p": 2,
+          "trecho": "as seis horas",
+          "categoria": "crase",
+          "camada": "linguistica"
+        },
+        {
+          "p": 2,
+          "trecho": "ceu",
+          "categoria": "acentuacao",
+          "camada": "linguistica"
+        },
+        {
+          "p": 3,
+          "trecho": "passageiros estava",
+          "categoria": "concordancia_verbal",
+          "camada": "linguistica"
+        },
+        {
+          "p": 3,
+          "trecho": "ninguem",
+          "categoria": "acentuacao",
+          "camada": "linguistica"
+        },
+        {
+          "p": 4,
+          "trecho": "mais não",
+          "categoria": "homofonos",
+          "camada": "linguistica"
+        },
+        {
+          "p": 5,
+          "trecho": "Voce",
+          "categoria": "acentuacao",
+          "camada": "linguistica"
+        },
+        {
+          "p": 6,
+          "trecho": "Não senhora",
+          "categoria": "pontuacao",
+          "camada": "linguistica"
+        },
+        {
+          "p": 6,
+          "trecho": "a pouco tempo",
+          "categoria": "homofonos",
+          "camada": "linguistica"
+        },
+        {
+          "p": 7,
+          "trecho": "saída..",
+          "categoria": "pontuacao_mecanica",
+          "camada": "linguistica"
+        },
+        {
+          "p": 8,
+          "trecho": "vê",
+          "categoria": "tempo_verbal",
+          "camada": "linguistica"
+        },
+        {
+          "p": 9,
+          "trecho": "Haviam",
+          "categoria": "verbo_impessoal",
+          "camada": "linguistica"
+        },
+        {
+          "p": 10,
+          "trecho": "esperou  por",
+          "categoria": "pontuacao_mecanica",
+          "camada": "linguistica"
+        },
+        {
+          "p": 13,
+          "trecho": "Porque",
+          "categoria": "homofonos",
+          "camada": "linguistica"
+        },
+        {
+          "p": 17,
+          "trecho": "chegaram em",
+          "categoria": "regencia",
+          "camada": "linguistica"
+        },
+        {
+          "p": 17,
+          "trecho": "estavam apagada",
+          "categoria": "concordancia_nominal",
+          "camada": "linguistica"
+        },
+        {
+          "p": 22,
+          "trecho": "a irmã",
+          "categoria": "crase",
+          "camada": "linguistica"
+        },
+        {
+          "p": 23,
+          "trecho": "Fazem",
+          "categoria": "verbo_impessoal",
+          "camada": "linguistica"
+        },
+        {
+          "p": 16,
+          "trecho": "olhos castanhos",
+          "categoria": "contradicao",
+          "camada": "narrativa",
+          "nota": "olhos verdes no parágrafo 12"
+        },
+        {
+          "p": 15,
+          "trecho": "não tinha guarda-chuva",
+          "categoria": "contradicao",
+          "camada": "narrativa",
+          "nota": "abriu o guarda-chuva vermelho no parágrafo 8"
+        },
+        {
+          "p": 21,
+          "trecho": "mala preta",
+          "categoria": "contradicao",
+          "camada": "narrativa",
+          "nota": "mala marrom no parágrafo 12"
+        },
+        {
+          "p": 19,
+          "trecho": "a mãe deles preparou o café",
+          "categoria": "contradicao",
+          "camada": "narrativa",
+          "nota": "a mãe é dita falecida na frase seguinte e continua agindo"
+        }
       ],
       "aceitaveis": [
-        {"p": 14, "trecho": "Me desculpe", "nota": "próclise coloquial em fala"},
-        {"p": 10, "trecho": "sentou no", "nota": "sentar sem pronome é uso corrente"},
-        {"p": 19, "trecho": "Ela tinha falecido", "nota": "evidência da contradição, não erro isolado"},
-        {"p": 19, "trecho": "há três anos", "nota": "depois do mais-que-perfeito, a norma prefere ‘havia’; alerta aceitável"},
-        {"p": 20, "trecho": "A mãe sorriu", "nota": "continuação da mesma contradição"}
+        {
+          "p": 14,
+          "trecho": "Me desculpe",
+          "nota": "próclise coloquial em fala"
+        },
+        {
+          "p": 10,
+          "trecho": "sentou no",
+          "nota": "sentar sem pronome é uso corrente"
+        },
+        {
+          "p": 19,
+          "trecho": "Ela tinha falecido",
+          "nota": "evidência da contradição, não erro isolado"
+        },
+        {
+          "p": 19,
+          "trecho": "há três anos",
+          "nota": "depois do mais-que-perfeito, a norma prefere ‘havia’; alerta aceitável"
+        },
+        {
+          "p": 20,
+          "trecho": "A mãe sorriu",
+          "nota": "continuação da mesma contradição"
+        }
       ]
     },
     {
@@ -95,23 +229,106 @@
         "Mas antes que eu pudesse descansar, alguém bateu na porta com força."
       ],
       "erros": [
-        {"p": 3, "trecho": "ja", "categoria": "acentuacao", "camada": "linguistica"},
-        {"p": 4, "trecho": "sedo", "categoria": "ortografia", "camada": "linguistica"},
-        {"p": 6, "trecho": "resultados era", "categoria": "concordancia_verbal", "camada": "linguistica"},
-        {"p": 8, "trecho": "as três horas", "categoria": "crase", "camada": "linguistica"},
-        {"p": 11, "trecho": "pediu para que", "categoria": "regencia", "camada": "linguistica"},
-        {"p": 12, "trecho": "Haviam", "categoria": "verbo_impessoal", "camada": "linguistica"},
-        {"p": 13, "trecho": "manutensão", "categoria": "ortografia", "camada": "linguistica"},
-        {"p": 14, "trecho": "equipe,", "categoria": "pontuacao", "camada": "linguistica", "nota": "vírgula entre sujeito e verbo"},
-        {"p": 18, "trecho": "a comandante", "categoria": "crase", "camada": "linguistica"},
-        {"p": 22, "trecho": "meu pai entrou", "categoria": "contradicao", "camada": "narrativa", "nota": "o pai morreu dez anos antes (parágrafo 16)"},
-        {"p": 23, "trecho": "olhos azuis", "categoria": "contradicao", "camada": "narrativa", "nota": "olhos cinzentos no parágrafo 19"}
+        {
+          "p": 3,
+          "trecho": "ja",
+          "categoria": "acentuacao",
+          "camada": "linguistica"
+        },
+        {
+          "p": 4,
+          "trecho": "sedo",
+          "categoria": "ortografia",
+          "camada": "linguistica"
+        },
+        {
+          "p": 6,
+          "trecho": "resultados era",
+          "categoria": "concordancia_verbal",
+          "camada": "linguistica"
+        },
+        {
+          "p": 8,
+          "trecho": "as três horas",
+          "categoria": "crase",
+          "camada": "linguistica"
+        },
+        {
+          "p": 11,
+          "trecho": "pediu para que",
+          "categoria": "regencia",
+          "camada": "linguistica"
+        },
+        {
+          "p": 12,
+          "trecho": "Haviam",
+          "categoria": "verbo_impessoal",
+          "camada": "linguistica"
+        },
+        {
+          "p": 13,
+          "trecho": "manutensão",
+          "categoria": "ortografia",
+          "camada": "linguistica"
+        },
+        {
+          "p": 14,
+          "trecho": "equipe,",
+          "categoria": "pontuacao",
+          "camada": "linguistica",
+          "nota": "vírgula entre sujeito e verbo"
+        },
+        {
+          "p": 18,
+          "trecho": "a comandante",
+          "categoria": "crase",
+          "camada": "linguistica"
+        },
+        {
+          "p": 22,
+          "trecho": "meu pai entrou",
+          "categoria": "contradicao",
+          "camada": "narrativa",
+          "nota": "o pai morreu dez anos antes (parágrafo 16)"
+        },
+        {
+          "p": 23,
+          "trecho": "olhos azuis",
+          "categoria": "contradicao",
+          "camada": "narrativa",
+          "nota": "olhos cinzentos no parágrafo 19"
+        },
+        {
+          "p": 21,
+          "trecho": "engenheiro chefe",
+          "categoria": "ortografia",
+          "camada": "linguistica",
+          "nota": "engenheiro-chefe, com hífen; anotação que faltava, acrescentada em 05/10/2026 depois de a Auditoria final apontar"
+        }
       ],
       "aceitaveis": [
-        {"p": 24, "trecho": "Eu não sabia", "n": 1, "nota": "anáfora expressiva"},
-        {"p": 24, "trecho": "Eu não sabia", "n": 2, "nota": "anáfora expressiva"},
-        {"p": 26, "trecho": "bateu na porta", "nota": "regência corrente no português brasileiro"},
-        {"p": 4, "trecho": "me olhou", "nota": "próclise corrente no português brasileiro"}
+        {
+          "p": 24,
+          "trecho": "Eu não sabia",
+          "n": 1,
+          "nota": "anáfora expressiva"
+        },
+        {
+          "p": 24,
+          "trecho": "Eu não sabia",
+          "n": 2,
+          "nota": "anáfora expressiva"
+        },
+        {
+          "p": 26,
+          "trecho": "bateu na porta",
+          "nota": "regência corrente no português brasileiro"
+        },
+        {
+          "p": 4,
+          "trecho": "me olhou",
+          "nota": "próclise corrente no português brasileiro"
+        }
       ]
     },
     {
@@ -145,24 +362,99 @@
         "Tomás não contou nada a ninguém. Mas a partir daquele dia, passou a trancar a porta todas as noites."
       ],
       "erros": [
-        {"p": 4, "trecho": "mau-humorado", "categoria": "homofonos", "camada": "linguistica"},
-        {"p": 5, "trecho": "cestas cheia", "categoria": "concordancia_nominal", "camada": "linguistica"},
-        {"p": 7, "trecho": "To", "categoria": "acentuacao", "camada": "linguistica", "nota": "a forma coloquial é ‘tô’"},
-        {"p": 11, "trecho": "Aonde", "categoria": "homofonos", "camada": "linguistica"},
-        {"p": 13, "trecho": "de de", "categoria": "repeticao", "camada": "linguistica"},
-        {"p": 16, "trecho": "agradece", "categoria": "tempo_verbal", "camada": "linguistica"},
-        {"p": 16, "trecho": "desaparece", "categoria": "tempo_verbal", "camada": "linguistica"},
-        {"p": 23, "trecho": "de baixo", "categoria": "ortografia", "camada": "linguistica"},
-        {"p": 20, "trecho": "baú de pinho", "categoria": "contradicao", "camada": "narrativa", "nota": "baú de carvalho no parágrafo 19"}
+        {
+          "p": 4,
+          "trecho": "mau-humorado",
+          "categoria": "homofonos",
+          "camada": "linguistica"
+        },
+        {
+          "p": 5,
+          "trecho": "cestas cheia",
+          "categoria": "concordancia_nominal",
+          "camada": "linguistica"
+        },
+        {
+          "p": 7,
+          "trecho": "To",
+          "categoria": "acentuacao",
+          "camada": "linguistica",
+          "nota": "a forma coloquial é ‘tô’"
+        },
+        {
+          "p": 11,
+          "trecho": "Aonde",
+          "categoria": "homofonos",
+          "camada": "linguistica"
+        },
+        {
+          "p": 13,
+          "trecho": "de de",
+          "categoria": "repeticao",
+          "camada": "linguistica"
+        },
+        {
+          "p": 16,
+          "trecho": "agradece",
+          "categoria": "tempo_verbal",
+          "camada": "linguistica"
+        },
+        {
+          "p": 16,
+          "trecho": "desaparece",
+          "categoria": "tempo_verbal",
+          "camada": "linguistica"
+        },
+        {
+          "p": 23,
+          "trecho": "de baixo",
+          "categoria": "ortografia",
+          "camada": "linguistica"
+        },
+        {
+          "p": 20,
+          "trecho": "baú de pinho",
+          "categoria": "contradicao",
+          "camada": "narrativa",
+          "nota": "baú de carvalho no parágrafo 19"
+        }
       ],
       "aceitaveis": [
-        {"p": 6, "trecho": "Tá", "nota": "fala coloquial"},
-        {"p": 6, "trecho": "pra", "nota": "fala coloquial"},
-        {"p": 7, "trecho": "Me faz", "nota": "fala coloquial"},
-        {"p": 7, "trecho": "avisa teu pai", "nota": "fala coloquial"},
-        {"p": 21, "trecho": "ele até que ele", "nota": "repetição pronominal possível de apontar"},
-        {"p": 24, "trecho": "apenas quinze", "nota": "mistério deliberado, marcado no próprio texto"},
-        {"p": 25, "trecho": "Mas a partir", "nota": "vírgula opcional"}
+        {
+          "p": 6,
+          "trecho": "Tá",
+          "nota": "fala coloquial"
+        },
+        {
+          "p": 6,
+          "trecho": "pra",
+          "nota": "fala coloquial"
+        },
+        {
+          "p": 7,
+          "trecho": "Me faz",
+          "nota": "fala coloquial"
+        },
+        {
+          "p": 7,
+          "trecho": "avisa teu pai",
+          "nota": "fala coloquial"
+        },
+        {
+          "p": 21,
+          "trecho": "ele até que ele",
+          "nota": "repetição pronominal possível de apontar"
+        },
+        {
+          "p": 24,
+          "trecho": "apenas quinze",
+          "nota": "mistério deliberado, marcado no próprio texto"
+        },
+        {
+          "p": 25,
+          "trecho": "Mas a partir",
+          "nota": "vírgula opcional"
+        }
       ]
     },
     {
@@ -187,8 +479,16 @@
       ],
       "erros": [],
       "aceitaveis": [
-        {"p": 10, "trecho": "Pra", "nota": "fala coloquial"},
-        {"p": 10, "trecho": "Vem com a gente", "nota": "fala coloquial"}
+        {
+          "p": 10,
+          "trecho": "Pra",
+          "nota": "fala coloquial"
+        },
+        {
+          "p": 10,
+          "trecho": "Vem com a gente",
+          "nota": "fala coloquial"
+        }
       ]
     },
     {
@@ -270,10 +570,30 @@
         "Joana tinha estava esperando aquela notícia havia semanas."
       ],
       "erros": [
-        {"p": 3, "trecho": "entrega", "categoria": "tempo_verbal", "camada": "linguistica"},
-        {"p": 4, "trecho": "Procura", "categoria": "tempo_verbal", "camada": "linguistica"},
-        {"p": 5, "trecho": "estavam", "categoria": "concordancia_verbal", "camada": "linguistica"},
-        {"p": 6, "trecho": "tinha estava", "categoria": "residuo_edicao", "camada": "linguistica"}
+        {
+          "p": 3,
+          "trecho": "entrega",
+          "categoria": "tempo_verbal",
+          "camada": "linguistica"
+        },
+        {
+          "p": 4,
+          "trecho": "Procura",
+          "categoria": "tempo_verbal",
+          "camada": "linguistica"
+        },
+        {
+          "p": 5,
+          "trecho": "estavam",
+          "categoria": "concordancia_verbal",
+          "camada": "linguistica"
+        },
+        {
+          "p": 6,
+          "trecho": "tinha estava",
+          "categoria": "residuo_edicao",
+          "camada": "linguistica"
+        }
       ],
       "aceitaveis": []
     },
@@ -307,8 +627,119 @@
         "Apenas silêncio no corredor."
       ],
       "erros": [
-        {"p": 2, "trecho": "Caminho", "categoria": "tempo_verbal", "camada": "linguistica"},
-        {"p": 8, "trecho": "Quando saiu do consultório depois de assinar os papéis", "categoria": "estrutura_frase", "camada": "linguistica"}
+        {
+          "p": 2,
+          "trecho": "Caminho",
+          "categoria": "tempo_verbal",
+          "camada": "linguistica"
+        },
+        {
+          "p": 8,
+          "trecho": "Quando saiu do consultório depois de assinar os papéis",
+          "categoria": "estrutura_frase",
+          "camada": "linguistica"
+        }
+      ],
+      "aceitaveis": []
+    },
+    {
+      "id": "dev-auditoria-feira",
+      "tempo": "passado",
+      "paragrafos": [
+        "Capítulo 1",
+        "Na sexta-feira, Dora montou a barraca de frutas antes do sol nascer e arrumou as caixas de mamão no balcão.",
+        "Os sacos de laranja que o fornecedor tinha deixado na noite anterior estava encostado na grade.",
+        "— Bom dia, dona Dora! Me vê dois quilos de uva? — pediu o vizinho, já com a sacola aberta.",
+        "Dora pesou a uva, embrulhou no jornal e entregou o pacote com a mão esquerda, porque a direita segurava o guarda-chuva.",
+        "Com as duas mãos livres, ela contou o troco devagar e devolveu as moedas ao vizinho.",
+        "O vizinho agradeceu e foi embora assobiando.",
+        "Capítulo 2",
+        "No sábado, a feira encheu cedo, e Dora mal teve tempo de para o café.",
+        "Ela sempre preferiu mais vender pela manhã do que à tarde, quando o calor amolecia as frutas.",
+        "Uma cliente pediu abacaxi. Dora escolheu o mais maduro, cortou ao meio e mostrou a polpa amarela. A cliente gostou e levou dois.",
+        "Voltou para casa cansada. Pés doendo. Sacola vazia. Bolso cheio."
+      ],
+      "erros": [
+        {
+          "p": 3,
+          "trecho": "estava encostado",
+          "categoria": "concordancia_verbal",
+          "camada": "linguistica"
+        },
+        {
+          "p": 6,
+          "trecho": "Com as duas mãos livres",
+          "categoria": "continuidade_local",
+          "camada": "narrativa"
+        },
+        {
+          "p": 9,
+          "trecho": "de para o café",
+          "categoria": "estrutura_frase",
+          "camada": "linguistica"
+        },
+        {
+          "p": 10,
+          "trecho": "preferiu mais",
+          "categoria": "regencia",
+          "camada": "linguistica"
+        }
+      ],
+      "aceitaveis": [
+        {
+          "p": 4,
+          "trecho": "Me vê",
+          "nota": "próclise coloquial em fala"
+        },
+        {
+          "p": 12,
+          "trecho": "Pés doendo",
+          "nota": "fragmento expressivo"
+        }
+      ]
+    },
+    {
+      "id": "dev-auditoria-observatorio",
+      "tempo": "presente",
+      "paragrafos": [
+        "Capítulo 1",
+        "Toda noite, Inês sobe a escada do observatório com uma garrafa térmica e um caderno de capa dura.",
+        "Ela ajusta o telescópio, anota a hora e espera as nuvens se afastarem.",
+        "Às duas da manhã, o céu limpa. Ela aponta a lente para Júpiter e conta as luas com cuidado.",
+        "Quando termina, guarda o caderno na mochila e fecha o zíper.",
+        "Antes de descer, percebe que o caderno ficou aberto sobre a mesa, ao lado da garrafa.",
+        "— Mais uma noite boa — murmura ela, apagando a lanterna.",
+        "Capítulo 2",
+        "Na tarde seguinte, o diretor do observatório chamou Inês na sala dele.",
+        "Ele quer saber se as medições da semana passada confere com as do ano anterior.",
+        "Inês responde que sim, mostra os gráficos e explica o método, ponto por ponto.",
+        "O diretor assiste o vídeo das medições em silêncio e, no fim, pede uma cópia."
+      ],
+      "erros": [
+        {
+          "p": 6,
+          "trecho": "o caderno ficou aberto sobre a mesa",
+          "categoria": "continuidade_local",
+          "camada": "narrativa"
+        },
+        {
+          "p": 9,
+          "trecho": "chamou",
+          "categoria": "tempo_verbal",
+          "camada": "linguistica"
+        },
+        {
+          "p": 10,
+          "trecho": "confere",
+          "categoria": "concordancia_verbal",
+          "camada": "linguistica"
+        },
+        {
+          "p": 12,
+          "trecho": "assiste o vídeo",
+          "categoria": "regencia",
+          "camada": "linguistica"
+        }
       ],
       "aceitaveis": []
     }

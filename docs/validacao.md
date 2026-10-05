@@ -3,6 +3,54 @@
 Os registros abaixo pertencem às versões indicadas. Caminhos citados nos registros anteriores à 1.0 são da antiga pasta `LumeMac/` (correspondência em [README.md](../README.md#estrutura)); os comandos abaixo usam a raiz do repositório. As verificações do hotfix aparecem primeiro; os registros anteriores são mantidos para rastreabilidade.
 
 
+## Auditoria final com IA — medição no corpus (05/10/2026)
+
+Etapa 6 do [plano](../.agent/plans/auditor-final.md), autorizada pelo autor com teto de US$ 2,00.
+Gasto: US$ 0,56 em 4 rodadas, mais US$ 0,03 do teste da Etapa 5.
+
+- **Corpus:** 3 textos novos, escritos do zero, com erros que as regras não costumam pegar
+  (concordância distante, regência, palavra faltando, contradição dentro da cena, verbo fora
+  do tempo) e controles de voz:
+  - `dev-auditoria-feira` e `dev-auditoria-observatorio` (este narrado no presente);
+  - `val-auditoria-biblioteca`.
+- **Categoria nova:** `continuidade_local` (camada narrativa).
+- **Anotação acrescentada:** “engenheiro chefe” em `dev-estacao-espacial` (o certo é com
+  hífen). Faltava no gabarito e foi apontada pela auditoria.
+- **Linha de base só com as regras** (os dois conjuntos, LanguageTool):
+  - 62/70 de língua e 1/14 narrativos;
+  - 11 alarmes falsos;
+  - antes da anotação nova.
+- **Desenvolvimento com a auditoria** (Opus 5.5, esforço médio), 3 rodadas:
+
+  | Prompt | Achados | Erros só da auditoria | Alarmes falsos | Custo |
+  | --- | ---: | --- | ---: | ---: |
+  | v1 | 18 | 12 de 13 perdidos pelas regras | 5 | US$ 0,16 |
+  | v2 | 15 | 12 de 14 | 3 | US$ 0,16 |
+  | v3 | 16 | 11 de 14 | 3 | US$ 0,17 |
+
+  - Na v1, 1 dos 5 alarmes era um erro claro (fala de personagem tratada como contradição).
+    Os outros eram discutíveis: pronome sem referente no trecho, conectivo repetido e a
+    anotação que faltava.
+  - A v2 restringiu `referencia` a mais de um candidato plausível e excluiu falas da
+    continuidade.
+  - A v3 aponta o trecho posterior da contradição e limita a repetição a frases vizinhas,
+    sem conectivos.
+  - As diferenças entre v2 e v3 estão dentro da variação entre rodadas. A v3 ficou pelas
+    regras, não pelos números.
+- **Validação, medida uma vez com a v3, sem ajuste posterior:**
+  - só regras: 20/28, 6 alarmes falsos;
+  - com a auditoria: 26/28 (língua 23/23, narrativa 3/5);
+  - a auditoria achou 6 dos 8 erros que as regras perderam, com 0 alarmes falsos e 1 achado
+    sobre trecho aceitável, por US$ 0,07;
+  - os 2 erros restantes são contradições entre capítulos, fora do escopo da auditoria
+    (são da Coerência com IA).
+- **Limites:**
+  - corpus pequeno, sintético e escrito por quem escreveu o prompt;
+  - variação entre rodadas de ±1 achado;
+  - não mede livros reais (manuscritos A e B não enviados, por decisão do autor).
+- 341 testes do analisador, 29 dos pacotes e do contrato Python (4 novos da pontuação da
+  auditoria) e 25 do Coerencia aprovados.
+
 ## Próxima versão (desenvolvimento) — 05/10/2026
 
 Aviso de tempo escolhido contrariado, falsos positivos ao lado do relatório e reescrita de frases
