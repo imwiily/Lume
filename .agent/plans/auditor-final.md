@@ -398,8 +398,8 @@ cd fonte && .venv/bin/python -m fonte revisar <copia.pages> --saida <nova> --tem
 
 ## Progresso, descobertas e decisões
 
-- [ ] Etapa 0 — decisões e base
-- [ ] Etapa 1 — contrato e esqueleto
+- [x] Etapa 0 — decisões e base (05/10; commits `e39844a` e `72f5fec`)
+- [x] Etapa 1 — contrato e esqueleto (05/10)
 - [ ] Etapa 2 — núcleo com modelo simulado
 - [ ] Etapa 3 — incremental, teto e estimativa
 - [ ] Etapa 4 — app
@@ -411,6 +411,30 @@ cd fonte && .venv/bin/python -m fonte revisar <copia.pages> --saida <nova> --tem
 tarefa anterior. O cliente `Claude` da Coerência cobre saída estruturada, cache, recusa e
 teto. O auditor o reaproveita em vez de criar outro cliente.
 
+05/10/2026, Etapa 1:
+
+- `pipeline.run(..., auditoria=None)` chama `fonte.auditoria_ia.auditar(blocks, cópia dos
+  alertas, avancar, **opções)`. O módulo ainda é um esqueleto que recusa rodar; o núcleo vem
+  na Etapa 2.
+- A etapa desligada sai `skipped`, com cobertura `partial`. O aviso “Auditoria editorial
+  independente ainda não implementada” saiu; ficou só a ressalva de que etapa concluída não
+  significa cobertura completa.
+- Decisão 5 implementada: exceção comum na auditoria marca a etapa como `failed`, remove o
+  que ela tinha acrescentado e mantém o relatório. `KeyboardInterrupt` e afins continuam
+  interrompendo a análise.
+- Expectativas mudadas de propósito: `test_pipeline.py` (2 lugares), `ContractCheck.swift`,
+  `packaging/lume_engine.py` e `Models.swift` (estágio inicial `pending`). O contrato Swift
+  continua aceitando `not_implemented` de relatórios antigos.
+
 ## Validação realizada e resultado final
 
-Nada implementado ainda.
+Etapa 1 (05/10/2026):
+
+- 312 testes do analisador (5 novos em `test_auditoria_ia.py`; 4 falhavam antes da mudança),
+  25 dos pacotes e do contrato Python e 24 do Coerencia aprovados.
+- Contrato Swift aprovado com o relatório antigo (`examples/Mestre`, `not_implemented`) e com
+  um relatório novo (`skipped`). Autoteste do motor (`--lume-probe`) saudável. `xcodebuild`
+  Debug sem erros.
+- Manuscritos A e B com Passado e LanguageTool, sem a auditoria (nada enviado): A 45 → 45,
+  B 17 → 17, mesmos identificadores.
+- Nenhuma chamada à API.

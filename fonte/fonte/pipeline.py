@@ -14,9 +14,10 @@ STAGES = (
 
 
 def run(blocks, model_loader, *, settings=None, tense="auto", mode="ambas",
-        original=None, languagetool=False, port=8081, progress=None, coerencia=None):
+        original=None, languagetool=False, port=8081, progress=None, coerencia=None, auditoria=None):
     """`coerencia`: opções da Coerência com IA (pasta, documento, modelo, teto, esforco), que
-    verifica contradições narrativas na etapa Coerência global."""
+    verifica contradições narrativas na etapa Coerência global. `auditoria`: opções da
+    Auditoria final com IA, que procura o que as etapas anteriores deixaram passar."""
     if mode not in ("linguistica", "editorial", "ambas"):
         raise ValueError("Modo de análise inválido.")
     options = validate(settings or {})
@@ -151,6 +152,15 @@ def run(blocks, model_loader, *, settings=None, tense="auto", mode="ambas",
             meta["coerencia_ia"] = rodada
         return out
 
+    def audit():
+        from .auditoria_ia import auditar
+        # Cópia: o auditor lê os alertas anteriores, mas não os altera.
+        out, extra_warnings, rodada = auditar(blocks, deepcopy(findings),
+                                              avancar=lambda f, t: avancar(f, t, "capítulos"), **auditoria)
+        warnings.extend(extra_warnings)
+        meta["auditoria_ia"] = rodada
+        return out
+
     from .linguistic import RULES
     jobs = [
         (linguistic_mode and (languagetool or any(rules[r] for r in (*RULES, "palavra_consecutiva"))), linguistic,
@@ -166,12 +176,13 @@ def run(blocks, model_loader, *, settings=None, tense="auto", mode="ambas",
          "Diálogo, repetições, gerundismo e referências em janelas curtas."),
         (bool(coerencia) or (editorial_mode and any(rules[r] for r in ("variacao_nome", "duracao_suspensao", "adiamento_amanha"))), global_coherence,
          "Variações de nomes e prazos; contradições narrativas com a Coerência com IA, quando ligada. Cobertura parcial."),
-        (False, None, "Auditor editorial independente ainda não implementado; nenhuma busca adicional foi realizada."),
+        (bool(auditoria), audit,
+         "Problemas que as etapas anteriores deixaram passar, com a API do Claude; só quando ligada e confirmada. Cobertura parcial."),
     ]
 
     for (module, title), (enabled, action, detail) in zip(STAGES, jobs):
         stage = dict(module=module, title=title, state="pending", finding_count=0,
-                     coverage="partial" if module != "audit" else "not_implemented", detail=detail)
+                     coverage="partial", detail=detail)
         stages.append(stage)
 
         def emit(state):
@@ -180,11 +191,12 @@ def run(blocks, model_loader, *, settings=None, tense="auto", mode="ambas",
                 progress(dict(stage))
 
         if not enabled:
-            emit("not_implemented" if module == "audit" else "skipped")
+            emit("skipped")
             continue
         emit("running")
         atual["stage"] = stage
         started = perf_counter()
+        before = len(findings)
         try:
             # Uma ocorrência com trecho fora do texto (defeito de uma regra) é descartada e
             # avisada; não derruba a etapa nem o que já foi analisado.
@@ -206,6 +218,15 @@ def run(blocks, model_loader, *, settings=None, tense="auto", mode="ambas",
                 stage["finding_count"] += 1
             stage["duration_ms"] = round((perf_counter() - started) * 1000)
             emit("completed")
+        except Exception as error:
+            emit("failed")
+            if module != "audit":
+                raise
+            # Nenhuma etapa depende da auditoria: a falha (API, teto, recusa) fica só nela.
+            del findings[before:]
+            stage["finding_count"] = 0
+            warnings.append(f"{error} A auditoria final foi interrompida; as demais etapas foram concluídas "
+                            "e o relatório foi mantido.")
         except BaseException:
             emit("failed")
             raise
@@ -219,5 +240,5 @@ def run(blocks, model_loader, *, settings=None, tense="auto", mode="ambas",
     findings.sort(key=lambda f: (f["paragraph"], f["start"], f["category"]))
     meta.update(stages=stages, pipeline_version=2, occurrence_schema_version=1,
                 text_index=manuscript.index(), confidence_semantics="rule_strength_not_calibrated_probability")
-    warnings.append("Auditoria editorial independente ainda não implementada. Etapa concluída significa apenas que as regras disponíveis terminaram.")
+    warnings.append("Etapa concluída significa apenas que as regras disponíveis terminaram; a cobertura continua parcial.")
     return findings, list(dict.fromkeys(warnings)), meta

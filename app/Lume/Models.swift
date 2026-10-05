@@ -63,8 +63,8 @@ struct AnalysisStage: Decodable, Identifiable {
     }
     static var pending: [AnalysisStage] {
         ReviewModule.allCases.map {
-            AnalysisStage(module: $0.rawValue, title: $0.title, state: $0 == .audit ? "not_implemented" : "pending",
-                          finding_count: 0, coverage: $0 == .audit ? "not_implemented" : "partial", detail: "")
+            AnalysisStage(module: $0.rawValue, title: $0.title, state: "pending",
+                          finding_count: 0, coverage: "partial", detail: "")
         }
     }
 }

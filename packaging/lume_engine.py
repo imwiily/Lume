@@ -43,7 +43,7 @@ def health():
         assert relation['suggestion'] == 'receberia' and anchor['text'][anchor['start']:anchor['end']] == 'fabricaria', 'Relação temporal ausente'
         clitic, _, _ = run([Block(1, '— Não vou — virou-se Helena.')], model, mode='editorial')
         assert any(f.get('category_code') == 'narrative_action_after_speech' and f['excerpt'] == 'virou-se' for f in clitic), 'Intervalo de ação pronominal inválido'
-        assert meta['stages'][-1]['state'] == 'not_implemented', 'Auditoria indevidamente anunciada'
+        assert meta['stages'][-1]['state'] == 'skipped', 'Auditoria executada sem ser pedida'
         grammar, _, _ = run([Block(1, 'Ela entregou o livro a professora.')], model, tense='passado')
         assert any(f.get('rule') == 'crase' for f in grammar), 'Regras gramaticais ausentes'
         from fonte.coerencia_ia import estimar

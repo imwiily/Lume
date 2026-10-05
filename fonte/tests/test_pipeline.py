@@ -130,7 +130,7 @@ class PipelineTests(unittest.TestCase):
         expected = []
         for module, _ in STAGES[:-1]:
             expected.extend([(module, 'running'), (module, 'completed')])
-        expected.append(('audit', 'not_implemented'))
+        expected.append(('audit', 'skipped'))
         self.assertEqual([(x['module'], x['state']) for x in events], expected)
         self.assertEqual(sum(s['finding_count'] for s in meta['stages']), len(findings))
         self.assertEqual({f['module'] for f in findings}, {'linguistic', 'editorial', 'global_coherence'})
@@ -229,8 +229,8 @@ class PipelineTests(unittest.TestCase):
             self.assertEqual(path.read_bytes(), original)
             self.assertEqual(report['findings'][0]['excerpt'], 'além de disso')
             events = [json.loads(x.removeprefix('LUME_PROGRESS ')) for x in stdout.getvalue().splitlines() if x.startswith('LUME_PROGRESS ')]
-            self.assertEqual(events[-1]['state'], 'not_implemented')
-            self.assertEqual(report['metadata']['stages'][-1]['state'], 'not_implemented')
+            self.assertEqual(events[-1]['state'], 'skipped')
+            self.assertEqual(report['metadata']['stages'][-1]['state'], 'skipped')
             failed_output = folder / 'falha'
             with patch('fonte.pipeline.standardize', side_effect=RuntimeError('simulada')), redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
                 code = main(['revisar', str(path), '--saida', str(failed_output), '--config', str(config)])

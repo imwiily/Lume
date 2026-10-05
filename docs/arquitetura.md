@@ -1,6 +1,6 @@
 # Arquitetura e limites — Lume 1.1 / FONTE 1.1.0
 
-Os manuscritos são somente lidos. A sequência Linguístico → Morfossintático → Editorial → Coerência Global usa uma captura imutável do documento. Antes de gravar o relatório, a CLI confere novamente o SHA-256 do arquivo (DOCX ou Pages). Falha numa etapa impede as seguintes. O Auditor Final continua indisponível.
+Os manuscritos são somente lidos. A sequência Linguístico → Morfossintático → Editorial → Coerência Global usa uma captura imutável do documento. Antes de gravar o relatório, a CLI confere novamente o SHA-256 do arquivo (DOCX ou Pages). Falha numa etapa impede as seguintes; a falha da Auditoria final, a última etapa, interrompe só ela. O Auditor Final está em desenvolvimento ([plano](../.agent/plans/auditor-final.md)) e ainda não pode ser ligado.
 
 ## Organização
 
@@ -94,8 +94,8 @@ Cada evento de stdout tem prefixo `LUME_PROGRESS ` seguido de um objeto JSON com
 - `running`: etapa iniciada.
 - `completed`: as regras selecionadas disponíveis terminaram, sem afirmar cobertura completa.
 - `skipped`: nenhuma regra aplicável foi selecionada naquele modo/configuração.
-- `failed`: execução interrompida por exceção.
-- `not_implemented`: etapa ainda indisponível; usado pelo Auditor Final.
+- `failed`: execução interrompida por exceção. Na Auditoria final, a falha (API, teto, recusa) fica só nela: as demais etapas são mantidas no relatório, com um aviso.
+- `not_implemented`: etapa indisponível. Era o estado do Auditor Final até o FONTE 1.3.1; relatórios antigos com ele continuam lidos.
 
 As contagens correspondem aos alertas efetivamente emitidos por cada etapa. A remoção de IDs exatamente repetidos é uma validação técnica; **não é a auditoria editorial da visão**. Alertas distintos sobre o mesmo trecho não são descartados por proximidade.
 

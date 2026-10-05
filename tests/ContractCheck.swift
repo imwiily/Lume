@@ -51,7 +51,12 @@ struct ContractCheck {
 
         if let stages = report.metadata.stages {
             try require(stages.map(\.module) == ReviewModule.allCases.map(\.rawValue), "Ordem de módulos divergente.")
-            try require(stages.last?.state == "not_implemented", "Auditoria anunciada sem implementação.")
+            // Até o FONTE 1.3.1 a auditoria vinha como `not_implemented`; esses relatórios continuam válidos.
+            let audit = stages.last
+            try require(["not_implemented", "skipped", "completed", "failed"].contains(audit?.state ?? ""), "Estado da auditoria desconhecido.")
+            let audited = report.findings.filter { $0.module == "audit" }.count
+            try require(audit?.state == "completed" ? audited == audit?.finding_count : audited == 0,
+                        "Ocorrências da auditoria sem a etapa concluída.")
             try require(report.findings.allSatisfy { $0.module != nil && $0.severity != nil && $0.range != nil },
                         "Ocorrências sem contrato modular.")
         }
