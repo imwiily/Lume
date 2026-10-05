@@ -4,6 +4,11 @@ As seções antigas descrevem a cobertura e os resultados de cada entrega, não 
 
 ## Próxima versão — em desenvolvimento
 
+- Auditoria final com IA, em desenvolvimento e ainda fora do app. A etapa `audit` deixa de
+  ser “não implementada”: desligada, aparece como `skipped`. Na linha de comando, `revisar
+  --auditoria-ia --auditoria-projeto P` e `auditoria-estimar` (veja
+  [arquitetura](docs/arquitetura.md#auditoria-final-com-ia-em-desenvolvimento)). Uma falha da
+  auditoria interrompe só ela, e o relatório das outras etapas é mantido.
 - Aviso quando a narração contradiz o tempo escolhido: com Passado ou Presente escolhido, se ao
   menos 20 verbos da narração e 70% dos que têm tempo identificado estão no outro tempo, o
   relatório traz um aviso em “Sobre esta análise” e o campo opcional `metadata.tempo_contradito`

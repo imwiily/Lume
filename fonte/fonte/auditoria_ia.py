@@ -8,6 +8,10 @@ confirmado. Plano: `.agent/plans/auditor-final.md`.
 """
 from collections import Counter
 from dataclasses import asdict
+from datetime import datetime, timezone
+import hashlib
+import json
+from pathlib import Path
 import unicodedata
 
 from .analysis import finding
@@ -20,6 +24,12 @@ VERSAO_PROMPT = 1
 MODELO_PADRAO = "claude-opus-5-5"
 LIMITE = 40000      # caracteres revisados por pedido; capítulos maiores viram janelas
 CONTEXTO = 2        # parágrafos anteriores enviados só para leitura
+ESTADO = "auditoria.json"
+# Estimativa local, sem rede. Provisória até a medição com a API (Etapa 5 do plano):
+# tokens de entrada pelo tamanho do pedido; saída (pensamento + resposta) fixa mais uma fração.
+CARACTERES_POR_TOKEN = 3.2
+SAIDA_FIXA = 1500
+SAIDA_PROPORCIONAL = .15
 
 # categoria: (título no app, regra da busca que a desliga, camada, severidade)
 CATEGORIAS = {
@@ -134,6 +144,64 @@ def janelas(blocos, limite=LIMITE):
             for idx in resultado]
 
 
+def plano(blocks, limite=LIMITE):
+    """(título, contexto, parágrafos a revisar) de cada pedido, na ordem do livro."""
+    return [(titulo, contexto, proprios) for titulo, blocos in capitulos(blocks)
+            for contexto, proprios in janelas(blocos, limite)]
+
+
+def chave(modelo, esforco, tempo, titulo, contexto, proprios):
+    """Identidade de um pedido: só o que muda a resposta, sem números de parágrafo. Os alertas
+    anteriores ficam de fora para que a estimativa seja exata antes da análise; ao reaproveitar,
+    a conferência roda de novo contra os alertas atuais."""
+    dados = [VERSAO_PROMPT, modelo, esforco, tempo, titulo, [b.text for b in contexto], [b.text for b in proprios]]
+    return hashlib.sha256(json.dumps(dados, ensure_ascii=False).encode("utf-8")).hexdigest()
+
+
+def ler_estado(pasta):
+    """Pedidos já auditados; um registro ilegível vale como vazio, com aviso."""
+    caminho = Path(pasta) / ESTADO
+    if not caminho.exists():
+        return {}, None
+    try:
+        estado = json.loads(caminho.read_text(encoding="utf-8"))
+        return dict(estado["trechos"]), None
+    except (OSError, ValueError, KeyError, TypeError):
+        return {}, (f"Auditoria final com IA: o registro anterior ({ESTADO}) não pôde ser lido; "
+                    "os trechos foram tratados como novos.")
+
+
+def gravar_estado(pasta, trechos):
+    pasta = Path(pasta)
+    pasta.mkdir(parents=True, exist_ok=True)
+    temporario = pasta / (ESTADO + ".tmp")
+    temporario.write_text(json.dumps({"versao": 1, "trechos": trechos}, ensure_ascii=False, indent=1), encoding="utf-8")
+    temporario.replace(pasta / ESTADO)
+
+
+def estimar(blocks, pasta, tempo="passado", modelo=MODELO_PADRAO, esforco="medium", limite=LIMITE):
+    """Quanto a próxima auditoria enviaria, sem chamar a API nem criar o cliente."""
+    from coerencia.modelo import PRECOS
+    if modelo not in PRECOS:
+        raise ValueError(f"Auditoria final com IA: modelo sem preço conhecido ({modelo}).")
+    entrada, saida, _ = PRECOS[modelo]
+    guardados, _ = ler_estado(pasta) if pasta else ({}, None)
+    todos = plano(blocks, limite)
+    pendentes = [(t, c, p) for t, c, p in todos if chave(modelo, esforco, tempo, t, c, p) not in guardados]
+    total = len(todos)
+    caracteres = custo = 0
+    for titulo, contexto, proprios in pendentes:
+        tamanho = len(SISTEMA) + len(pedido(titulo, tempo, contexto, proprios, []))
+        tokens = tamanho / CARACTERES_POR_TOKEN
+        caracteres += sum(len(b.text) for b in proprios)
+        custo += (tokens * entrada + (SAIDA_FIXA + SAIDA_PROPORCIONAL * tokens) * saida) / 1e6
+    return {"modelo": modelo, "esforco": esforco, "trechos": total, "a_enviar": len(pendentes),
+            "reaproveitados": total - len(pendentes),
+            "titulos_a_enviar": list(dict.fromkeys(t for t, _, _ in pendentes)), "caracteres": caracteres,
+            "custo_estimado_usd": round(custo, 4), "custo_minimo_usd": round(custo * .5, 4),
+            "custo_maximo_usd": round(custo * 2, 4), "calibracao": "provisoria"}
+
+
 def pedido(titulo, tempo, contexto, proprios, anteriores):
     ids = {b.number: b for b in proprios}
     existentes = [f"- §{a['paragraph']} «{ids[a['paragraph']].text[a['start']:a['end']]}» ({a.get('category', '')})"
@@ -158,29 +226,44 @@ def localizar(texto, trecho):
 
 
 def auditar(blocks, anteriores, avancar=None, *, tempo="passado", configuracao=None, cliente=None,
-            modelo=MODELO_PADRAO, esforco="medium", teto=1.0, limite=LIMITE):
+            modelo=MODELO_PADRAO, esforco="medium", teto=1.0, limite=LIMITE, pasta=None):
     """Devolve (ocorrências novas, avisos, resumo da rodada). `anteriores` é uma cópia dos
-    alertas das etapas anteriores, só para leitura."""
+    alertas das etapas anteriores, só para leitura. Com `pasta`, os pedidos já auditados com o
+    mesmo texto, modelo, esforço e tempo são reaproveitados sem chamar a API."""
     ErroModelo, Recusa, RespostaCortada, TetoAtingido = _erros()
     opcoes = validate(configuracao or {})
-    if cliente is None:
-        from coerencia.modelo import criar_modelo
-        cliente = criar_modelo(modelo, esforco=esforco, teto=teto)
-        try:
-            cliente.verificar()
-        except ErroModelo as erro:
-            raise ValueError(f"Auditoria final com IA: {erro}") from erro
+    nome = getattr(cliente, "modelo", modelo) if cliente else modelo
+    nivel = getattr(cliente, "esforco", esforco) if cliente else esforco
     papeis = {b.number: r for b, r in zip(blocks, classify(blocks, opcoes))}
     regras, escopo_tempo = opcoes["rules"], set(opcoes["tense_scopes"])
-    ja_chamadas = len(cliente.chamadas)
-    plano = [(titulo, janela) for titulo, blocos in capitulos(blocks) for janela in janelas(blocos, limite)]
+    pedidos = [(chave(nome, nivel, tempo, *p), *p) for p in plano(blocks, limite)]
+    guardados, aviso_estado = ler_estado(pasta) if pasta else ({}, None)
+    atuais = {}
     achados, descartes, aceitos, novos = Counter(), Counter(), [], []
     falhas = Counter()
     interrompida = False
+    reaproveitados = 0
+    estado = {"cliente": cliente, "ja_chamadas": len(cliente.chamadas) if cliente else 0}
+
+    def conectar():
+        if estado["cliente"] is None:
+            from coerencia.modelo import criar_modelo
+            novo = criar_modelo(nome, esforco=nivel, teto=teto)
+            try:
+                novo.verificar()
+            except ErroModelo as erro:
+                raise ValueError(f"Auditoria final com IA: {erro}") from erro
+            estado["cliente"] = novo
+        return estado["cliente"]
+
+    def guardar():
+        if pasta:
+            gravar_estado(pasta, {k: atuais.get(k, guardados.get(k)) for k, *_ in pedidos
+                                  if k in atuais or k in guardados})
 
     def conferir(resposta, proprios):
         donos = {b.number: b for b in proprios}
-        for bruto in resposta.get("ocorrencias", []):
+        for bruto in resposta:
             block = donos.get(bruto.get("paragrafo"))
             if block is None:
                 descartes["paragrafo_fora"] += 1; continue
@@ -215,51 +298,71 @@ def auditar(blocks, anteriores, avancar=None, *, tempo="passado", configuracao=N
             novos.append(item)
             achados[categoria] += 1
 
-    def enviar(titulo, contexto, proprios, pode_dividir=True):
+    def pedir(titulo, contexto, proprios, pode_dividir=True):
+        """(itens devolvidos, completo). Recusa ou resposta cortada deixam o trecho incompleto."""
         try:
-            resposta = cliente.json(SISTEMA, pedido(titulo, tempo, contexto, proprios, anteriores), ESQUEMA,
-                                    f"auditoria §{proprios[0].number}–§{proprios[-1].number}")
+            resposta = conectar().json(SISTEMA, pedido(titulo, tempo, contexto, proprios, anteriores), ESQUEMA,
+                                       f"auditoria §{proprios[0].number}–§{proprios[-1].number}")
         except RespostaCortada:
             if pode_dividir and len(proprios) > 1:
                 metade = len(proprios) // 2
-                enviar(titulo, contexto, proprios[:metade], False)
-                enviar(titulo, (contexto + proprios[:metade])[-CONTEXTO:], proprios[metade:], False)
-            else:
-                falhas["cortada"] += 1
-            return
+                a, completo_a = pedir(titulo, contexto, proprios[:metade], False)
+                b, completo_b = pedir(titulo, (contexto + proprios[:metade])[-CONTEXTO:], proprios[metade:], False)
+                return a + b, completo_a and completo_b
+            falhas["cortada"] += 1
+            return [], False
         except Recusa:
             falhas["recusa"] += 1
-            return
-        conferir(resposta, proprios)
+            return [], False
+        return list(resposta.get("ocorrencias", [])), True
 
-    for feitos, (titulo, (contexto, proprios)) in enumerate(plano, 1):
-        try:
-            enviar(titulo, contexto, proprios)
-        except TetoAtingido:
-            interrompida = True
-            break
-        except ErroModelo as erro:
-            raise ValueError(f"Auditoria final com IA: {erro}") from erro
+    for feitos, (identidade, titulo, contexto, proprios) in enumerate(pedidos, 1):
+        janela = contexto + proprios
+        if identidade in guardados:
+            # Numeração relativa: parágrafos inseridos em outro lugar não invalidam o pedido.
+            itens = [dict(i, paragrafo=janela[i["rel"]].number if 0 <= i.get("rel", -1) < len(janela) else -1)
+                     for i in guardados[identidade]["ocorrencias"]]
+            reaproveitados += 1
+            conferir(itens, proprios)
+        else:
+            try:
+                itens, completo = pedir(titulo, contexto, proprios)
+            except TetoAtingido:
+                interrompida = True
+                break
+            except ErroModelo as erro:
+                guardar()
+                raise ValueError(f"Auditoria final com IA: {erro}") from erro
+            conferir(itens, proprios)
+            if completo:
+                posicao = {b.number: i for i, b in enumerate(janela)}
+                atuais[identidade] = {
+                    "ocorrencias": [{k: v for k, v in dict(i, rel=posicao.get(i.get("paragrafo"), -1)).items()
+                                     if k != "paragrafo"} for i in itens],
+                    "modelo": nome, "salvo": datetime.now(timezone.utc).isoformat(timespec="seconds")}
+                guardar()
         if avancar:
-            avancar(feitos, len(plano))
+            avancar(feitos, len(pedidos))
+    guardar()
 
-    chamadas = cliente.chamadas[ja_chamadas:]
+    cliente = estado["cliente"]
+    chamadas = cliente.chamadas[estado["ja_chamadas"]:] if cliente else []
     custo = round(sum(c.get("custo_usd", 0) for c in chamadas), 6)
-    nome = getattr(cliente, "modelo", modelo)
-    resumo = {"modelo": nome, "esforco": getattr(cliente, "esforco", esforco), "versao_prompt": VERSAO_PROMPT,
-              "trechos": len(plano), "enviados": len(chamadas), "sem_resposta": sum(falhas.values()),
+    resumo = {"modelo": nome, "esforco": nivel, "versao_prompt": VERSAO_PROMPT, "trechos": len(pedidos),
+              "enviados": len(chamadas), "reaproveitados": reaproveitados, "sem_resposta": sum(falhas.values()),
               "interrompida": interrompida, "achados": dict(achados), "descartes": dict(descartes),
               "custo_usd": custo}
-    avisos = []
+    avisos = [aviso_estado] if aviso_estado else []
     if falhas["cortada"]:
         avisos.append(f"Auditoria final com IA: {falhas['cortada']} trecho(s) ficaram sem auditoria porque a "
                       "resposta foi cortada por tamanho.")
     if falhas["recusa"]:
         avisos.append(f"Auditoria final com IA: o modelo recusou {falhas['recusa']} trecho(s), que ficaram sem auditoria.")
     if interrompida:
-        avisos.append("Auditoria final com IA: teto de gasto atingido; os trechos restantes ficaram sem auditoria.")
-    avisos.append(f"Auditoria final com IA ({nome}): {len(chamadas)} pedido(s) à Anthropic para {len(plano)} "
-                  f"trecho(s); custo estimado US$ {custo:.4f}; {len(novos)} achado(s) novo(s), "
-                  f"{sum(descartes.values())} descartado(s). Os achados são suspeitas para avaliação humana, "
-                  "não erros confirmados.")
+        avisos.append("Auditoria final com IA: teto de gasto atingido; os trechos restantes ficam para a próxima "
+                      "análise, e o que já foi auditado está guardado.")
+    avisos.append(f"Auditoria final com IA ({nome}): {len(pedidos)} trecho(s), {len(chamadas)} pedido(s) à "
+                  f"Anthropic e {reaproveitados} reaproveitado(s) da análise anterior sem custo; custo estimado "
+                  f"US$ {custo:.4f}; {len(novos)} achado(s) novo(s), {sum(descartes.values())} descartado(s). "
+                  "Os achados são suspeitas para avaliação humana, não erros confirmados.")
     return novos, avisos, resumo

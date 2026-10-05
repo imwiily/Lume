@@ -1,5 +1,6 @@
 """Auditoria final com IA: etapa do pipeline, com o auditor simulado (nenhum teste chama a API)."""
 from dataclasses import asdict
+from pathlib import Path
 import unittest
 from unittest.mock import Mock, patch
 
@@ -331,6 +332,190 @@ class AuditCoreTests(unittest.TestCase):
         # 1000 × US$ 4 + 300 × US$ 20 por milhão, em cada um dos dois pedidos
         self.assertAlmostEqual(resumo['custo_usd'], 2 * (4000 + 6000) / 1e6)
         self.assertEqual((resumo['modelo'], resumo['esforco']), ('claude-opus-5-5', 'medium'))
+
+
+
+class SemChamadas(ModeloFalso):
+    def json(self, *args, **kwargs):
+        raise AssertionError('nada deveria ser enviado')
+
+
+class AuditProjectTests(unittest.TestCase):
+    """Pasta de projeto: reenvio só do que mudou, teto entre análises e estimativa local."""
+
+    def setUp(self):
+        import tempfile
+        self.temp = tempfile.TemporaryDirectory()
+        self.pasta = Path(self.temp.name) / 'projeto'
+
+    def tearDown(self):
+        self.temp.cleanup()
+
+    def auditar(self, modelo, blocks=None, anteriores=(), **opcoes):
+        from fonte.auditoria_ia import auditar
+        return auditar(blocks or livro(), [dict(f) for f in anteriores], tempo='passado',
+                       configuracao=validate({}), cliente=modelo, pasta=self.pasta, **opcoes)
+
+    def test_unchanged_text_sends_nothing_and_keeps_ids(self):
+        primeiro, _, resumo1 = self.auditar(ModeloFalso({'ocorrencias': [item(2, 'estava')]},
+                                                        {'ocorrencias': [item(6, 'a cliente', 'crase')]}))
+        segundo, avisos, resumo2 = self.auditar(SemChamadas())
+        self.assertEqual([f['id'] for f in segundo], [f['id'] for f in primeiro])
+        self.assertEqual((resumo2['enviados'], resumo2['reaproveitados'], resumo2['custo_usd']), (0, 2, 0))
+        self.assertEqual(resumo1['reaproveitados'], 0)
+        self.assertTrue(any('reaproveitado' in a for a in avisos))
+
+    def test_all_cached_does_not_create_or_check_the_client(self):
+        from fonte.auditoria_ia import auditar
+        self.auditar(ModeloFalso())
+        with patch('coerencia.modelo.criar_modelo', side_effect=AssertionError('sem cliente')):
+            _, _, resumo = auditar(livro(), [], tempo='passado', configuracao=validate({}), pasta=self.pasta)
+        self.assertEqual(resumo['enviados'], 0)
+
+    def test_only_the_changed_chapter_is_sent(self):
+        self.auditar(ModeloFalso())
+        blocks = livro()
+        blocks[5] = Block(6, 'O mecânico devolveu a chave ao dono.', 'Capítulo 2')
+        modelo = ModeloFalso()
+        _, _, resumo = self.auditar(modelo, blocks=blocks)
+        self.assertEqual(len(modelo.pedidos), 1)
+        self.assertIn('devolveu', modelo.pedidos[0]['usuario'])
+        self.assertEqual((resumo['enviados'], resumo['reaproveitados']), (1, 1))
+
+    def test_inserted_paragraph_elsewhere_keeps_other_chapters(self):
+        # Numeração relativa: um parágrafo novo no capítulo 1 não reenvia o capítulo 2.
+        self.auditar(ModeloFalso({'ocorrencias': []}, {'ocorrencias': [item(6, 'a cliente', 'crase')]}))
+        antes = livro()
+        blocks = antes[:2] + [Block(3, 'Começou a chover.', 'Capítulo 1')] + [
+            Block(b.number + 1, b.text, b.chapter, heading=b.heading) for b in antes[2:]]
+        modelo = ModeloFalso()
+        out, _, resumo = self.auditar(modelo, blocks=blocks)
+        self.assertEqual(len(modelo.pedidos), 1)
+        self.assertEqual([(f['paragraph'], f['text'][f['start']:f['end']]) for f in out], [(7, 'a cliente')])
+
+    def test_new_previous_alert_still_discards_cached_finding(self):
+        self.auditar(ModeloFalso({'ocorrencias': [item(2, 'estava')]}))
+        texto = livro()[1].text
+        anterior = dict(paragraph=2, start=texto.index('estava'), end=texto.index('estava') + 6)
+        out, _, resumo = self.auditar(SemChamadas(), anteriores=[anterior])
+        self.assertEqual(out, [])
+        self.assertEqual(resumo['descartes'], {'alerta_existente': 1})
+
+    def test_model_or_effort_change_resends(self):
+        self.auditar(ModeloFalso())
+        outro = ModeloFalso(); outro.modelo = 'claude-sonnet-5-5'
+        _, _, resumo = self.auditar(outro)
+        self.assertEqual(resumo['enviados'], 2)
+        mais = ModeloFalso(); mais.esforco = 'high'
+        _, _, resumo = self.auditar(mais)
+        self.assertEqual(resumo['enviados'], 2)
+
+    def test_cap_resumes_where_it_stopped(self):
+        from coerencia.modelo import TetoAtingido
+        _, _, resumo = self.auditar(ModeloFalso({'ocorrencias': [item(2, 'estava')]}, TetoAtingido('Teto de gasto atingido.')))
+        self.assertTrue(resumo['interrompida'])
+        modelo = ModeloFalso()
+        out, _, resumo = self.auditar(modelo)
+        self.assertEqual(len(modelo.pedidos), 1)
+        self.assertIn('§6', modelo.pedidos[0]['usuario'])
+        self.assertEqual([f['paragraph'] for f in out], [2])
+        self.assertFalse(resumo['interrompida'])
+
+    def test_failed_part_is_not_cached(self):
+        from coerencia.modelo import Recusa
+        self.auditar(ModeloFalso(Recusa('recusou')))
+        modelo = ModeloFalso()
+        _, _, resumo = self.auditar(modelo)
+        self.assertEqual(len(modelo.pedidos), 1)
+        self.assertIn('§2', modelo.pedidos[0]['usuario'])
+
+    def test_state_keeps_only_current_parts_and_survives_corruption(self):
+        import json
+        self.auditar(ModeloFalso())
+        blocks = livro()
+        blocks[5] = Block(6, 'O mecânico devolveu a chave ao dono.', 'Capítulo 2')
+        self.auditar(ModeloFalso(), blocks=blocks)
+        estado = json.loads((self.pasta / 'auditoria.json').read_text())
+        self.assertEqual(len(estado['trechos']), 2)
+        (self.pasta / 'auditoria.json').write_text('{quebrado')
+        _, avisos, resumo = self.auditar(ModeloFalso())
+        self.assertEqual(resumo['enviados'], 2)
+        self.assertTrue(any('não pôde ser lido' in a for a in avisos))
+
+    def test_estimate_is_local_and_matches_what_would_be_sent(self):
+        from fonte.auditoria_ia import estimar
+        with patch('coerencia.modelo.criar_modelo', side_effect=AssertionError('sem rede')), \
+             patch('coerencia.modelo.Claude', side_effect=AssertionError('sem rede')):
+            antes = estimar(livro(), self.pasta, tempo='passado')
+        self.assertEqual((antes['trechos'], antes['a_enviar'], antes['modelo']), (2, 2, 'claude-opus-5-5'))
+        self.assertEqual(antes['titulos_a_enviar'], ['Capítulo 1', 'Capítulo 2'])
+        self.assertGreater(antes['custo_estimado_usd'], 0)
+        self.assertLess(antes['custo_minimo_usd'], antes['custo_estimado_usd'])
+        self.assertLess(antes['custo_estimado_usd'], antes['custo_maximo_usd'])
+        modelo = ModeloFalso(); modelo.esforco = 'medium'
+        self.auditar(modelo)
+        depois = estimar(livro(), self.pasta, tempo='passado')
+        self.assertEqual((depois['a_enviar'], depois['custo_estimado_usd']), (0, 0))
+        self.assertEqual(estimar(livro(), self.pasta, tempo='presente')['a_enviar'], 2)
+        with self.assertRaisesRegex(ValueError, 'preço'):
+            estimar(livro(), self.pasta, tempo='passado', modelo='claude-desconhecido')
+
+
+class AuditCLITests(unittest.TestCase):
+    def documento(self, pasta):
+        from docx import Document
+        caminho = Path(pasta) / 't.docx'
+        doc = Document()
+        for texto in ['Capítulo 1', 'A equipe trouxe as caixas que estava no carro.']:
+            doc.add_paragraph(texto)
+        doc.save(caminho)
+        return caminho
+
+    def test_estimate_prints_one_line_without_the_api(self):
+        import io, json, tempfile
+        from contextlib import redirect_stdout
+        from fonte.cli import main
+        with tempfile.TemporaryDirectory() as pasta:
+            saida = io.StringIO()
+            with redirect_stdout(saida), patch('coerencia.modelo.criar_modelo', side_effect=AssertionError('sem API')):
+                codigo = main(['auditoria-estimar', str(self.documento(pasta)), '--auditoria-projeto', str(Path(pasta) / 'p'),
+                               '--tempo', 'passado'])
+            self.assertEqual(codigo, 0)
+            linha, = [l for l in saida.getvalue().splitlines() if l.startswith('LUME_ESTIMATIVA_AUDITORIA ')]
+            dados = json.loads(linha.split(' ', 1)[1])
+            self.assertEqual((dados['trechos'], dados['a_enviar'], dados['modelo']), (1, 1, 'claude-opus-5-5'))
+
+    def test_audit_requires_project_folder(self):
+        import tempfile
+        from fonte.cli import main
+        with tempfile.TemporaryDirectory() as pasta:
+            self.assertEqual(main(['revisar', str(self.documento(pasta)), '--auditoria-ia',
+                                   '--saida', str(Path(pasta) / 'a')]), 2)
+
+    def test_review_runs_the_audit_and_never_records_the_key(self):
+        import io, json, os, tempfile
+        from contextlib import redirect_stdout
+        from fonte.cli import main
+        chave = 'sk-ant-' + 'x' * 90
+        modelo = ModeloFalso({'ocorrencias': [item(2, 'estava')]})
+        with tempfile.TemporaryDirectory() as pasta, patch.dict(os.environ, {'ANTHROPIC_API_KEY': chave}), \
+             patch('coerencia.modelo.criar_modelo', return_value=modelo) as criar:
+            modelo.verificar = lambda: None
+            saida = io.StringIO()
+            with redirect_stdout(saida):
+                # Modo história: a regra de concordância do FONTE não apanha o mesmo trecho antes.
+                codigo = main(['revisar', str(self.documento(pasta)), '--modo', 'editorial', '--auditoria-ia',
+                               '--auditoria-projeto', str(Path(pasta) / 'p'), '--auditoria-teto', '0.50',
+                               '--saida', str(Path(pasta) / 'r')])
+            self.assertEqual(codigo, 0)
+            texto = (Path(pasta) / 'r' / 'relatorio.json').read_text()
+            relatorio = json.loads(texto)
+            criar.assert_called_once_with('claude-opus-5-5', esforco='medium', teto=0.5)
+            estado = (Path(pasta) / 'p' / 'auditoria.json').read_text()
+        self.assertEqual(relatorio['metadata']['stages'][-1]['state'], 'completed')
+        self.assertIn('estava', [f['excerpt'] for f in relatorio['findings'] if f['module'] == 'audit'])
+        for registro in (texto, saida.getvalue(), estado):
+            self.assertNotIn(chave, registro)
 
 
 if __name__ == '__main__':

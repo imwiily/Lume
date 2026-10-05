@@ -138,6 +138,34 @@ salvos e o restante segue na próxima análise (aviso no relatório). `coerencia
 devolve uma linha `LUME_ESTIMATIVA {json}` com capítulos a enviar e custo estimado, sem
 chamar a API. A chave vem de `ANTHROPIC_API_KEY` ou das Chaves do macOS.
 
+## Auditoria final com IA (em desenvolvimento)
+
+`revisar --auditoria-ia --auditoria-projeto P [--auditoria-modelo M] [--auditoria-teto T]
+[--auditoria-esforco E]` roda a quinta etapa (`audit`). Desligada por padrão, porque custa
+dinheiro; modelo padrão `claude-opus-5-5` e teto padrão US$ 1,00.
+
+- Cada capítulo (ou janela de até 40 mil caracteres, com 2 parágrafos anteriores só como
+  contexto) vai ao Claude com os alertas já emitidos nele. O pedido usa um prompt fixo e
+  genérico e uma resposta em esquema estrito com 11 categorias.
+- Cada trecho devolvido é conferido no parágrafo. O que estiver fora do trecho enviado, não
+  existir, cair fora do escopo (regra desligada, tempo verbal fora de `tense_scopes`),
+  sobrepor um alerta existente ou repetir outro achado é descartado e contado.
+- Os achados viram ocorrências `rule=auditoria_ia`, `module=audit`, nunca
+  `confirmed_error` e nunca com confiança `alta`. `metadata.auditoria_ia` registra trechos,
+  pedidos, reaproveitados, achados por categoria, descartes por motivo, custo e interrupção
+  por teto.
+- `P/auditoria.json` guarda cada pedido concluído, identificado pelo texto (do trecho e do
+  contexto), modelo, esforço, tempo e versão do prompt. Trechos iguais não são reenviados; a
+  conferência roda de novo contra os alertas atuais.
+- Ao atingir o teto, o que já foi auditado fica guardado e o restante segue na próxima
+  análise. Outros erros da API interrompem só a etapa `audit`, e o relatório das demais
+  etapas é mantido.
+- `auditoria-estimar ARQUIVO --auditoria-projeto P [--tempo T]` devolve uma linha
+  `LUME_ESTIMATIVA_AUDITORIA {json}` com os trechos a enviar e o custo estimado, sem rede. A
+  calibração do custo é provisória até a medição com a API.
+
+O app ainda não oferece a opção. Plano: [auditor-final](../.agent/plans/auditor-final.md).
+
 
 ## Memória narrativa heurística (removida)
 

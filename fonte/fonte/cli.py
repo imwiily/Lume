@@ -27,6 +27,13 @@ def coherence_options(command):
                          help="Modelo do Claude (claude-sonnet-5-5, claude-opus-5-5, claude-haiku-4-5)")
 
 
+def audit_options(command):
+    command.add_argument("--auditoria-projeto", type=Path, help="Pasta de projeto da Auditoria final com IA deste manuscrito")
+    command.add_argument("--auditoria-modelo", default="claude-opus-5-5",
+                         help="Modelo do Claude (claude-opus-5-5, claude-sonnet-5-5, claude-haiku-4-5)")
+    command.add_argument("--auditoria-esforco", default="medium", choices=["low", "medium", "high", "xhigh", "max"])
+
+
 def parser():
     root = argparse.ArgumentParser(description="FONTE — triagem editorial local, sem corrigir o manuscrito.")
     root.add_argument("--version", action="version", version=__version__)
@@ -50,6 +57,17 @@ def parser():
     coherence_options(review)
     review.add_argument("--coerencia-teto", type=float, default=1.0, help="Gasto máximo em US$ nesta análise")
     review.add_argument("--coerencia-esforco", default="medium", choices=["low", "medium", "high", "xhigh", "max"])
+    review.add_argument("--auditoria-ia", action="store_true",
+                        help="Auditoria final com a API do Claude: procura o que as etapas anteriores deixaram passar "
+                             "(envia à Anthropic os capítulos ainda não auditados)")
+    audit_options(review)
+    review.add_argument("--auditoria-teto", type=float, default=1.0, help="Gasto máximo em US$ da auditoria nesta análise")
+    audit_estimate = commands.add_parser("auditoria-estimar",
+                                         help="Estimar trechos e custo da Auditoria final com IA, sem chamar a API")
+    audit_options(audit_estimate)
+    audit_estimate.add_argument("arquivo", type=Path)
+    audit_estimate.add_argument("--config", type=Path)
+    audit_estimate.add_argument("--tempo", choices=["passado", "presente"], default="passado")
     estimate = commands.add_parser("coerencia-estimar",
                                    help="Estimar capítulos e custo da Coerência com IA, sem chamar a API")
     coherence_options(estimate)
@@ -81,6 +99,23 @@ def estimate_coherence(args):
     return 0
 
 
+def estimate_audit(args):
+    """Uma linha JSON para o app: trechos a enviar e custo estimado da auditoria. Não chama a API."""
+    from .settings import load as load_settings, validate as validate_settings
+    from .auditoria_ia import estimar
+    path = args.arquivo.expanduser().resolve()
+    if not path.is_file():
+        raise ValueError("Arquivo não encontrado.")
+    if not args.auditoria_projeto:
+        raise ValueError("Informe a pasta de projeto (--auditoria-projeto).")
+    settings = load_settings(args.config) if args.config else validate_settings({})
+    blocks, _ = read_manuscript(path, settings)
+    result = estimar(blocks, args.auditoria_projeto.expanduser().resolve(), tempo=args.tempo,
+                     modelo=args.auditoria_modelo, esforco=args.auditoria_esforco)
+    print("LUME_ESTIMATIVA_AUDITORIA " + json.dumps(result, ensure_ascii=False), flush=True)
+    return 0
+
+
 def check_edit(args):
     """Uma linha JSON para o app com o hash do manuscrito corrigido. Só lê os dois arquivos."""
     from .reader import verify_edit
@@ -109,6 +144,8 @@ def main(argv=None):
             return 0
         if args.command == "coerencia-estimar":
             return estimate_coherence(args)
+        if args.command == "auditoria-estimar":
+            return estimate_audit(args)
         if args.command == "conferir-edicao":
             return check_edit(args)
         path = args.arquivo.expanduser().resolve()
@@ -128,6 +165,8 @@ def main(argv=None):
             raise ValueError("A comparação com original exige o modo editorial ou ambas.")
         if args.coerencia_ia and (args.modo == "linguistica" or not args.coerencia_projeto):
             raise ValueError("A Coerência com IA exige o modo editorial ou ambas e uma pasta de projeto (--coerencia-projeto).")
+        if args.auditoria_ia and not args.auditoria_projeto:
+            raise ValueError("A Auditoria final com IA exige uma pasta de projeto (--auditoria-projeto).")
         if args.languagetool and args.modo == "editorial":
             raise ValueError("LanguageTool exige o modo linguistica ou ambas.")
         print(f"Lendo {len(blocks)} parágrafos não vazios. Modo: {args.modo}…", flush=True)
@@ -160,7 +199,10 @@ def main(argv=None):
                 progress=progress, coerencia=dict(
                     pasta=args.coerencia_projeto.expanduser().resolve(), documento=path.name,
                     modelo=args.coerencia_modelo, teto=args.coerencia_teto, esforco=args.coerencia_esforco)
-                if args.coerencia_ia else None)
+                if args.coerencia_ia else None,
+                auditoria=dict(pasta=args.auditoria_projeto.expanduser().resolve(), modelo=args.auditoria_modelo,
+                               teto=args.auditoria_teto, esforco=args.auditoria_esforco)
+                if args.auditoria_ia else None)
         metadata.update(original_metadata)
         warnings.extend(extra_warnings)
         if args.config and not any(settings['rules'].values()) and not args.languagetool:

@@ -401,7 +401,7 @@ cd fonte && .venv/bin/python -m fonte revisar <copia.pages> --saida <nova> --tem
 - [x] Etapa 0 — decisões e base (05/10; commits `e39844a` e `72f5fec`)
 - [x] Etapa 1 — contrato e esqueleto (05/10)
 - [x] Etapa 2 — núcleo com modelo simulado (05/10)
-- [ ] Etapa 3 — incremental, teto e estimativa
+- [x] Etapa 3 — incremental, teto e estimativa (05/10)
 - [ ] Etapa 4 — app
 - [ ] Etapa 5 — ponta a ponta com a API (autorização)
 - [ ] Etapa 6 — medição no corpus (autorização)
@@ -457,7 +457,54 @@ teto. O auditor o reaproveita em vez de criar outro cliente.
 - A confirmar na Etapa 5: o prompt de sistema tem cerca de 700 tokens e pode ficar abaixo do
   mínimo para o cache. Medir `cache_read_input_tokens` antes de contar com ele.
 
+05/10/2026, Etapa 3:
+
+- **Mudança em relação ao desenho original:** a chave de cada pedido **não** inclui os alertas
+  anteriores. Ela usa o texto dos parágrafos revisados e do contexto, o título, o modelo, o
+  esforço, o tempo e `VERSAO_PROMPT`. Motivo: a estimativa roda antes da análise, quando os
+  alertas ainda não existem, e precisa ser exata. Ao reaproveitar uma resposta, a
+  conferência roda de novo com os alertas atuais, então um alerta novo que coincida com o
+  achado guardado faz o achado ser descartado. Limite conhecido: um alerta retirado não
+  provoca reenvio, e o modelo não revisa de novo aquele ponto.
+- **Numeração relativa:** as respostas são guardadas por posição dentro da janela, então
+  inserir parágrafos em outro capítulo não invalida o que já foi auditado.
+- **Gravação e limpeza:** `auditoria.json` é gravado de forma atômica depois de cada pedido
+  concluído e guarda só os pedidos do texto atual. Pedidos com recusa ou resposta cortada não
+  são guardados e voltam na próxima análise.
+- **Cliente sob demanda:** o cliente da API só é criado e verificado quando há algo a enviar.
+  Se tudo foi reaproveitado, não há nenhuma conexão.
+- **Estimativa provisória:** cerca de 3,2 caracteres por token; saída de 1.500 tokens mais
+  15% da entrada; faixa de 0,5× a 2×. Calibrar na Etapa 5.
+- **Estimativa local de A e B** (`.pages`, Passado, Opus 5.5, esforço médio), sem rede e sem
+  criar a pasta de projeto:
+  - A: 5 trechos, cerca de US$ 0,37 (0,18–0,74);
+  - B: 2 trechos, cerca de US$ 0,10 (0,05–0,21).
+- **Perda conhecida:** se uma resposta cortada for dividida e o teto for atingido na segunda
+  metade, a primeira metade é paga mas não é guardada.
+- **Linha de comando:** `--auditoria-ia`, `--auditoria-projeto` (obrigatória com a
+  auditoria), `--auditoria-modelo`, `--auditoria-teto`, `--auditoria-esforco` e o comando
+  `auditoria-estimar`, que imprime `LUME_ESTIMATIVA_AUDITORIA`.
+
 ## Validação realizada e resultado final
+
+Etapa 3 (05/10/2026):
+
+- `test_auditoria_ia.py`: 34 testes (13 novos), sem rede, cobrindo:
+  - reaproveitamento com os mesmos IDs;
+  - nenhum cliente criado quando tudo já foi auditado;
+  - reenvio só do capítulo alterado;
+  - inserção em outro capítulo;
+  - alerta novo descartando um achado guardado;
+  - troca de modelo ou de esforço;
+  - retomada depois do teto;
+  - trecho com recusa não guardado;
+  - limpeza do registro e registro corrompido;
+  - estimativa local (inclusive modelo sem preço);
+  - estimativa e exigência da pasta na linha de comando;
+  - análise completa pela linha de comando sem a chave no relatório, na saída ou no registro.
+- 341 testes do analisador, 25 dos pacotes e do contrato Python e 25 do Coerencia aprovados.
+- Nenhuma chamada à API.
+
 
 Etapa 2 (05/10/2026):
 
