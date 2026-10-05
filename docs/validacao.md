@@ -51,6 +51,22 @@ Gasto: US$ 0,56 em 4 rodadas, mais US$ 0,03 do teste da Etapa 5.
 - 341 testes do analisador, 29 dos pacotes e do contrato Python (4 novos da pontuação da
   auditoria) e 25 do Coerencia aprovados.
 
+## Lume 1.6 · FONTE 1.4.0 · Coerencia 1.2.0 — interface nova (05/10/2026)
+
+- Interface refeita a partir da referência do Stitch, sem mudança de funcionamento. As
+  evidências (verificações Swift, capturas em claro e escuro, limites) estão em
+  [`.agent/plans/interface-stitch.md`](../.agent/plans/interface-stitch.md).
+- O motor não mudou desde a 1.5 (FONTE 1.4.0, Coerencia 1.2.0).
+- **Montagem** `build/20261005-154659-23067310/`:
+  - regressões aprovadas (341 do analisador, 29 dos pacotes);
+  - `xcodebuild` Release, contratos Swift (relatório, edição, falsos positivos, livro) e
+    diagnóstico do motor aprovados.
+- **`release.json`:**
+  - app 1.6 (build 26), motor 1.4.0, saudável;
+  - corretor gramatical e Coerência disponíveis;
+  - SHA-256 do ZIP `7e905f935a3d3375545ebb6bbe75a8acfc477c61f553a0e078c252e709cf961f`.
+- **Não inspecionado nas capturas:** o alerta do sistema “Enviar à Anthropic?”.
+
 ## Lume 1.5 / FONTE 1.4.0 · Coerencia 1.2.0 — montagem da entrega (05/10/2026)
 
 - **Montagem** `build/20261005-115037-D8BAC241/`:

@@ -2,7 +2,7 @@
 
 As seções antigas descrevem a cobertura e os resultados de cada entrega, não o estado atual. Nas seções anteriores à 1.0, caminhos citados são da antiga pasta `LumeMac/`; a correspondência com a estrutura atual está em [README.md](README.md#estrutura).
 
-## Próxima versão — em desenvolvimento
+## Lume 1.6 · FONTE 1.4.0 · Coerencia 1.2.0 — 05/10/2026
 
 Interface refeita a partir da referência do Stitch (“O manuscrito é papel. O Lume é instrumento.
 A atenção é luz.”). O funcionamento não mudou: mesmas etapas, decisões, contratos, correção no

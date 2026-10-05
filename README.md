@@ -11,7 +11,7 @@ Contradições narrativas são verificadas pela **Coerência com IA** (Claude), 
 
 ![Início do Lume](docs/identidade/previa-inicio-claro.png)
 
-Versão atual: **Lume 1.5 · FONTE 1.4.0 · Coerencia 1.2.0** — novidades no [CHANGELOG](CHANGELOG.md).
+Versão atual: **Lume 1.6 · FONTE 1.4.0 · Coerencia 1.2.0** — novidades no [CHANGELOG](CHANGELOG.md).
 
 ## Estrutura
 
