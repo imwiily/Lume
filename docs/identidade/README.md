@@ -1,36 +1,30 @@
-# Lume · Luz de leitura
+# Lume · Nocturne & Candlelight
 
-**Uma luz acesa ao lado de quem escreve.**
+**O manuscrito é papel. O Lume é instrumento. A atenção é luz.**
 
-Lume ilumina um ponto do texto e devolve a decisão a quem escreve. A identidade parte
-de uma cena simples: um livro aberto à noite e uma chama que acompanha a leitura. Ela
-não julga o texto, só mostra onde olhar.
+**Lume encontra. Lume explica. O editor decide.**
 
-## Valores
+O Lume é uma ferramenta editorial nativa do Mac com identidade literária. A interface usa
+a estrutura de um instrumento (painéis planos, contornos finos, cantos pequenos). O texto
+do autor aparece como papel, em serifada e com margens largas. A cor da vela aparece só
+onde há atenção: o trecho iluminado, a chama do parágrafo, o andamento da leitura. Não
+deve parecer site, SaaS, Word, chatbot nem ferramenta genérica de IA.
 
-| Valor | Como aparece |
-| --- | --- |
-| **Poética** (central) | A chama sobre o livro. Títulos em serifada. Frases como “Que texto vamos iluminar hoje?” e “Por que acendemos esta luz”. |
-| **Carinhosa** (central) | Saudação pelo horário. Alertas tratados como perguntas (“Cada alerta é uma pergunta, não uma sentença”). O trecho recebe uma luz rosada ao fundo, sem vermelho agressivo. |
-| **Elegante** (central) | Poucas cores, bastante respiro, cantos contínuos, sombras leves e hierarquia pela tipografia. |
-| Valorizada | O texto do autor aparece numa página de papel, em corpo grande e ajustável, e nunca é alterado. |
-| Amigável | Linguagem direta, botões em cápsula, arrastar e soltar o manuscrito. |
-| Acessível | Contraste AA em todas as cores de texto nos dois modos. O sentido nunca depende só da cor. Há atalhos de teclado e rótulos para leitores de tela. |
-| Esperta | Filtros recolhidos num só botão, anel de progresso das avaliações e atalhos ⌘1–⌘6 e ⌘[ / ⌘]. |
-| Bela | Gradiente noturno, brilho de vela e tipografia de livro. |
-| Agregadora | Língua e história lado a lado, e a Coerência com IA integrada à mesma leitura. |
+A referência visual veio do projeto final no Google Stitch. O comportamento real do Lume
+prevalece sobre o mockup. As divergências estão em
+[`.agent/plans/interface-stitch.md`](../../.agent/plans/interface-stitch.md).
 
-## Símbolo e nome
+## Símbolo
 
-Uma chama de vela (gradiente de vela a rosa) paira sobre um livro aberto, desenhado com
-duas linhas de página em cor de linho. O fundo é um quadrado de cantos contínuos na cor
-noite, com um halo dourado atrás da chama. Nos textos corridos, escreva **Lume** com
-inicial maiúscula.
+Uma chama em gota, na cor da vela e com uma gota de papel no centro, sobre um livro aberto
+em duas páginas cheias, separadas pela lombada. O fundo é um quadrado noturno de cantos
+contínuos. Nos textos corridos, escreva **Lume** com inicial maiúscula.
 
-- `simbolo.svg`: o símbolo em vetor, com geometria igual à de `LumeMark` em `Lume/LumeTheme.swift`.
-- `marca.svg`: o símbolo acompanhado do nome em New York.
-- `previa-*.png`: capturas reais da interface, renderizadas pelo próprio app (veja abaixo).
-- `Lume/Assets.xcassets/AppIcon.appiconset`: o ícone em todos os tamanhos, gerado do mesmo desenho.
+- `LumeMark` em `app/Lume/LumeTheme.swift`: o símbolo em formas do SwiftUI (`Teardrop`,
+  `BookPages`), sem imagens.
+- `simbolo.svg` e `marca.svg`: o mesmo desenho em vetor; a marca acompanha o nome em New York.
+- `app/Lume/Assets.xcassets/AppIcon.appiconset`: o ícone em todos os tamanhos, gerado pelas
+  capturas (`icone-1024.png`).
 
 ## Paleta
 
@@ -38,69 +32,94 @@ Cores de marca, iguais nos dois modos:
 
 | Nome | Código | Uso |
 | --- | --- | --- |
-| Noite | `#2A1F3D` → `#1B1428` | Trilho lateral, símbolo, seleção forte |
-| Vela | `#F2C46D` | Ação principal, luz do símbolo, progresso |
-| Rosa-chama | `#E7A493` | Fim do gradiente da chama e do anel |
-| Linho | `#F7F1EA` | Traço do livro, texto sobre noite |
+| Noite | `#2A1F3D` | Estrutura, ação principal, símbolo |
+| Noite profunda | `#1B1428` | Fundo do símbolo e do painel do Sobre |
+| Vela | `#F2C46D` | Atenção: chama, trecho iluminado, andamento |
+| Linho | `#F7F1EA` | Fundo da janela no claro, texto sobre noite |
+| Papel | `#FFFCF7` | Página do manuscrito e cartões em relevo |
+| Rosa-chama | `#E7A493` | Reservada; a marca não usa gradiente |
 
-Cores de interface (claro / escuro):
+Tokens de interface em `LumeTheme` (claro / escuro):
 
-| Papel | Claro | Escuro | Uso |
+| Token | Claro | Escuro | Uso |
 | --- | --- | --- | --- |
-| Fundo | `#F7F1EA` | `#18131F` | Tela |
-| Papel | `#FFFCF7` | `#221B2D` | Cartões, página de leitura |
-| Lavanda | `#EEE7F4` | `#2E2540` | Seleção, sugestões, avisos suaves |
-| Linha | `#E6DCD2` | `#3A3047` | Contornos |
-| Tinta | `#2B2238` | `#F4EDE4` | Texto principal |
-| Texto secundário | `#6A5F74` | `#B8ACC2` | Legendas |
-| Ameixa | `#5B3F8C` | `#CDB8F2` | Destaques interativos, seleção |
-| Rosa-argila | `#A24E3E` | `#F0A898` | Palavra sinalizada, atenção editorial |
-| Luz do trecho | `#F8DCCF` | `#5A3A3A` | Fundo do trecho sinalizado |
-| Carmim | `#A8323F` | `#F49AA4` | Erro |
-| Anil | `#3F55A0` | `#AFC0F5` | Estilo do autor, consulta ao autor |
-| Sálvia | `#3A7257` | `#9ED2B5` | Falso positivo, aceito |
-| Âmbar | `#8A5A12` | `#F2C46D` | Intencional, possível inconsistência |
+| `canvas` | `#F7F1EA` | `#17121F` | Fundo da janela |
+| `surface` | `#FBF7F1` | `#1F1829` | Painéis, colunas laterais |
+| `raised` | `#FFFCF7` | `#272033` | Cartões, botões, item selecionado |
+| `paper` | `#FFFCF7` | `#221B2C` | Página do manuscrito |
+| `sunken` | `#F0E8DF` | `#2C2438` | Campos, controles segmentados |
+| `line` / `lineStrong` | `#E6DCD1` / `#CFC4B8` | `#372D44` / `#4E4362` | Contornos |
+| `ink` | `#221A2E` | `#F4EDE4` | Texto principal |
+| `secondary` / `tertiary` | `#5E5468` / `#7D7286` | `#B9ADC4` / `#968AA2` | Legendas |
+| `accent` / `onAccent` | `#2A1F3D` / `#F7F1EA` | `#D9CCEE` / `#1B1428` | Ação principal, seleção |
+| `glow` / `glowLine` | `#FCEBC6` / `#D9A441` | `#4A3A22` / `#F2C46D` | Luz sobre o trecho e traço sob ele |
+| `amber` | `#7A5410` | `#F2C46D` | Texto na cor da vela, atenção editorial |
+| `error` | `#A8323F` | `#F49AA4` | Erro confirmado |
+| `rose` | `#A24E3E` | `#F0A898` | Provável erro |
+| `style` | `#3F55A0` | `#AFC0F5` | Estilo do autor, possível inconsistência |
+| `sage` | `#3A7257` | `#9ED2B5` | Falso positivo, aceito |
 
-Todas as cores de texto têm contraste de pelo menos 4,5:1 sobre fundo, papel e lavanda
-do mesmo modo. Vela sobre Noite (e o inverso) chega a 9,5:1. Cada decisão tem cor,
-ícone e nome escrito.
+Cada classificação e cada decisão tem ícone e nome escrito, além da cor. O trecho
+sinalizado recebe luz, não a aparência de erro.
 
-## Tipografia
+## Tipografia e forma
 
-- **New York** (`design: .serif`): voz e leitura. Saudações, títulos, o trecho do
-  manuscrito e as sugestões.
-- **SF Pro Rounded** (`design: .rounded`): a interface. Rótulos, explicações, botões e
-  números.
-- O rótulo pequeno (`Kicker`) vai em versalete espaçado, precedido de uma chama.
+- **New York** (`LumeFont.display`, `design: .serif`): manuscrito, capítulos, títulos e
+  saudações.
+- **SF Pro** (`LumeFont.ui`): a interface. Rótulos, explicações, botões e números.
+- **Rótulos de seção** (`Kicker`): versalete espaçado. A chama só aparece quando o rótulo
+  fala de atenção, como em “Por que acendemos esta luz”.
+- **Raios** (`LumeRadius`): 4, 6 e 8 pontos. Sem cápsulas e quase sem sombras.
+- **Página do manuscrito:** com espaço, cerca de 65–75 caracteres por linha; tamanho
+  ajustável de 15 a 28 pontos.
 
 ## Telas
 
-1. **Início**: saudação pelo horário, área para arrastar o manuscrito e três cartões de
-   leitura (A língua, A história, Leitura completa). Abaixo vêm dois blocos: A língua
-   (tempo da narração, corretor local) e A história (Coerência com IA, comparação com o
-   original). A barra inferior tem “Seu texto, no seu Mac.” e o botão **Começar a leitura**.
-2. **Lendo com atenção…**: o símbolo respira e as etapas aparecem numa linha de luzes,
-   com o andamento (“420 de 1.274 parágrafos”).
-3. **Mesa de leitura**:
-   - à esquerda, os pontos de atenção em cartões, com busca e filtros num popover;
-   - à direita, a página: o trecho com luz rosada ao fundo, a nota de margem “Por que
-     acendemos esta luz” com a sugestão (trecho → proposta) e as seis decisões em cartões.
-4. **Trilho noturno**: barra lateral nativa que sobe até os botões da janela, com
-   Início, Leitura, Registro e Motor (um popover com a instalação e as atualizações do FONTE).
-5. **Barra de ferramentas**: uma só, no padrão do Mac. Título e subtítulo mostram o
-   manuscrito e o andamento (“Mesa de leitura · 12 de 286 avaliados”). À direita ficam
-   os ícones de Capítulos, Etapas e alcance, Abrir relatório, Exportar e Mais opções.
-6. **Sobre o Lume**: painel noturno com o símbolo, as versões e a frase da marca; à direita,
-   os componentes de terceiros e o texto de cada licença, lidos do motor embutido.
+1. **Barra:** o símbolo, o nome e a navegação (Início, Leitura, Registro, Motor). Título e
+   subtítulo mostram o manuscrito e o andamento. Na Mesa aparecem também Capítulos (leva ao
+   primeiro alerta de cada capítulo), Etapas e alcance, o botão do inspetor, Abrir relatório,
+   Exportar decisões e Mais opções.
+2. **Início:** a saudação pelo horário, “Que texto vamos iluminar hoje?”, Escolher manuscrito
+   e Abrir relatório, os formatos e o aviso de que as análises do FONTE acontecem neste Mac.
+3. **Preparação:** o manuscrito escolhido, “Tudo pronto para uma leitura atenta.”, os três
+   modos e os painéis A língua (tempo da narração, corretor local), A história (Coerência com
+   IA, comparação com o original) e Auditoria final. Também tem “Ajustar o que procurar…”,
+   com o número de verificações ativas.
+4. **Lendo com atenção…:** as etapas reais do motor, com o andamento quando o motor o informa,
+   e “Interromper leitura”.
+5. **Mesa de leitura:** Pontos de atenção | Manuscrito | Inspetor editorial.
+   - O aviso de tempo contradito fica no topo da lista.
+   - A página mostra o parágrafo do alerta iluminado entre os parágrafos próximos do
+     relatório, com a chama e o § na margem.
+   - O inspetor traz classificação, título, trecho, “Por que acendemos esta luz”, sugestão,
+     evidências, as ações no Pages (Corrigir no manuscrito, Editar parágrafo), a decisão
+     editorial e os detalhes técnicos.
+   - Numa janela estreita, o inspetor desce para baixo da página e o manuscrito mantém a
+     largura.
+6. **Registro:** a saída do motor na última operação, com “Abrir no editor” e “Mostrar no
+   Finder”.
+7. **Motor:** a versão do FONTE carregada e as ações Verificar motor, Instalar atualização…,
+   Voltar à versão anterior e Restaurar embutido.
+8. **Sobre o Lume:** o painel noturno com o símbolo e as versões; à direita, os componentes de
+   terceiros e as licenças, lidos do motor embutido.
 
-## Prévias
+## Capturas
 
-As prévias são renderizadas pelo próprio app, em compilação Debug e sem abrir janela:
+As capturas são renderizadas pelo próprio app, em compilação Debug e sem abrir janela, nos
+modos claro e escuro. As entradas são relatórios e documentos sintéticos; nenhum manuscrito
+real e nenhuma chamada à API:
 
 ```sh
 LUME_SNAPSHOT=/pasta/de/saida \
-LUME_SNAPSHOT_REPORT=/caminho/relatorio.json LUME_SNAPSHOT_INDEX=3 \
+LUME_SNAPSHOT_ENGINE=/caminho/fonte-x.lumemotor \
+LUME_SNAPSHOT_REPORT=/caminho/relatorio.json LUME_SNAPSHOT_REPORT_DOC=/caminho/manuscrito.docx \
+LUME_SNAPSHOT_AUDIT_REPORT=… LUME_SNAPSHOT_AUDIT_DOC=… \
+LUME_SNAPSHOT_PAGES_REPORT=… LUME_SNAPSHOT_PAGES_DOC=/caminho/manuscrito.pages \
+LUME_SNAPSHOT_LOG=/caminho/registro.txt \
   <DerivedData>/Build/Products/Debug/Lume.app/Contents/MacOS/Lume
 ```
 
-A mesma execução grava `icone-1024.png`, a base do AppIcon (redimensionar com `sips`).
+- `LUME_SNAPSHOT_ONLY=prefixo` desenha só as telas cujo nome começa com o prefixo.
+- A captura liga a Coerência e a Auditoria para mostrar as opções e restaura os valores do
+  autor ao terminar.
+- A mesma execução grava `icone-1024.png`, a base do AppIcon (redimensionar com `sips`).

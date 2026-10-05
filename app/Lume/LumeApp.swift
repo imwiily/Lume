@@ -51,16 +51,23 @@ struct LumeApp: App {
 
 #if DEBUG
 /// Renderiza as telas principais em PNG, nos modos claro e escuro, sem janela visível.
+/// Relatórios e documentos vêm de variáveis de ambiente (exemplos sintéticos); nada é enviado à API.
 @MainActor
 enum Snapshot {
-    static func render(_ store: ReviewStore, name: String, dark: Bool, into folder: URL) async {
-        await render(AnyView(ContentView().environmentObject(store)), size: NSSize(width: 1280, height: 820),
+    static func render(_ store: ReviewStore, section: LumeSection = .main, size: NSSize = NSSize(width: 1280, height: 820),
+                       name: String, dark: Bool, into folder: URL) async {
+        await render(AnyView(ContentView(section: section).environmentObject(store)), size: size,
                      name: name, dark: dark, into: folder)
     }
 
     static func render(_ root: AnyView, size: NSSize, name: String, dark: Bool, into folder: URL) async {
+        // LUME_SNAPSHOT_ONLY=prefixo desenha só as telas cujo nome começa com ele.
+        if let only = ProcessInfo.processInfo.environment["LUME_SNAPSHOT_ONLY"], !name.hasPrefix(only) { return }
         // Janela real, com barra de ferramentas, para conferir também o topo.
-        let controller = NSHostingController(rootView: root)
+        // Tamanho mínimo, como a janela real (`.frame(minWidth:minHeight:)` na cena); sem isso o
+        // controlador encolhe a janela ao tamanho ideal do conteúdo.
+        let controller = NSHostingController(rootView: AnyView(root.frame(minWidth: size.width, minHeight: size.height)))
+        controller.sizingOptions = .minSize
         if #available(macOS 14, *) { controller.sceneBridgingOptions = [.toolbars, .title] }
         let window = NSWindow(contentRect: NSRect(origin: CGPoint(x: 40, y: 40), size: size),
                               styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
@@ -68,7 +75,7 @@ enum Snapshot {
         window.contentViewController = controller
         window.toolbarStyle = .unified
         // A janela Sobre usa título oculto, como na cena real (.hiddenTitleBar).
-        if name.hasPrefix("5-") { window.titlebarAppearsTransparent = true; window.titleVisibility = .hidden }
+        if name.hasPrefix("sobre") { window.titlebarAppearsTransparent = true; window.titleVisibility = .hidden }
         window.appearance = NSAppearance(named: dark ? .darkAqua : .aqua)
         window.setContentSize(size)
         window.orderFrontRegardless()
@@ -81,19 +88,28 @@ enum Snapshot {
         window.orderOut(nil)
     }
 
+    /// Store com motor (só para a tela o considerar pronto) e, se pedido, relatório e documento.
+    static func store(report: String? = nil, document: String? = nil, select: ((ReviewStore) -> String?)? = nil) -> ReviewStore {
+        let store = ReviewStore()
+        if let engine = ProcessInfo.processInfo.environment["LUME_SNAPSHOT_ENGINE"] {
+            store.debugUseEngine(URL(fileURLWithPath: engine))
+        }
+        if let report { try? store.debugLoadReport(URL(fileURLWithPath: report)) }
+        if let document { store.documentURL = URL(fileURLWithPath: document) }
+        if let select { store.selectedID = select(store) }
+        return store
+    }
+
     static func run(into folder: URL) async {
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         let env = ProcessInfo.processInfo.environment
-        if let engine = env["LUME_SNAPSHOT_ABOUT"] {
-            for dark in [false, true] {
-                let store = ReviewStore()
-                store.debugUseEngine(URL(fileURLWithPath: engine))
-                await render(AnyView(SobreView().environmentObject(store)), size: NSSize(width: 920, height: 600),
-                             name: "5-sobre", dark: dark, into: folder)
-            }
-        }
+        // Ligar a IA nas capturas grava em UserDefaults; os valores do autor voltam no fim.
+        let defaults = UserDefaults.standard
+        let saved = ["auditAI", "coherenceAI"].map { ($0, defaults.object(forKey: $0)) }
+        defer { for (key, value) in saved { if let value { defaults.set(value, forKey: key) } else { defaults.removeObject(forKey: key) } } }
+
         // Ícone do app: símbolo na grade de ícones do macOS (824 de 1024, com sombra).
-        let icon = ImageRenderer(content: LumeMark(size: 824, glowing: true)
+        let icon = ImageRenderer(content: LumeMark(size: 824, glowing: false).compositingGroup()
             .shadow(color: .black.opacity(0.3), radius: 18, y: 12)
             .frame(width: 1024, height: 1024))
         icon.scale = 1
@@ -101,56 +117,55 @@ enum Snapshot {
             try? NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:])?
                 .write(to: folder.appendingPathComponent("icone-1024.png"))
         }
+        let firstAudit: (ReviewStore) -> String? = { $0.report?.findings.first { $0.module == "audit" }?.id }
+        let first: (ReviewStore) -> String? = { $0.filteredFindings.first?.id }
         for dark in [false, true] {
-            let store = ReviewStore()
-            await render(store, name: "1-inicio", dark: dark, into: folder)
-            store.debugShowReading([
-                AnalysisStage(module: "linguistic", title: "Linguístico", state: "completed", finding_count: 42, coverage: "", detail: ""),
-                AnalysisStage(module: "morphosyntactic", title: "Morfossintático", state: "running", finding_count: 0, coverage: "", detail: "", done: 420, total: 1274, unit: "parágrafos"),
-                AnalysisStage(module: "global_coherence", title: "Coerência com IA", state: "pending", finding_count: 0, coverage: "", detail: ""),
+            await render(store(), name: "01-inicio", dark: dark, into: folder)
+            if let document = env["LUME_SNAPSHOT_REPORT_DOC"] {
+                let preparing = store(document: document)
+                preparing.useCoherenceAI = true
+                preparing.useAuditAI = true
+                await render(preparing, name: "02-preparacao", dark: dark, into: folder)
+                preparing.useCoherenceAI = false
+                preparing.useAuditAI = false
+            }
+            let reading = store(document: env["LUME_SNAPSHOT_REPORT_DOC"])
+            reading.debugShowReading([
+                AnalysisStage(module: "linguistic", title: "Revisão linguística", state: "completed", finding_count: 42, coverage: "partial", detail: ""),
+                AnalysisStage(module: "morphosyntactic", title: "Análise morfossintática", state: "completed", finding_count: 17, coverage: "partial", detail: ""),
+                AnalysisStage(module: "editorial", title: "Contexto curto", state: "completed", finding_count: 9, coverage: "partial", detail: ""),
+                AnalysisStage(module: "global_coherence", title: "Coerência global", state: "skipped", finding_count: 0, coverage: "partial", detail: ""),
+                AnalysisStage(module: "audit", title: "Auditoria final", state: "running", finding_count: 0, coverage: "partial", detail: "", done: 2, total: 5, unit: "trechos"),
             ])
-            await render(store, name: "2-lendo", dark: dark, into: folder)
-            store.debugReset()
+            await render(reading, name: "03-analise-auditoria", dark: dark, into: folder)
             if let report = env["LUME_SNAPSHOT_REPORT"] {
-                try? store.debugLoadReport(URL(fileURLWithPath: report))
-                if let index = env["LUME_SNAPSHOT_INDEX"].flatMap(Int.init), store.filteredFindings.indices.contains(index) {
-                    store.selectedID = store.filteredFindings[index].id
-                }
-                await render(store, name: "3-mesa", dark: dark, into: folder)
-                store.selectedID = nil
-                await render(store, name: "4-mesa-vazia", dark: dark, into: folder)
+                let doc = env["LUME_SNAPSHOT_REPORT_DOC"]
+                await render(store(report: report, document: doc, select: first), name: "04-mesa-tempo-contradito-docx", dark: dark, into: folder)
+                let resting = store(report: report, document: doc)
+                resting.selectedID = nil
+                await render(resting, name: "05-mesa-sem-selecao", dark: dark, into: folder)
+                await render(store(report: report, document: doc, select: first), size: NSSize(width: 1060, height: 820),
+                             name: "06-mesa-estreita", dark: dark, into: folder)
             }
-        }
-        if env["LUME_SNAPSHOT_AUDIT"] != nil { await renderAudit(into: folder) }
-    }
-
-    /// Auditoria final: opção ligada, etapa em andamento. Ligar a opção grava em UserDefaults;
-    /// o valor anterior é restaurado para não mudar a configuração real do autor.
-    static func renderAudit(into folder: URL) async {
-        let defaults = UserDefaults.standard
-        let previous = defaults.object(forKey: "auditAI")
-        defer { if let previous { defaults.set(previous, forKey: "auditAI") } else { defaults.removeObject(forKey: "auditAI") } }
-        for dark in [false, true] {
-            let store = ReviewStore()
-            // Só para a tela considerar o motor pronto; nada é executado na captura.
-            if let engine = ProcessInfo.processInfo.environment["LUME_SNAPSHOT_ENGINE"] {
-                store.debugUseEngine(URL(fileURLWithPath: engine))
+            if let report = env["LUME_SNAPSHOT_AUDIT_REPORT"] {
+                await render(store(report: report, document: env["LUME_SNAPSHOT_AUDIT_DOC"], select: firstAudit),
+                             name: "07-mesa-auditoria", dark: dark, into: folder)
             }
-            store.useAuditAI = true
-            await render(AnyView(ContentView().environmentObject(store)), size: NSSize(width: 1280, height: 820),
-                         name: "6-auditoria-inicio", dark: dark, into: folder)
-            // A tela inicial rola: o painel da auditoria também é desenhado sozinho.
-            await render(AnyView(AuditSheet(showKeySheet: .constant(false)).environmentObject(store)
-                                    .padding(30).frame(width: 940).background(LumeTheme.canvas)),
-                         size: NSSize(width: 1000, height: 300), name: "6-auditoria-opcao", dark: dark, into: folder)
-            store.debugShowReading([
-                AnalysisStage(module: "linguistic", title: "Revisão linguística", state: "completed", finding_count: 42, coverage: "", detail: ""),
-                AnalysisStage(module: "morphosyntactic", title: "Análise morfossintática", state: "completed", finding_count: 17, coverage: "", detail: ""),
-                AnalysisStage(module: "editorial", title: "Contexto curto", state: "completed", finding_count: 9, coverage: "", detail: ""),
-                AnalysisStage(module: "global_coherence", title: "Coerência global", state: "skipped", finding_count: 0, coverage: "", detail: ""),
-                AnalysisStage(module: "audit", title: "Auditoria final", state: "running", finding_count: 0, coverage: "", detail: "", done: 2, total: 5, unit: "trechos"),
-            ])
-            await render(store, name: "7-auditoria-lendo", dark: dark, into: folder)
+            if let report = env["LUME_SNAPSHOT_PAGES_REPORT"] {
+                await render(store(report: report, document: env["LUME_SNAPSHOT_PAGES_DOC"], select: first),
+                             name: "08-mesa-pages", dark: dark, into: folder)
+            }
+            let settings = store(document: env["LUME_SNAPSHOT_REPORT_DOC"])
+            await render(AnyView(SearchSettingsView().environmentObject(settings)), size: NSSize(width: 780, height: 640),
+                         name: "09-ajustar", dark: dark, into: folder)
+            await render(store(), section: .engine, name: "10-motor", dark: dark, into: folder)
+            let logged = store()
+            if let log = env["LUME_SNAPSHOT_LOG"] { logged.logURL = URL(fileURLWithPath: log) }
+            await render(logged, section: .log, name: "11-registro", dark: dark, into: folder)
+            if env["LUME_SNAPSHOT_ENGINE"] != nil {
+                await render(AnyView(SobreView().environmentObject(store())), size: NSSize(width: 920, height: 600),
+                             name: "sobre", dark: dark, into: folder)
+            }
         }
     }
 }

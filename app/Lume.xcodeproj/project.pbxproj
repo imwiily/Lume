@@ -4,6 +4,22 @@
 	classes = {};
 	objectVersion = 56;
 	objects = {
+        000000000000000000000075 = {isa = PBXBuildFile; fileRef = 0000000000000000000000D5; };
+        0000000000000000000000D5 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+        000000000000000000000076 = {isa = PBXBuildFile; fileRef = 0000000000000000000000D6; };
+        0000000000000000000000D6 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadingProgressView.swift; sourceTree = "<group>"; };
+        000000000000000000000077 = {isa = PBXBuildFile; fileRef = 0000000000000000000000D7; };
+        0000000000000000000000D7 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadingDeskView.swift; sourceTree = "<group>"; };
+        000000000000000000000078 = {isa = PBXBuildFile; fileRef = 0000000000000000000000D8; };
+        0000000000000000000000D8 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FindingsColumn.swift; sourceTree = "<group>"; };
+        000000000000000000000079 = {isa = PBXBuildFile; fileRef = 0000000000000000000000D9; };
+        0000000000000000000000D9 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManuscriptView.swift; sourceTree = "<group>"; };
+        00000000000000000000007A = {isa = PBXBuildFile; fileRef = 0000000000000000000000DA; };
+        0000000000000000000000DA = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FindingInspector.swift; sourceTree = "<group>"; };
+        00000000000000000000007B = {isa = PBXBuildFile; fileRef = 0000000000000000000000DB; };
+        0000000000000000000000DB = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchSettingsView.swift; sourceTree = "<group>"; };
+        00000000000000000000007C = {isa = PBXBuildFile; fileRef = 0000000000000000000000DC; };
+        0000000000000000000000DC = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EngineView.swift; sourceTree = "<group>"; };
         000000000000000000000072 = {isa = PBXBuildFile; fileRef = 0000000000000000000000D2; };
         000000000000000000000073 = {isa = PBXBuildFile; fileRef = 0000000000000000000000D3; };
         0000000000000000000000D3 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SobreView.swift; sourceTree = "<group>"; };
@@ -27,10 +43,10 @@
 		00000000000000000000012C = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Lume.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		000000000000000000000001 = {isa = PBXProject; attributes = {BuildIndependentTargetsInParallel = YES; LastUpgradeCheck = 1500; }; buildConfigurationList = 000000000000000000000190; compatibilityVersion = "Xcode 14.0"; developmentRegion = pt; hasScannedForEncodings = 0; knownRegions = (pt, en, Base); mainGroup = 000000000000000000000002; productRefGroup = 000000000000000000000004; projectDirPath = ""; projectRoot = ""; targets = (000000000000000000000005); };
 		000000000000000000000002 = {isa = PBXGroup; children = (000000000000000000000003, 000000000000000000000004); sourceTree = "<group>"; };
-		000000000000000000000003 = {isa = PBXGroup; children = (0000000000000000000000C8, 0000000000000000000000C9, 0000000000000000000000CA, 0000000000000000000000CB, 0000000000000000000000CC, 0000000000000000000000D0, 0000000000000000000000D1, 0000000000000000000000D2, 0000000000000000000000D3, 0000000000000000000000D4); path = Lume; sourceTree = "<group>"; };
+		000000000000000000000003 = {isa = PBXGroup; children = (0000000000000000000000C8, 0000000000000000000000C9, 0000000000000000000000CA, 0000000000000000000000CB, 0000000000000000000000CC, 0000000000000000000000D0, 0000000000000000000000D1, 0000000000000000000000D2, 0000000000000000000000D3, 0000000000000000000000D4, 0000000000000000000000D5, 0000000000000000000000D6, 0000000000000000000000D7, 0000000000000000000000D8, 0000000000000000000000D9, 0000000000000000000000DA, 0000000000000000000000DB, 0000000000000000000000DC); path = Lume; sourceTree = "<group>"; };
 		000000000000000000000004 = {isa = PBXGroup; children = (00000000000000000000012C); name = Products; sourceTree = "<group>"; };
 		000000000000000000000005 = {isa = PBXNativeTarget; buildConfigurationList = 000000000000000000000191; buildPhases = (000000000000000000000006, 000000000000000000000007, 000000000000000000000008); buildRules = (); dependencies = (); name = Lume; productName = Lume; productReference = 00000000000000000000012C; productType = "com.apple.product-type.application"; };
-		000000000000000000000006 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (000000000000000000000064, 000000000000000000000065, 000000000000000000000066, 000000000000000000000067, 000000000000000000000068, 000000000000000000000070, 000000000000000000000072, 000000000000000000000073, 000000000000000000000074); runOnlyForDeploymentPostprocessing = 0; };
+		000000000000000000000006 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (000000000000000000000064, 000000000000000000000065, 000000000000000000000066, 000000000000000000000067, 000000000000000000000068, 000000000000000000000070, 000000000000000000000072, 000000000000000000000073, 000000000000000000000074, 000000000000000000000075, 000000000000000000000076, 000000000000000000000077, 000000000000000000000078, 000000000000000000000079, 00000000000000000000007A, 00000000000000000000007B, 00000000000000000000007C); runOnlyForDeploymentPostprocessing = 0; };
 		000000000000000000000007 = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
 		000000000000000000000008 = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (000000000000000000000071); runOnlyForDeploymentPostprocessing = 0; };
 		000000000000000000000190 = {isa = XCConfigurationList; buildConfigurations = (00000000000000000000019A, 00000000000000000000019B); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };

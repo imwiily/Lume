@@ -951,6 +951,11 @@ extension ReviewStore {
         analysisStages = stages; isAnalyzing = true; screen = .review
     }
     func debugReset() { isAnalyzing = false; screen = .preparation }
-    func debugUseEngine(_ root: URL) { embeddedEngine = EmbeddedEngine(root: root, version: "debug", updated: false) }
+    func debugUseEngine(_ root: URL) {
+        // Versão do manifesto, para as capturas mostrarem o motor como no app montado.
+        let manifest = (try? Data(contentsOf: root.appendingPathComponent("manifest.json")))
+            .flatMap { try? JSONDecoder().decode(EngineManifest.self, from: $0) }
+        embeddedEngine = EmbeddedEngine(root: root, version: manifest?.engine_version ?? "debug", updated: false)
+    }
 }
 #endif

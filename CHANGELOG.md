@@ -2,6 +2,46 @@
 
 As seções antigas descrevem a cobertura e os resultados de cada entrega, não o estado atual. Nas seções anteriores à 1.0, caminhos citados são da antiga pasta `LumeMac/`; a correspondência com a estrutura atual está em [README.md](README.md#estrutura).
 
+## Próxima versão — em desenvolvimento
+
+Interface refeita a partir da referência do Stitch (“O manuscrito é papel. O Lume é instrumento.
+A atenção é luz.”). O funcionamento não mudou: mesmas etapas, decisões, contratos, correção no
+Pages e recursos com IA.
+
+- **Identidade:**
+  - SF Pro na interface e New York no manuscrito;
+  - cantos pequenos, sem cápsulas e quase sem sombras;
+  - a cor da vela só onde há atenção;
+  - tokens claros e escuros em `LumeTheme`;
+  - símbolo novo (chama em gota sobre um livro aberto de páginas cheias) em SwiftUI, em
+    `docs/identidade/*.svg` e no ícone do app.
+- **Janela:** o trilho lateral deu lugar a uma navegação na barra (Início, Leitura, Registro,
+  Motor).
+  - **Registro** mostra no app a saída do motor da última operação.
+  - **Motor** virou uma tela com a versão carregada e as mesmas ações.
+- **Início e preparação:** separados.
+  - A preparação mostra o manuscrito, os três modos, os painéis A língua, A história e
+    Auditoria final.
+  - “Ajustar o que procurar…” mostra quantas verificações estão ativas.
+- **Lendo com atenção…:** etapas numeradas com o estado real e a barra de andamento quando o
+  motor informa. Corrigida a animação da chama, que fazia o layout da tela oscilar.
+- **Mesa de leitura:** Pontos de atenção | Manuscrito | Inspetor editorial.
+  - A página mostra o parágrafo iluminado entre os parágrafos próximos do relatório, com a
+    chama e o § na margem.
+  - O inspetor reúne:
+    - a classificação;
+    - “Por que acendemos esta luz”, a sugestão e as evidências;
+    - as ações no Pages, separadas da decisão;
+    - as seis decisões;
+    - os detalhes técnicos.
+  - Numa janela estreita, o inspetor desce para baixo da página.
+  - O menu Capítulos leva ao primeiro alerta do capítulo.
+- **“Ajustar o que procurar”:** seções numa barra lateral. As regras continuam vindo de
+  `SearchRule.all`.
+- **Código:** `ContentView.swift` foi dividido em `HomeView`, `ReadingProgressView`,
+  `ReadingDeskView`, `FindingsColumn`, `ManuscriptView`, `FindingInspector`,
+  `SearchSettingsView` e `EngineView`. O `ReviewStore` continua sendo a única fonte de estado.
+
 ## Lume 1.5 / FONTE 1.4.0 · Coerencia 1.2.0 — 05/10/2026
 
 Auditoria final com IA, aviso de tempo contradito e falsos positivos salvos ao lado do relatório.

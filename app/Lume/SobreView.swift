@@ -78,8 +78,8 @@ struct SobreView: View {
 
     private var identity: some View {
         VStack(alignment: .leading, spacing: 14) {
-            LumeMark(size: 84, glowing: true).padding(.top, 58)
-            Text("Lume").font(LumeFont.display(38)).foregroundStyle(LumeTheme.linen)
+            LumeMark(size: 76, glowing: true).padding(.top, 58)
+            Text("Lume").font(LumeFont.display(36, weight: .semibold)).foregroundStyle(LumeTheme.linen)
             VStack(alignment: .leading, spacing: 4) {
                 Text(appVersion)
                 if let engine = store.embeddedEngine { Text("Motor FONTE \(engine.version)") }
@@ -88,7 +88,10 @@ struct SobreView: View {
                 .font(LumeFont.display(16)).italic().foregroundStyle(LumeTheme.candle)
                 .fixedSize(horizontal: false, vertical: true).padding(.top, 6)
             Spacer()
-            Text("O manuscrito é lido neste Mac e nunca é alterado. Só os capítulos que você autorizar seguem para a Coerência com IA.")
+            Text("O manuscrito é papel. O Lume é instrumento. A atenção é luz.")
+                .font(LumeFont.display(13)).italic().foregroundStyle(LumeTheme.linen.opacity(0.85))
+                .fixedSize(horizontal: false, vertical: true)
+            Text("O manuscrito é lido neste Mac e a análise nunca o altera. Só os trechos que você autorizar seguem para a Coerência ou a Auditoria final com IA.")
                 .font(LumeFont.ui(11)).foregroundStyle(LumeTheme.linen.opacity(0.7))
                 .fixedSize(horizontal: false, vertical: true)
             Text("O Lume é software livre sob a licença MIT. Os componentes ao lado seguem suas próprias licenças.")
@@ -103,12 +106,7 @@ struct SobreView: View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 10) {
                 Kicker(title: "Componentes de terceiros · \(components.count)")
-                HStack(spacing: 7) {
-                    Image(systemName: "magnifyingglass").foregroundStyle(LumeTheme.secondary)
-                    TextField("Buscar", text: $search).textFieldStyle(.plain).font(LumeFont.ui(12))
-                }.padding(.horizontal, 10).padding(.vertical, 6)
-                    .background(Capsule().fill(LumeTheme.paper))
-                    .overlay(Capsule().strokeBorder(LumeTheme.line))
+                SearchField(prompt: "Buscar", text: $search)
             }.padding(16).padding(.top, 28)
             ScrollView {
                 LazyVStack(spacing: 2) {
@@ -120,10 +118,10 @@ struct SobreView: View {
                                 Text(component.licenca).font(LumeFont.ui(10)).foregroundStyle(LumeTheme.secondary).lineLimit(1)
                             }.padding(.horizontal, 12).padding(.vertical, 7)
                                 .frame(maxWidth: .infinity, alignment: .leading)
-                                .background(RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                    .fill(selected ? LumeTheme.wash : .clear))
+                                .background(RoundedRectangle(cornerRadius: LumeRadius.medium)
+                                    .fill(selected ? LumeTheme.raised : .clear))
                                 .overlay(alignment: .leading) {
-                                    if selected { Capsule().fill(LumeTheme.accent).frame(width: 3, height: 18).padding(.leading, 2) }
+                                    if selected { Rectangle().fill(LumeTheme.accent).frame(width: 2).padding(.vertical, 6) }
                                 }
                                 .contentShape(Rectangle())
                         }.buttonStyle(.plain)
@@ -142,7 +140,7 @@ struct SobreView: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Kicker(title: component.uso).padding(.top, 28)
                     HStack(alignment: .firstTextBaseline) {
-                        Text(component.nome).font(LumeFont.display(26))
+                        Text(component.nome).font(LumeFont.display(24, weight: .semibold))
                         if !component.versao.isEmpty {
                             Text(component.versao).font(LumeFont.ui(12)).foregroundStyle(LumeTheme.secondary)
                         }
@@ -160,7 +158,8 @@ struct SobreView: View {
                     Text(licenseText(component).isEmpty ? "Texto de licença não encontrado no motor." : licenseText(component))
                         .font(.system(size: 11, design: .monospaced)).lineSpacing(2)
                         .textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading).padding(16)
-                }.background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(LumeTheme.paper))
+                }.background(RoundedRectangle(cornerRadius: LumeRadius.large).fill(LumeTheme.raised))
+                    .overlay(RoundedRectangle(cornerRadius: LumeRadius.large).strokeBorder(LumeTheme.line))
             }.padding(22)
         } else {
             Text("Escolha um componente para ler a licença.").font(LumeFont.ui(13)).foregroundStyle(LumeTheme.secondary)
@@ -171,7 +170,7 @@ struct SobreView: View {
     private var missing: some View {
         VStack(alignment: .leading, spacing: 10) {
             Kicker(title: "Licenças")
-            Text("Este motor não traz o índice de licenças.").font(LumeFont.display(22))
+            Text("Este motor não traz o índice de licenças.").font(LumeFont.display(22, weight: .semibold))
             Text("As licenças acompanham o motor embutido no app montado com scripts/montar-lume.command. Instalações de desenvolvimento e motores anteriores à versão 1.0 não incluem o índice.")
                 .font(LumeFont.ui(13)).foregroundStyle(LumeTheme.secondary).fixedSize(horizontal: false, vertical: true)
         }.padding(32).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
