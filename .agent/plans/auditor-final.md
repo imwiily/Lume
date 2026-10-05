@@ -403,7 +403,7 @@ cd fonte && .venv/bin/python -m fonte revisar <copia.pages> --saida <nova> --tem
 - [x] Etapa 2 — núcleo com modelo simulado (05/10)
 - [x] Etapa 3 — incremental, teto e estimativa (05/10)
 - [x] Etapa 4 — app (05/10)
-- [ ] Etapa 5 — ponta a ponta com a API (autorização)
+- [x] Etapa 5 — ponta a ponta com a API (05/10, autorizada)
 - [ ] Etapa 6 — medição no corpus (autorização)
 - [ ] Etapa 7 — manuscritos, documentação e montagem (autorização)
 
@@ -505,7 +505,44 @@ teto. O auditor o reaproveita em vez de criar outro cliente.
   considerar o motor pronto. O valor de `auditAI` é restaurado no fim; conferido antes e
   depois, as preferências do autor ficaram iguais.
 
+05/10/2026, Etapa 5 (autorizada pelo autor):
+
+- **Texto:** sintético, escrito do zero (2 capítulos, 10 parágrafos de texto, sem
+  coincidências de 4 palavras com A e B), fora do repositório. Tinha erros plantados
+  (concordância distante, “preferia mais … do que”, um avental pendurado que reaparece
+  dobrado na bancada) e controles (fala coloquial, fragmentos “Voltou. Nada.”).
+- **Execução:** `revisar --modo ambas --languagetool --auditoria-ia`, Opus 5.5, esforço
+  médio, teto de US$ 0,20.
+- **Custo real:** US$ 0,0281 em 2 pedidos. A estimativa anterior era US$ 0,072.
+- **Tokens:** 3.524 de entrada, dos quais 1.437 lidos do cache no segundo pedido (o prompt
+  fixo entra no cache), e 973 de saída.
+- **Etapa:** concluída em 14,9 s.
+- **Achados:**
+  - a concordância foi apontada antes pela regra do FONTE, e o auditor não a repetiu;
+  - o avental foi apontado (continuidade, confiança média);
+  - a regência de “preferir” foi apontada, com sugestão;
+  - uma continuidade discutível (ferramentas guardadas, chaves de fenda na bancada) veio com
+    confiança baixa;
+  - os controles não geraram alerta;
+  - nenhum descarte.
+- **Segunda rodada:** a estimativa deu 0 a enviar. A análise fez 0 pedidos, custou US$ 0 e
+  devolveu os mesmos IDs.
+- **Chave:** ausente do relatório, do registro e de `auditoria.json`.
+- **Calibração nova:** `ENTRADA_FIXA = 1440` por pedido (a preço de cache depois do
+  primeiro), 2 caracteres por token no texto, saída de 400 tokens mais 15% do texto. O mesmo
+  texto passa a US$ 0,0265 estimados, contra US$ 0,0281 reais. A e B passam a cerca de
+  US$ 0,36 e US$ 0,08. É uma medição só, com capítulos curtos; capítulos longos podem gastar
+  mais em pensamento e saída.
+- `metadata.auditoria_ia` ganhou `tokens_entrada`, `tokens_cache` e `tokens_saida`.
+
 ## Validação realizada e resultado final
+
+Etapa 5 (05/10/2026):
+
+- Envio real autorizado: US$ 0,0281 no total.
+- 341 testes do analisador (1 mudado para os tokens; falhou antes), 25 dos pacotes e do
+  contrato Python e 25 do Coerencia aprovados.
+
 
 Etapa 4 (05/10/2026):
 

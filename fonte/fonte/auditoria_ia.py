@@ -25,10 +25,13 @@ MODELO_PADRAO = "claude-opus-5-5"
 LIMITE = 40000      # caracteres revisados por pedido; capítulos maiores viram janelas
 CONTEXTO = 2        # parágrafos anteriores enviados só para leitura
 ESTADO = "auditoria.json"
-# Estimativa local, sem rede. Provisória até a medição com a API (Etapa 5 do plano):
-# tokens de entrada pelo tamanho do pedido; saída (pensamento + resposta) fixa mais uma fração.
-CARACTERES_POR_TOKEN = 3.2
-SAIDA_FIXA = 1500
+# Estimativa local, sem rede, calibrada numa medição com o Opus 5.5 em 05/10/2026 (texto curto;
+# ainda aproximada para capítulos longos). Prompt fixo + esquema: ~1.440 tokens por pedido, lidos
+# do cache depois do primeiro; texto do pedido a ~2 caracteres por token; saída (pensamento +
+# resposta) de 400 tokens mais 15% do texto.
+ENTRADA_FIXA = 1440
+CARACTERES_POR_TOKEN = 2.0
+SAIDA_FIXA = 400
 SAIDA_PROPORCIONAL = .15
 
 # categoria: (título no app, regra da busca que a desliga, camada, severidade)
@@ -184,22 +187,22 @@ def estimar(blocks, pasta, tempo="passado", modelo=MODELO_PADRAO, esforco="mediu
     from coerencia.modelo import PRECOS
     if modelo not in PRECOS:
         raise ValueError(f"Auditoria final com IA: modelo sem preço conhecido ({modelo}).")
-    entrada, saida, _ = PRECOS[modelo]
+    entrada, saida, cache = PRECOS[modelo]
     guardados, _ = ler_estado(pasta) if pasta else ({}, None)
     todos = plano(blocks, limite)
     pendentes = [(t, c, p) for t, c, p in todos if chave(modelo, esforco, tempo, t, c, p) not in guardados]
     total = len(todos)
     caracteres = custo = 0
-    for titulo, contexto, proprios in pendentes:
-        tamanho = len(SISTEMA) + len(pedido(titulo, tempo, contexto, proprios, []))
-        tokens = tamanho / CARACTERES_POR_TOKEN
+    for n, (titulo, contexto, proprios) in enumerate(pendentes):
+        tokens = len(pedido(titulo, tempo, contexto, proprios, [])) / CARACTERES_POR_TOKEN
         caracteres += sum(len(b.text) for b in proprios)
-        custo += (tokens * entrada + (SAIDA_FIXA + SAIDA_PROPORCIONAL * tokens) * saida) / 1e6
+        fixo = ENTRADA_FIXA * (entrada if n == 0 else cache)
+        custo += (fixo + tokens * entrada + (SAIDA_FIXA + SAIDA_PROPORCIONAL * tokens) * saida) / 1e6
     return {"modelo": modelo, "esforco": esforco, "trechos": total, "a_enviar": len(pendentes),
             "reaproveitados": total - len(pendentes),
             "titulos_a_enviar": list(dict.fromkeys(t for t, _, _ in pendentes)), "caracteres": caracteres,
             "custo_estimado_usd": round(custo, 4), "custo_minimo_usd": round(custo * .5, 4),
-            "custo_maximo_usd": round(custo * 2, 4), "calibracao": "provisoria"}
+            "custo_maximo_usd": round(custo * 2, 4), "calibracao": "uma medição (05/10/2026)"}
 
 
 def pedido(titulo, tempo, contexto, proprios, anteriores):
@@ -352,6 +355,8 @@ def auditar(blocks, anteriores, avancar=None, *, tempo="passado", configuracao=N
               "enviados": len(chamadas), "reaproveitados": reaproveitados, "sem_resposta": sum(falhas.values()),
               "interrompida": interrompida, "achados": dict(achados), "descartes": dict(descartes),
               "custo_usd": custo}
+    for campo in ("tokens_entrada", "tokens_cache", "tokens_saida"):
+        resumo[campo] = sum(c.get(campo, 0) for c in chamadas)
     avisos = [aviso_estado] if aviso_estado else []
     if falhas["cortada"]:
         avisos.append(f"Auditoria final com IA: {falhas['cortada']} trecho(s) ficaram sem auditoria porque a "

@@ -162,7 +162,9 @@ dinheiro; modelo padrão `claude-opus-5-5` e teto padrão US$ 1,00.
   etapas é mantido.
 - `auditoria-estimar ARQUIVO --auditoria-projeto P [--tempo T]` devolve uma linha
   `LUME_ESTIMATIVA_AUDITORIA {json}` com os trechos a enviar e o custo estimado, sem rede. A
-  calibração do custo é provisória até a medição com a API.
+  estimativa foi calibrada numa medição curta com o Opus 5.5: o prompt fixo e o esquema somam
+  cerca de 1.440 tokens por pedido e são lidos do cache a partir do segundo pedido. Para
+  capítulos longos, a estimativa ainda é aproximada.
 
 No app, a opção fica no painel “Auditoria final” da tela inicial, com modelo, teto e a mesma
 chave da Coerência. Antes de qualquer envio, o app roda as estimativas de cada recurso ligado

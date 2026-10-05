@@ -16,7 +16,7 @@ As seções antigas descrevem a cobertura e os resultados de cada entrega, não 
   - Desligada, a etapa aparece como “Não selecionado” (`skipped`).
   - Na linha de comando: `revisar --auditoria-ia --auditoria-projeto P` e `auditoria-estimar`
     (veja a [arquitetura](docs/arquitetura.md#auditoria-final-com-ia)).
-  - A estimativa de custo ainda é provisória.
+  - A estimativa de custo foi calibrada numa medição curta e ainda é aproximada para capítulos longos.
 - Aviso quando a narração contradiz o tempo escolhido: com Passado ou Presente escolhido, se ao
   menos 20 verbos da narração e 70% dos que têm tempo identificado estão no outro tempo, o
   relatório traz um aviso em “Sobre esta análise” e o campo opcional `metadata.tempo_contradito`

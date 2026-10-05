@@ -331,6 +331,8 @@ class AuditCoreTests(unittest.TestCase):
         self.assertEqual(pedido['fallbacks'], 'default')
         # 1000 × US$ 4 + 300 × US$ 20 por milhão, em cada um dos dois pedidos
         self.assertAlmostEqual(resumo['custo_usd'], 2 * (4000 + 6000) / 1e6)
+        # Tokens somados para calibrar a estimativa e conferir o cache do prompt fixo.
+        self.assertEqual((resumo['tokens_entrada'], resumo['tokens_cache'], resumo['tokens_saida']), (2000, 0, 600))
         self.assertEqual((resumo['modelo'], resumo['esforco']), ('claude-opus-5-5', 'medium'))
 
 
