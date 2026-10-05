@@ -55,8 +55,8 @@ aprovam um patch novo.
    confirmado nem inventar sujeito, falante, tempo ou continuidade.
 6. Todo alerta aponta trechos que existem no texto. Trechos citados por um modelo de
    linguagem são conferidos no parágrafo indicado; o que não existir é descartado.
-7. Coerência com IA: nada é enviado à API sem ação e confirmação do usuário, com os
-   capítulos a enviar e o custo estimado; respeitar o teto de gasto; enviar só o que
+7. Recursos com IA (Coerência e Auditoria final): nada é enviado à API sem ação e
+   confirmação do usuário, com os capítulos ou trechos a enviar e o custo estimado; respeitar o teto de gasto; enviar só o que
    mudou; nunca registrar a chave em arquivos, argumentos ou relatórios.
 8. Preservar contratos JSON e leitura de relatórios, decisões e configurações antigos
    (inclusive chaves de regras retiradas). Não confundir confiança heurística com
@@ -95,5 +95,6 @@ aprovam um patch novo.
 
 ## Fora do escopo atual
 
-Auditor Final, interpretação literária, inferência psicológica, regras profundas de
-gênero e reescrita automática do texto.
+Interpretação literária, inferência psicológica, regras profundas de gênero e reescrita
+automática do texto. A Auditoria final com IA fica nas categorias fechadas de
+`fonte/fonte/auditoria_ia.py`; ampliá-las é uma mudança de escopo.

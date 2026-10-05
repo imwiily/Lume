@@ -1,6 +1,6 @@
 # Arquitetura e limites — Lume 1.1 / FONTE 1.1.0
 
-Os manuscritos são somente lidos. A sequência Linguístico → Morfossintático → Editorial → Coerência Global usa uma captura imutável do documento. Antes de gravar o relatório, a CLI confere novamente o SHA-256 do arquivo (DOCX ou Pages). Falha numa etapa impede as seguintes; a falha da Auditoria final, a última etapa, interrompe só ela. O Auditor Final está em desenvolvimento ([plano](../.agent/plans/auditor-final.md)) e ainda não pode ser ligado.
+Os manuscritos são somente lidos. A sequência Linguístico → Morfossintático → Editorial → Coerência Global usa uma captura imutável do documento. Antes de gravar o relatório, a CLI confere novamente o SHA-256 do arquivo (DOCX ou Pages). Falha numa etapa impede as seguintes; a falha da Auditoria final, a última etapa, interrompe só ela. A Auditoria final com IA é opcional e desligada por padrão ([detalhes](#auditoria-final-com-ia)).
 
 ## Organização
 

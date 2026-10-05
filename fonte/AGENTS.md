@@ -12,8 +12,8 @@ Aplicar também o `AGENTS.md` da raiz Git. O pacote é `fonte-revisor`; código 
 - Preservar offsets em pontos de código Unicode, trechos exatos e índices de
   parágrafo. Não trocar offsets por bytes, grafemas ou unidades UTF-16.
 - Emitir progresso conforme o protocolo existente (`LUME_PROGRESS`, com
-  `done`/`total`/`unit` opcionais); não anunciar Auditor Final implementado nem
-  transformar suspeita em erro confirmado.
+  `done`/`total`/`unit` opcionais); não transformar suspeita em erro confirmado. A
+  Auditoria final com IA (`auditoria_ia.py`) só roda quando pedida e confirmada.
 - Regras retiradas continuam aceitas nas configurações (`RETIRED_RULES`), sem efeito.
 - Rodar `.venv/bin/python -c 'import fonte; print(fonte.__file__)'` nesta pasta;
   a importação deve apontar para os fontes locais. Executar

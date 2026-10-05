@@ -7,7 +7,7 @@ O Lume lê manuscritos do Word (.docx) e do Pages (.pages) e aponta:
 - tempo verbal da narração (passado ou presente);
 - repetições, diálogos, variações de nomes e prazos.
 
-Contradições narrativas são verificadas pela **Coerência com IA** (Claude), opcional. Sugestões e decisões ficam nos relatórios; o texto continua sendo do autor. A análise nunca altera o arquivo. Em documentos do Pages, o autor pode gravar a correção de um alerta no próprio arquivo (**Corrigir no manuscrito**): o Lume guarda antes uma cópia em `~/Library/Application Support/FONTE/Copias/`, usa o Pages para trocar só o trecho destacado e confere o resultado. Em **Editar parágrafo**, o autor reescreve o parágrafo do alerta e o Lume grava só a parte alterada.
+Contradições narrativas são verificadas pela **Coerência com IA** (Claude), opcional. A **Auditoria final com IA** (Claude), também opcional, relê o livro depois das regras e aponta só o que elas deixaram passar. Sugestões e decisões ficam nos relatórios; o texto continua sendo do autor. A análise nunca altera o arquivo. Em documentos do Pages, o autor pode gravar a correção de um alerta no próprio arquivo (**Corrigir no manuscrito**): o Lume guarda antes uma cópia em `~/Library/Application Support/FONTE/Copias/`, usa o Pages para trocar só o trecho destacado e confere o resultado. Em **Editar parágrafo**, o autor reescreve o parágrafo do alerta e o Lume grava só a parte alterada.
 
 ![Início do Lume](docs/identidade/previa-inicio-claro.png)
 
@@ -47,6 +47,18 @@ Opção da etapa Coerência global, desligada por padrão.
 - **Privacidade:** pela política atual da API, o texto enviado fica nos servidores da Anthropic por até 30 dias e não é usado para treino por padrão.
 
 O Coerencia também roda sozinho no terminal: veja [coerencia/README.md](coerencia/README.md).
+
+## Auditoria final com IA (Claude)
+
+Última etapa da leitura, desligada por padrão porque custa dinheiro. Fica no painel **Auditoria final** da tela inicial e vale para os três modos.
+
+- **O que faz:** o Claude relê cada capítulo com os alertas já encontrados e aponta só problemas novos (concordância, regência, crase, palavra faltando, continuidade dentro da cena e outras categorias fechadas). Os achados são suspeitas para avaliar: nunca erro confirmado, nunca confiança alta.
+- **Conferência:** todo trecho citado pelo modelo é procurado no parágrafo. O que não existir, repetir um alerta, cair fora do escopo (uma regra desligada, por exemplo) ou repetir outro achado é descartado e contado no relatório.
+- **Confirmação:** a mesma chave da Coerência. Antes de enviar, uma única confirmação mostra os trechos e o custo estimado de cada recurso ligado. Teto padrão: US$ 1,00 por análise.
+- **Economia:** trechos sem alteração não são reenviados (projeto por manuscrito em `~/Library/Application Support/FONTE/Auditoria/`). Ao atingir o teto, o que já foi auditado fica guardado, e a próxima análise continua dali.
+- **Modelo:** Opus 5.5 por padrão; Sonnet 5.5 como opção (custa a metade).
+- **Falhas:** um erro da API interrompe só a auditoria; o relatório das outras etapas é mantido.
+- **Medição:** num corpus sintético pequeno, a auditoria encontrou 6 dos 8 erros que as regras perderam no conjunto de validação, sem alarmes falsos ([validação](docs/validacao.md)). Não substitui uma avaliação em livros reais.
 
 ## Montar o aplicativo
 
@@ -120,7 +132,7 @@ Com `--auditoria`, a Auditoria final com IA roda em cada texto e é medida à pa
 
 ## Limites
 
-A revisão é heurística e parcial. Confiança não é probabilidade calibrada, e a ausência de alertas não garante ausência de erros. O Auditor Final ainda não existe. Os manuscritos usados no desenvolvimento não constituem uma avaliação independente de precisão.
+A revisão é heurística e parcial. Confiança não é probabilidade calibrada, e a ausência de alertas não garante ausência de erros. A Auditoria final com IA é opcional e foi medida só num corpus sintético pequeno. Os manuscritos usados no desenvolvimento não constituem uma avaliação independente de precisão.
 
 ## Licença
 
