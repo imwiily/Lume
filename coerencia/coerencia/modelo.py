@@ -19,6 +19,18 @@ class ErroModelo(Exception):
     pass
 
 
+class Recusa(ErroModelo):
+    """O modelo recusou o pedido (classificadores de segurança)."""
+
+
+class RespostaCortada(ErroModelo):
+    """A resposta atingiu `max_tokens` antes de terminar."""
+
+
+class TetoAtingido(ErroModelo):
+    """O teto de gasto da execução foi atingido antes da próxima chamada."""
+
+
 class Ollama:
     def __init__(self, modelo, endereco="http://127.0.0.1:11434", pensar=False, contexto=16384, tempo_limite=900):
         if urlparse(endereco).hostname not in LOCAIS:
@@ -194,9 +206,9 @@ class Claude:
         if self.orcamento:
             self.orcamento.gasto += chamada["custo_usd"]
         if resposta.stop_reason == "refusal":
-            raise ErroModelo(f"O modelo recusou a etapa {etapa} (pedido {chamada['pedido']}).")
+            raise Recusa(f"O modelo recusou a etapa {etapa} (pedido {chamada['pedido']}).")
         if resposta.stop_reason == "max_tokens":
-            raise ErroModelo(f"Resposta cortada por tamanho na etapa {etapa}; diminua --cena.")
+            raise RespostaCortada(f"Resposta cortada por tamanho na etapa {etapa}; diminua --cena.")
         texto = next((b.text for b in resposta.content if b.type == "text"), "")
         try:
             return json.loads(texto)
@@ -212,7 +224,7 @@ class Orcamento:
 
     def conferir(self):
         if self.gasto >= self.teto:
-            raise ErroModelo(f"Teto de gasto atingido (US$ {self.gasto:.4f} de US$ {self.teto:.2f}). "
+            raise TetoAtingido(f"Teto de gasto atingido (US$ {self.gasto:.4f} de US$ {self.teto:.2f}). "
                              "O que já foi lido ficou salvo na pasta de saída.")
 
 

@@ -51,6 +51,16 @@ class ClaudeTests(unittest.TestCase):
             with self.subTest(motivo=motivo), self.assertRaises(ErroModelo):
                 Claude("claude-opus-5-5", cliente=ClienteFalso(resposta(motivo=motivo))).json("s", "u", ESQUEMA_JUIZ, "juiz")
 
+    def test_refusal_truncation_and_cap_have_their_own_classes(self):
+        # O Auditor separa os casos pela classe; o texto continua o mesmo para o Projeto.
+        from coerencia.modelo import Orcamento, Recusa, RespostaCortada, TetoAtingido
+        for motivo, classe in (("refusal", Recusa), ("max_tokens", RespostaCortada)):
+            with self.subTest(motivo=motivo), self.assertRaises(classe):
+                Claude("claude-opus-5-5", cliente=ClienteFalso(resposta(motivo=motivo))).json("s", "u", ESQUEMA_JUIZ, "juiz")
+        orcamento = Orcamento(0.001); orcamento.gasto = 0.002
+        with self.assertRaisesRegex(TetoAtingido, "Teto"):
+            Claude("claude-opus-5-5", cliente=ClienteFalso(resposta()), orcamento=orcamento).json("s", "u", ESQUEMA_JUIZ, "juiz")
+
     def test_reader_and_judge_split_and_share_calls(self):
         from coerencia.modelo import Dupla
         leitor_cliente, juiz_cliente = ClienteFalso(resposta()), ClienteFalso(resposta())

@@ -400,7 +400,7 @@ cd fonte && .venv/bin/python -m fonte revisar <copia.pages> --saida <nova> --tem
 
 - [x] Etapa 0 — decisões e base (05/10; commits `e39844a` e `72f5fec`)
 - [x] Etapa 1 — contrato e esqueleto (05/10)
-- [ ] Etapa 2 — núcleo com modelo simulado
+- [x] Etapa 2 — núcleo com modelo simulado (05/10)
 - [ ] Etapa 3 — incremental, teto e estimativa
 - [ ] Etapa 4 — app
 - [ ] Etapa 5 — ponta a ponta com a API (autorização)
@@ -426,7 +426,49 @@ teto. O auditor o reaproveita em vez de criar outro cliente.
   `packaging/lume_engine.py` e `Models.swift` (estágio inicial `pending`). O contrato Swift
   continua aceitando `not_implemented` de relatórios antigos.
 
+05/10/2026, Etapa 2:
+
+- `fonte/fonte/auditoria_ia.py`:
+  - prompt de sistema fixo e genérico (`VERSAO_PROMPT = 1`);
+  - esquema estrito com 11 categorias;
+  - janelas por capítulo com 2 parágrafos de contexto só para leitura;
+  - conferência e descarte em código, com os motivos `paragrafo_fora`, `trecho_inexistente`,
+    `fora_do_escopo`, `alerta_existente` e `repetido`;
+  - resumo em `metadata.auditoria_ia`.
+- Decisões de detalhe tomadas na implementação:
+  - **Regras desligadas valem para o auditor.** Uma categoria cuja regra está desligada na
+    busca é descartada. Por exemplo, `concordancia` desligada descarta achados de
+    concordância.
+  - **Categorias sem regra correspondente** (`ortografia`, `pontuacao`, `continuidade_local`)
+    são sempre permitidas.
+  - **Tempo verbal** só é aceito dentro de `tense_scopes`.
+  - **Composição Unicode:** o trecho é procurado como veio e nas formas NFC e NFD. Os offsets
+    continuam em pontos de código do texto original.
+  - **Sugestão** vazia ou igual ao trecho vira `null`.
+  - **Confiança `alta`** devolvida pelo modelo vale como `média`; um valor desconhecido vale
+    como `baixa`.
+  - **Progresso** em “trechos” (janelas), não em capítulos.
+- `coerencia/coerencia/modelo.py`: subclasses `Recusa`, `RespostaCortada` e `TetoAtingido`
+  de `ErroModelo`. O texto das mensagens é o mesmo, e o `Projeto` da Coerência, que procura
+  “Teto” na mensagem, continua funcionando.
+- Recusa e resposta cortada (depois de uma divisão) deixam só aquele trecho sem auditoria. O
+  teto encerra a rodada mantendo o que já foi auditado. Os demais erros da API sobem como
+  `ValueError` e marcam a etapa como `failed` (decisão 5).
+- A confirmar na Etapa 5: o prompt de sistema tem cerca de 700 tokens e pode ficar abaixo do
+  mínimo para o cache. Medir `cache_read_input_tokens` antes de contar com ele.
+
 ## Validação realizada e resultado final
+
+Etapa 2 (05/10/2026):
+
+- `test_auditoria_ia.py`: 21 testes (16 novos), sem rede. Os de núcleo falhavam antes da
+  implementação. Inclui um teste pelo cliente `Claude` real com SDK falso (pedido, esquema
+  estrito, esforço, fallbacks e custo).
+- 327 testes do analisador, 25 dos pacotes e do contrato Python e 25 do Coerencia (1 novo)
+  aprovados.
+- Sem sequências de 4 palavras em comum com A e B nos arquivos novos.
+- Nenhuma chamada à API.
+
 
 Etapa 1 (05/10/2026):
 

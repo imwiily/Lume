@@ -155,8 +155,10 @@ def run(blocks, model_loader, *, settings=None, tense="auto", mode="ambas",
     def audit():
         from .auditoria_ia import auditar
         # Cópia: o auditor lê os alertas anteriores, mas não os altera.
+        reference = tense if tense != "auto" else meta.get("tempo", "inconclusivo")
         out, extra_warnings, rodada = auditar(blocks, deepcopy(findings),
-                                              avancar=lambda f, t: avancar(f, t, "capítulos"), **auditoria)
+                                              avancar=lambda f, t: avancar(f, t, "trechos"),
+                                              tempo=reference, configuracao=options, **auditoria)
         warnings.extend(extra_warnings)
         meta["auditoria_ia"] = rodada
         return out
