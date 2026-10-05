@@ -121,6 +121,37 @@ enum Snapshot {
                 await render(store, name: "4-mesa-vazia", dark: dark, into: folder)
             }
         }
+        if env["LUME_SNAPSHOT_AUDIT"] != nil { await renderAudit(into: folder) }
+    }
+
+    /// Auditoria final: opção ligada, etapa em andamento. Ligar a opção grava em UserDefaults;
+    /// o valor anterior é restaurado para não mudar a configuração real do autor.
+    static func renderAudit(into folder: URL) async {
+        let defaults = UserDefaults.standard
+        let previous = defaults.object(forKey: "auditAI")
+        defer { if let previous { defaults.set(previous, forKey: "auditAI") } else { defaults.removeObject(forKey: "auditAI") } }
+        for dark in [false, true] {
+            let store = ReviewStore()
+            // Só para a tela considerar o motor pronto; nada é executado na captura.
+            if let engine = ProcessInfo.processInfo.environment["LUME_SNAPSHOT_ENGINE"] {
+                store.debugUseEngine(URL(fileURLWithPath: engine))
+            }
+            store.useAuditAI = true
+            await render(AnyView(ContentView().environmentObject(store)), size: NSSize(width: 1280, height: 820),
+                         name: "6-auditoria-inicio", dark: dark, into: folder)
+            // A tela inicial rola: o painel da auditoria também é desenhado sozinho.
+            await render(AnyView(AuditSheet(showKeySheet: .constant(false)).environmentObject(store)
+                                    .padding(30).frame(width: 940).background(LumeTheme.canvas)),
+                         size: NSSize(width: 1000, height: 300), name: "6-auditoria-opcao", dark: dark, into: folder)
+            store.debugShowReading([
+                AnalysisStage(module: "linguistic", title: "Revisão linguística", state: "completed", finding_count: 42, coverage: "", detail: ""),
+                AnalysisStage(module: "morphosyntactic", title: "Análise morfossintática", state: "completed", finding_count: 17, coverage: "", detail: ""),
+                AnalysisStage(module: "editorial", title: "Contexto curto", state: "completed", finding_count: 9, coverage: "", detail: ""),
+                AnalysisStage(module: "global_coherence", title: "Coerência global", state: "skipped", finding_count: 0, coverage: "", detail: ""),
+                AnalysisStage(module: "audit", title: "Auditoria final", state: "running", finding_count: 0, coverage: "", detail: "", done: 2, total: 5, unit: "trechos"),
+            ])
+            await render(store, name: "7-auditoria-lendo", dark: dark, into: folder)
+        }
     }
 }
 #endif

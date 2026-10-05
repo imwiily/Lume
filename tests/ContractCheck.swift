@@ -81,6 +81,15 @@ struct ContractCheck {
         try require(withNotice.metadata.tempoContradito == TenseContradiction(escolhido: "passado", predominante: "presente", passado: 35, presente: 412),
                     "Aviso de tempo escolhido não lido.")
 
+        // Estimativa da auditoria como o motor imprime (campos a mais são ignorados).
+        let line = #"{"modelo": "claude-opus-5-5", "esforco": "medium", "trechos": 5, "a_enviar": 2, "reaproveitados": 3, "titulos_a_enviar": ["Capítulo 2", "Capítulo 4"], "caracteres": 9000, "custo_estimado_usd": 0.12, "custo_minimo_usd": 0.06, "custo_maximo_usd": 0.24, "calibracao": "provisoria"}"#
+        let audit = try JSONDecoder().decode(AuditEstimate.self, from: Data(line.utf8))
+        var combined = AIEstimate(coherence: nil, audit: audit, coherenceBudget: 1, auditBudget: 0.5)
+        try require(combined.summary.contains("2 de 5 trechos") && combined.summary.contains("Teto: US$ 0.50")
+                    && !combined.summary.contains("Coerência"), "Estimativa da auditoria mal lida.")
+        combined.audit = try JSONDecoder().decode(AuditEstimate.self, from: Data(line.replacingOccurrences(of: #""a_enviar": 2"#, with: #""a_enviar": 0"#).utf8))
+        try require(combined.summary.contains("não há custo"), "Auditoria sem envio deveria dizer que não há custo.")
+
         let temporary = FileManager.default.temporaryDirectory.appendingPathComponent("FONTE contrato \(UUID().uuidString)")
         try FileManager.default.createDirectory(at: temporary, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: temporary) }

@@ -467,3 +467,71 @@ struct SearchSettings: Codable {
         return result
     }
 }
+
+struct CoherenceEstimate: Decodable {
+    let modelo: String
+    let capitulos: Int
+    let aEnviar: Int
+    let titulosAEnviar: [String]
+    let caracteres: Int
+    let custoEstimadoUsd: Double
+    let custoMaximoUsd: Double
+
+    enum CodingKeys: String, CodingKey {
+        case modelo, capitulos, caracteres
+        case aEnviar = "a_enviar", titulosAEnviar = "titulos_a_enviar"
+        case custoEstimadoUsd = "custo_estimado_usd", custoMaximoUsd = "custo_maximo_usd"
+    }
+
+    var summary: String {
+        guard aEnviar > 0 else {
+            return "Nenhum capítulo mudou desde a última análise: nada será enviado e não há custo. As contradições já encontradas voltam ao relatório."
+        }
+        let lista = titulosAEnviar.prefix(6).joined(separator: ", ") + (titulosAEnviar.count > 6 ? "…" : "")
+        return String(format: "%d de %d capítulos serão enviados à Anthropic (%@).\nCusto estimado: US$ %.2f (até US$ %.2f).\nOs demais capítulos não são enviados.",
+                      aEnviar, capitulos, lista, custoEstimadoUsd, custoMaximoUsd)
+    }
+}
+
+struct AuditEstimate: Decodable {
+    let modelo: String
+    let trechos: Int
+    let aEnviar: Int
+    let titulosAEnviar: [String]
+    let custoEstimadoUsd: Double
+    let custoMaximoUsd: Double
+
+    enum CodingKeys: String, CodingKey {
+        case modelo, trechos
+        case aEnviar = "a_enviar", titulosAEnviar = "titulos_a_enviar"
+        case custoEstimadoUsd = "custo_estimado_usd", custoMaximoUsd = "custo_maximo_usd"
+    }
+
+    var summary: String {
+        guard aEnviar > 0 else {
+            return "Nada mudou desde a última auditoria: nada será enviado e não há custo. Os achados já encontrados voltam ao relatório."
+        }
+        let lista = titulosAEnviar.prefix(6).joined(separator: ", ") + (titulosAEnviar.count > 6 ? "…" : "")
+        return String(format: "%d de %d trechos serão enviados à Anthropic (%@).\nCusto estimado: US$ %.2f (até US$ %.2f; estimativa ainda aproximada).",
+                      aEnviar, trechos, lista, custoEstimadoUsd, custoMaximoUsd)
+    }
+}
+
+/// O que cada recurso com IA ligado enviaria, numa única confirmação.
+struct AIEstimate {
+    var coherence: CoherenceEstimate?
+    var audit: AuditEstimate?
+    let coherenceBudget: Double
+    let auditBudget: Double
+
+    var summary: String {
+        var parts: [String] = []
+        if let coherence {
+            parts.append("Coerência com IA\n" + coherence.summary + String(format: "\nTeto: US$ %.2f.", coherenceBudget))
+        }
+        if let audit {
+            parts.append("Auditoria final com IA\n" + audit.summary + String(format: "\nTeto: US$ %.2f.", auditBudget))
+        }
+        return parts.joined(separator: "\n\n")
+    }
+}

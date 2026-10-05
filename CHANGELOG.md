@@ -4,11 +4,19 @@ As seções antigas descrevem a cobertura e os resultados de cada entrega, não 
 
 ## Próxima versão — em desenvolvimento
 
-- Auditoria final com IA, em desenvolvimento e ainda fora do app. A etapa `audit` deixa de
-  ser “não implementada”: desligada, aparece como `skipped`. Na linha de comando, `revisar
-  --auditoria-ia --auditoria-projeto P` e `auditoria-estimar` (veja
-  [arquitetura](docs/arquitetura.md#auditoria-final-com-ia-em-desenvolvimento)). Uma falha da
-  auditoria interrompe só ela, e o relatório das outras etapas é mantido.
+- Auditoria final com IA (Claude), desligada por padrão porque custa dinheiro. Depois das
+  outras etapas, o Claude relê cada capítulo com os alertas já encontrados e aponta só
+  problemas novos, como suspeitas: nunca erro confirmado, nunca confiança alta.
+  - Opus 5.5 e teto de US$ 1,00 por padrão.
+  - Os trechos citados são conferidos no texto, e o que não existir ou repetir um alerta é
+    descartado.
+  - Só trechos novos ou alterados são enviados.
+  - Antes do envio, uma única confirmação mostra trechos e custo da Coerência e da Auditoria.
+  - Uma falha da auditoria interrompe só ela, e o relatório das outras etapas é mantido.
+  - Desligada, a etapa aparece como “Não selecionado” (`skipped`).
+  - Na linha de comando: `revisar --auditoria-ia --auditoria-projeto P` e `auditoria-estimar`
+    (veja a [arquitetura](docs/arquitetura.md#auditoria-final-com-ia)).
+  - A estimativa de custo ainda é provisória.
 - Aviso quando a narração contradiz o tempo escolhido: com Passado ou Presente escolhido, se ao
   menos 20 verbos da narração e 70% dos que têm tempo identificado estão no outro tempo, o
   relatório traz um aviso em “Sobre esta análise” e o campo opcional `metadata.tempo_contradito`

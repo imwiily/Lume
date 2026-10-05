@@ -53,10 +53,22 @@ final class ReviewStore: ObservableObject {
     @Published var coherenceBudget = UserDefaults.standard.object(forKey: "coherenceBudget") as? Double ?? 1.0 {
         didSet { UserDefaults.standard.set(max(0.05, coherenceBudget), forKey: "coherenceBudget") }
     }
+    // Auditoria final com IA: desligada por padrão porque custa dinheiro; mesma chave e mesma confirmação.
+    @Published var useAuditAI = UserDefaults.standard.bool(forKey: "auditAI") {
+        didSet { UserDefaults.standard.set(useAuditAI, forKey: "auditAI") }
+    }
+    @Published var auditModel = UserDefaults.standard.string(forKey: "auditModel") ?? "claude-opus-5-5" {
+        didSet { UserDefaults.standard.set(auditModel, forKey: "auditModel") }
+    }
+    @Published var auditBudget = UserDefaults.standard.object(forKey: "auditBudget") as? Double ?? 1.0 {
+        didSet { UserDefaults.standard.set(max(0.05, auditBudget), forKey: "auditBudget") }
+    }
     @Published private(set) var hasAPIKey = AnthropicKey.exists()
-    @Published var coherenceEstimate: CoherenceEstimate?
-    private var coherenceConfirmed = false
+    /// Estimativa de envio dos recursos com IA ligados, mostrada antes de qualquer envio.
+    @Published var aiEstimate: AIEstimate?
+    private var aiConfirmed = false
     var coherenceActive: Bool { useCoherenceAI && analysisMode != "linguistica" }
+    var auditActive: Bool { useAuditAI }
     @Published var isBusy = false
     @Published var canCancel = false
     @Published var jobLabel = ""
@@ -67,7 +79,7 @@ final class ReviewStore: ObservableObject {
     /// Correções gravadas no manuscrito a partir do relatório aberto.
     @Published private(set) var editLog: EditLog?
 
-    private enum Job: Equatable { case analyze, install, diagnose, estimate }
+    private enum Job: Equatable { case analyze, install, diagnose }
     private let runner = PythonRunner.shared
     private let manager = FileManager.default
 
@@ -499,23 +511,82 @@ final class ReviewStore: ObservableObject {
     }
 
     func analyze() {
-        guard coherenceActive, !coherenceConfirmed else { return start(.analyze) }
+        guard coherenceActive || auditActive, !aiConfirmed else { return start(.analyze) }
         guard hasAPIKey else {
-            errorText = "Configure a chave da API da Anthropic para usar a Coerência com IA, ou desligue a opção."
+            errorText = "Configure a chave da API da Anthropic para usar a Coerência ou a Auditoria final com IA, ou desligue essas opções."
             return
         }
-        start(.estimate)
+        estimateAI()
     }
 
-    func confirmCoherence() {
-        coherenceEstimate = nil
-        coherenceConfirmed = true
+    func confirmAI() {
+        aiEstimate = nil
+        aiConfirmed = true
         start(.analyze)
     }
 
-    func cancelCoherence() {
-        coherenceEstimate = nil
+    func cancelAI() {
+        aiEstimate = nil
         status = "Análise cancelada antes de enviar qualquer texto."
+    }
+
+    /// Estimativas locais (não chamam a API) de cada recurso com IA ligado, em sequência; o
+    /// resultado vira uma única confirmação.
+    private func estimateAI() {
+        guard !isBusy, canAnalyze, mayReplaceReport(), let directory = engineDirectory,
+              let input = documentURL, let python = pythonURL else { return }
+        do {
+            let jobID = UUID().uuidString
+            saveSearchSettings()
+            let config = try supportDirectory("Configuracoes").appendingPathComponent(jobID + ".json")
+            try searchSettings.encoded().write(to: config, options: .atomic)
+            var steps: [(audit: Bool, label: String, arguments: [String])] = []
+            if coherenceActive, let project = coherenceProject {
+                steps.append((false, "Calculando o custo da Coerência com IA…",
+                              engineArguments + ["coerencia-estimar", input.path, "--coerencia-projeto", project.path,
+                                                 "--coerencia-modelo", coherenceModel, "--config", config.path]))
+            }
+            if auditActive, let project = auditProject {
+                steps.append((true, "Calculando o custo da Auditoria final…",
+                              engineArguments + ["auditoria-estimar", input.path, "--auditoria-projeto", project.path,
+                                                 "--auditoria-modelo", auditModel, "--tempo", tense, "--config", config.path]))
+            }
+            guard !steps.isEmpty else { return start(.analyze) }
+            isBusy = true; canCancel = false; errorText = nil
+            Task {
+                defer { isBusy = false; jobLabel = "" }
+                var estimate = AIEstimate(coherenceBudget: coherenceBudget, auditBudget: auditBudget)
+                do {
+                    for (index, step) in steps.enumerated() {
+                        jobLabel = step.label
+                        let log = try supportDirectory("Registros").appendingPathComponent("\(jobID)-\(index).txt")
+                        logURL = log
+                        let result = try await runner.run(executable: python, arguments: step.arguments,
+                                                          directory: directory, logURL: log, extraEnvironment: [:])
+                        let name = step.audit ? "a Auditoria final" : "a Coerência com IA"
+                        guard result.exitCode == 0 else {
+                            let details = String(PythonRunner.tail(log).suffix(1800))
+                            throw FonteError.message("Não foi possível estimar \(name). Se o motor selecionado for anterior a esta versão do Lume, use Motor de análise → Restaurar embutido.\n\n\(details)")
+                        }
+                        let prefix = step.audit ? "LUME_ESTIMATIVA_AUDITORIA " : "LUME_ESTIMATIVA "
+                        guard let line = PythonRunner.tail(log).split(separator: "\n").last(where: { $0.hasPrefix(prefix) }) else {
+                            throw FonteError.message("O motor não devolveu a estimativa d\(step.audit ? "a Auditoria final" : "a Coerência com IA").")
+                        }
+                        let data = Data(line.dropFirst(prefix.count).utf8)
+                        if step.audit {
+                            estimate.audit = try JSONDecoder().decode(AuditEstimate.self, from: data)
+                        } else {
+                            estimate.coherence = try JSONDecoder().decode(CoherenceEstimate.self, from: data)
+                        }
+                    }
+                    aiEstimate = estimate
+                    status = "Confira o envio e o custo estimado antes de continuar."
+                } catch {
+                    errorText = error.localizedDescription
+                    status = "A estimativa não foi concluída. Nada foi enviado."
+                }
+            }
+        } catch { errorText = error.localizedDescription }
     }
 
     func saveAPIKey(_ key: String) {
@@ -537,11 +608,15 @@ final class ReviewStore: ObservableObject {
         status = "Chave da API removida das Chaves do macOS."
     }
 
-    private var coherenceProject: URL? {
+    private var coherenceProject: URL? { projectFolder("Coerencia") }
+    private var auditProject: URL? { projectFolder("Auditoria") }
+
+    /// Pasta por livro em Application Support, pelo nome do arquivo.
+    private func projectFolder(_ component: String) -> URL? {
         guard let document = documentURL else { return nil }
         let name = document.deletingPathExtension().lastPathComponent
         let safe = String(name.map { $0.isLetter || $0.isNumber || $0 == "-" || $0 == " " ? $0 : "-" })
-        return try? supportDirectory("Coerencia").appendingPathComponent(safe, isDirectory: true)
+        return try? supportDirectory(component).appendingPathComponent(safe, isDirectory: true)
     }
     func install() { start(.install) }
     func diagnose() { start(.diagnose) }
@@ -549,8 +624,7 @@ final class ReviewStore: ObservableObject {
     private func start(_ job: Job) {
         guard !isBusy, let directory = engineDirectory else { return }
         if job == .install && embeddedEngine != nil { return }
-        if job == .estimate && (!canAnalyze || !mayReplaceReport()) { return }
-        if job == .analyze && (!canAnalyze || (!coherenceConfirmed && !mayReplaceReport())) { return }
+        if job == .analyze && (!canAnalyze || (!aiConfirmed && !mayReplaceReport())) { return }
         if job == .diagnose && !pythonExists {
             errorText = "Prepare o analisador antes de verificar a instalação."
             return
@@ -591,27 +665,25 @@ final class ReviewStore: ObservableObject {
                 }
                 if includeItalics { arguments.append("--incluir-italico") }
                 if useLanguageTool && analysisMode != "editorial" { arguments.append("--languagetool") }
-                if coherenceActive, coherenceConfirmed, let project = coherenceProject {
+                if (coherenceActive || auditActive) && aiConfirmed {
                     guard let key = AnthropicKey.read() else {
-                        coherenceConfirmed = false
+                        aiConfirmed = false
                         throw FonteError.message("Não foi possível ler a chave da API nas Chaves do macOS. Configure-a novamente.")
                     }
+                    // A chave vai só no ambiente do processo, nunca nos argumentos.
                     environment["ANTHROPIC_API_KEY"] = key
-                    arguments += ["--coerencia-ia", "--coerencia-projeto", project.path, "--coerencia-modelo", coherenceModel,
-                                  "--coerencia-teto", String(format: "%.2f", locale: Locale(identifier: "en_US_POSIX"), coherenceBudget)]
+                    let money = { (value: Double) in String(format: "%.2f", locale: Locale(identifier: "en_US_POSIX"), value) }
+                    if coherenceActive, let project = coherenceProject {
+                        arguments += ["--coerencia-ia", "--coerencia-projeto", project.path, "--coerencia-modelo", coherenceModel,
+                                      "--coerencia-teto", money(coherenceBudget)]
+                    }
+                    if auditActive, let project = auditProject {
+                        arguments += ["--auditoria-ia", "--auditoria-projeto", project.path, "--auditoria-modelo", auditModel,
+                                      "--auditoria-teto", money(auditBudget)]
+                    }
                 }
-                coherenceConfirmed = false
+                aiConfirmed = false
                 jobLabel = "Analisando o manuscrito…"
-            case .estimate:
-                guard let input = documentURL, let python = pythonURL, let project = coherenceProject else { return }
-                executable = python
-                saveSearchSettings()
-                let config = try supportDirectory("Configuracoes").appendingPathComponent(jobID + ".json")
-                try searchSettings.encoded().write(to: config, options: .atomic)
-                // Só lê o manuscrito e o estado do projeto; não chama a API.
-                arguments = engineArguments + ["coerencia-estimar", input.path, "--coerencia-projeto", project.path,
-                                               "--coerencia-modelo", coherenceModel, "--config", config.path]
-                jobLabel = "Calculando o custo da Coerência com IA…"
             }
             isBusy = true; canCancel = job == .analyze; logURL = log; errorText = nil
             if job == .analyze {
@@ -642,22 +714,10 @@ final class ReviewStore: ObservableObject {
                     }
                     guard result.exitCode == 0 else {
                         let details = String(PythonRunner.tail(log).suffix(1800))
-                        if job == .estimate {
-                            throw FonteError.message("Não foi possível estimar a Coerência com IA. Se o motor selecionado for anterior a esta versão do Lume, use Motor de análise → Restaurar embutido.\n\n\(details)")
-                        }
                         throw FonteError.message("A operação não foi concluída (código \(result.exitCode)).\n\n\(details)")
                     }
                     switch job {
                     case .analyze: try loadReport(output.appendingPathComponent("relatorio.json"))
-                    case .estimate:
-                        let prefix = "LUME_ESTIMATIVA "
-                        guard let line = PythonRunner.tail(log).split(separator: "\n").last(where: { $0.hasPrefix(prefix) }),
-                              let estimate = try? JSONDecoder().decode(CoherenceEstimate.self, from: Data(line.dropFirst(prefix.count).utf8)) else {
-                            throw FonteError.message("O motor não devolveu a estimativa da Coerência com IA.")
-                        }
-                        coherenceEstimate = estimate
-                        status = "Confira o envio e o custo estimado antes de continuar."
-
                     case .install: status = "Motor FONTE preparado. Escolha um manuscrito e clique em Analisar."
                     case .diagnose: status = "Instalação verificada. O analisador está disponível."
                     }
@@ -849,31 +909,6 @@ final class ReviewStore: ObservableObject {
 }
 
 /// Estimativa do motor (`coerencia-estimar`) antes de qualquer envio à API.
-struct CoherenceEstimate: Decodable {
-    let modelo: String
-    let capitulos: Int
-    let aEnviar: Int
-    let titulosAEnviar: [String]
-    let caracteres: Int
-    let custoEstimadoUsd: Double
-    let custoMaximoUsd: Double
-
-    enum CodingKeys: String, CodingKey {
-        case modelo, capitulos, caracteres
-        case aEnviar = "a_enviar", titulosAEnviar = "titulos_a_enviar"
-        case custoEstimadoUsd = "custo_estimado_usd", custoMaximoUsd = "custo_maximo_usd"
-    }
-
-    var summary: String {
-        guard aEnviar > 0 else {
-            return "Nenhum capítulo mudou desde a última análise: nada será enviado e não há custo. As contradições já encontradas voltam ao relatório."
-        }
-        let lista = titulosAEnviar.prefix(6).joined(separator: ", ") + (titulosAEnviar.count > 6 ? "…" : "")
-        return String(format: "%d de %d capítulos serão enviados à Anthropic (%@).\nCusto estimado: US$ %.2f (até US$ %.2f).\nOs demais capítulos não são enviados.",
-                      aEnviar, capitulos, lista, custoEstimadoUsd, custoMaximoUsd)
-    }
-}
-
 /// Chave da API nas Chaves do macOS, no mesmo serviço usado pelo Coerencia no terminal.
 enum AnthropicKey {
     static let service = "coerencia-anthropic"

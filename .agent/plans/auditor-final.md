@@ -402,7 +402,7 @@ cd fonte && .venv/bin/python -m fonte revisar <copia.pages> --saida <nova> --tem
 - [x] Etapa 1 — contrato e esqueleto (05/10)
 - [x] Etapa 2 — núcleo com modelo simulado (05/10)
 - [x] Etapa 3 — incremental, teto e estimativa (05/10)
-- [ ] Etapa 4 — app
+- [x] Etapa 4 — app (05/10)
 - [ ] Etapa 5 — ponta a ponta com a API (autorização)
 - [ ] Etapa 6 — medição no corpus (autorização)
 - [ ] Etapa 7 — manuscritos, documentação e montagem (autorização)
@@ -485,7 +485,46 @@ teto. O auditor o reaproveita em vez de criar outro cliente.
   auditoria), `--auditoria-modelo`, `--auditoria-teto`, `--auditoria-esforco` e o comando
   `auditoria-estimar`, que imprime `LUME_ESTIMATIVA_AUDITORIA`.
 
+05/10/2026, Etapa 4:
+
+- Painel “Auditoria final” (`AuditSheet`) na tela inicial, abaixo de “A língua” e “A
+  história”, válido nos três modos. Tem o interruptor (desligado por padrão), o modelo (Opus
+  5.5 recomendado, Sonnet 5.5) e o teto, guardados em `UserDefaults` (`auditAI`, `auditModel`,
+  `auditBudget`), além do estado da chave, compartilhada com a Coerência.
+- `ReviewStore.estimateAI()` roda em sequência as estimativas locais dos recursos ligados,
+  cada uma com seu registro, e monta `AIEstimate`. Um único alerta “Enviar à Anthropic?”
+  mostra trechos, custo e teto de cada um. `confirmAI()` libera os dois. A antiga tarefa
+  `.estimate` saiu.
+- A análise passa `--auditoria-ia --auditoria-projeto ~/Library/Application Support/FONTE/
+  Auditoria/<livro> --auditoria-modelo --auditoria-teto`. A chave vai só no ambiente.
+- `CoherenceEstimate`, `AuditEstimate` e `AIEstimate` foram para `Models.swift`, para o
+  contrato Swift testá-los.
+- Folha da chave: texto e título passaram a valer para os dois recursos.
+- Modo de captura (só Debug): `LUME_SNAPSHOT_AUDIT=1` desenha a tela inicial, o painel
+  sozinho e a leitura com a auditoria em andamento. `LUME_SNAPSHOT_ENGINE` só faz a tela
+  considerar o motor pronto. O valor de `auditAI` é restaurado no fim; conferido antes e
+  depois, as preferências do autor ficaram iguais.
+
 ## Validação realizada e resultado final
+
+Etapa 4 (05/10/2026):
+
+- `xcodebuild` Debug sem erros.
+- Contrato Swift aprovado com:
+  - um relatório gerado pela linha de comando com a auditoria simulada (etapa `completed`,
+    achado `estava`);
+  - o relatório antigo de `examples/Mestre`;
+  - a leitura da estimativa no formato que o motor imprime, com e sem envio.
+- Verificações de edição, falsos positivos e livro aprovadas.
+- Inspeção visual nos modos claro e escuro:
+  - painel da auditoria ligado;
+  - leitura com “Auditoria final · Em andamento · 2 de 5 trechos”;
+  - mesa com o achado “Auditoria final · Atenção editorial”, trecho destacado e sugestão.
+- Não inspecionado: o alerta de confirmação, que é do sistema e o modo de captura não
+  desenha. O texto dele é coberto pelo contrato. Fica para o autor ver no app, ou para a
+  Etapa 5.
+- Sem mudanças em Python nesta etapa. Nenhuma chamada à API.
+
 
 Etapa 3 (05/10/2026):
 

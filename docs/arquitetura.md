@@ -138,7 +138,7 @@ salvos e o restante segue na próxima análise (aviso no relatório). `coerencia
 devolve uma linha `LUME_ESTIMATIVA {json}` com capítulos a enviar e custo estimado, sem
 chamar a API. A chave vem de `ANTHROPIC_API_KEY` ou das Chaves do macOS.
 
-## Auditoria final com IA (em desenvolvimento)
+## Auditoria final com IA
 
 `revisar --auditoria-ia --auditoria-projeto P [--auditoria-modelo M] [--auditoria-teto T]
 [--auditoria-esforco E]` roda a quinta etapa (`audit`). Desligada por padrão, porque custa
@@ -164,7 +164,11 @@ dinheiro; modelo padrão `claude-opus-5-5` e teto padrão US$ 1,00.
   `LUME_ESTIMATIVA_AUDITORIA {json}` com os trechos a enviar e o custo estimado, sem rede. A
   calibração do custo é provisória até a medição com a API.
 
-O app ainda não oferece a opção. Plano: [auditor-final](../.agent/plans/auditor-final.md).
+No app, a opção fica no painel “Auditoria final” da tela inicial, com modelo, teto e a mesma
+chave da Coerência. Antes de qualquer envio, o app roda as estimativas de cada recurso ligado
+(`coerencia-estimar` e `auditoria-estimar`) e mostra uma única confirmação com os trechos e o
+custo de cada um. A chave vai só no ambiente do processo. Plano:
+[auditor-final](../.agent/plans/auditor-final.md).
 
 
 ## Memória narrativa heurística (removida)

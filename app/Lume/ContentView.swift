@@ -39,12 +39,12 @@ struct ContentView: View {
         .sheet(isPresented: $showSearchSettings) { SearchSettingsView().environmentObject(store) }
         .sheet(isPresented: $showCoverage) { CoverageSheet().environmentObject(store) }
         .sheet(isPresented: $showKeySheet) { KeySheet().environmentObject(store) }
-        .alert("Enviar à Anthropic?", isPresented: Binding(get: { store.coherenceEstimate != nil },
-                                                           set: { if !$0 { store.coherenceEstimate = nil } })) {
-            Button("Cancelar", role: .cancel) { store.cancelCoherence() }
-            Button("Enviar e analisar") { store.confirmCoherence() }
+        .alert("Enviar à Anthropic?", isPresented: Binding(get: { store.aiEstimate != nil },
+                                                           set: { if !$0 { store.aiEstimate = nil } })) {
+            Button("Cancelar", role: .cancel) { store.cancelAI() }
+            Button("Enviar e analisar") { store.confirmAI() }
         } message: {
-            Text((store.coherenceEstimate?.summary ?? "") + String(format: "\nTeto desta análise: US$ %.2f.", store.coherenceBudget))
+            Text(store.aiEstimate?.summary ?? "")
         }
         .alert("Lume", isPresented: Binding(get: { store.errorText != nil && !showSearchSettings && !showKeySheet },
                                             set: { if !$0 { store.errorText = nil } })) {
@@ -241,6 +241,7 @@ private struct HomeView: View {
                         languageSheet
                         storySheet
                     }.disabled(store.isBusy)
+                    AuditSheet(showKeySheet: $showKeySheet).disabled(store.isBusy)
                 }.frame(maxWidth: 940).padding(.horizontal, 40).padding(.vertical, 34)
                     .frame(maxWidth: .infinity)
             }
@@ -437,6 +438,47 @@ private struct HomeView: View {
                 .keyboardShortcut(.return, modifiers: .command)
         }.padding(.horizontal, 40).padding(.vertical, 16)
             .background(LumeTheme.paper.shadow(.drop(color: LumeTheme.night.opacity(0.06), radius: 8, y: -2)))
+    }
+}
+
+/// Última leitura com o Claude, depois das regras; vale para os três modos.
+struct AuditSheet: View {
+    @EnvironmentObject private var store: ReviewStore
+    @Binding var showKeySheet: Bool
+
+    var body: some View {
+        Sheet {
+            VStack(alignment: .leading, spacing: 16) {
+                Kicker(title: "Auditoria final")
+                Toggle(isOn: $store.useAuditAI) {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("Auditoria final com IA (Claude)").font(LumeFont.ui(14, weight: .semibold))
+                        Text("Uma última leitura procura o que as regras deixaram passar. Custa dinheiro: só trechos novos ou alterados são enviados, com o custo mostrado antes.")
+                            .font(LumeFont.ui(11)).foregroundStyle(LumeTheme.secondary).fixedSize(horizontal: false, vertical: true)
+                    }
+                }.toggleStyle(.switch)
+                    .help("Depois das outras etapas, o Claude relê cada capítulo com os alertas já encontrados e aponta só problemas novos, como suspeitas para você avaliar. Antes do envio, o Lume mostra o custo estimado e pede confirmação.")
+                if store.useAuditAI {
+                    HStack(alignment: .center, spacing: 18) {
+                        Picker("Modelo", selection: $store.auditModel) {
+                            Text("Opus 5.5 · recomendado").tag("claude-opus-5-5")
+                            Text("Sonnet 5.5 · custa a metade").tag("claude-sonnet-5-5")
+                        }.font(LumeFont.ui(12)).frame(maxWidth: 300)
+                        HStack {
+                            Text("Teto por análise (US$)").font(LumeFont.ui(12))
+                            TextField("1,00", value: $store.auditBudget, format: .number.precision(.fractionLength(2)))
+                                .frame(width: 70).multilineTextAlignment(.trailing)
+                        }
+                        Spacer()
+                        Label(store.hasAPIKey ? "Chave guardada" : "Chave ainda não configurada",
+                              systemImage: store.hasAPIKey ? "key" : "exclamationmark.triangle")
+                            .font(LumeFont.ui(11)).foregroundStyle(store.hasAPIKey ? LumeTheme.secondary : LumeTheme.rose)
+                        Button(store.hasAPIKey ? "Trocar…" : "Configurar…") { showKeySheet = true }
+                            .buttonStyle(LumeButtonStyle(kind: .soft))
+                    }.padding(14).background(RoundedRectangle(cornerRadius: 14).fill(LumeTheme.canvas))
+                }
+            }
+        }
     }
 }
 
@@ -1150,7 +1192,7 @@ private struct KeySheet: View {
             HStack(spacing: 14) {
                 LumeMark(size: 44)
                 VStack(alignment: .leading, spacing: 2) {
-                    Kicker(title: "Coerência com IA")
+                    Kicker(title: "Recursos com IA")
                     Text("Chave da API da Anthropic").font(LumeFont.display(24))
                 }
             }
@@ -1160,7 +1202,7 @@ private struct KeySheet: View {
             if let error = store.errorText {
                 Text(error).font(LumeFont.ui(11)).foregroundStyle(LumeTheme.error).fixedSize(horizontal: false, vertical: true)
             }
-            Label("Com a Coerência com IA ligada, os capítulos alterados são enviados à Anthropic. Pela política atual da API, os dados não são usados para treino por padrão e são apagados em até 30 dias.",
+            Label("Com a Coerência ou a Auditoria final com IA ligadas, os capítulos ou trechos novos e alterados são enviados à Anthropic, sempre depois da sua confirmação. Pela política atual da API, os dados não são usados para treino por padrão e são apagados em até 30 dias.",
                   systemImage: "hand.raised")
                 .font(LumeFont.ui(11)).foregroundStyle(LumeTheme.secondary).fixedSize(horizontal: false, vertical: true)
             HStack {
