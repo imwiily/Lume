@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "document": "Manuscrito-editorial.docx",
-  "sha256": "1379b28fb99fff9d71212178570b4a64409b1a7a285ca8b30726809845b9a00c",
-  "created": "2026-09-30T01:32:16.721990+00:00",
+  "sha256": "0419a211108de83e2666d2ae1b25808fb86460e92a09503c219dfc85792fe675",
+  "created": "2026-10-05T12:47:57.968986+00:00",
   "metadata": {
     "tempo": "passado",
     "paragrafos": 13,
@@ -11,16 +11,22 @@
     "modo": "ambas",
     "contagem_verbos": {
       "passado": 9,
-      "presente": 2
+      "presente": 3
     },
     "excluir_italico": true,
     "confirmacao_lexical": "PortiLexicon-UD",
     "segunda_leitura_estrutura": true,
+    "fragmentos_sem_verbo": {},
     "temporal_relations": [
       "conditional_future",
       "simultaneous_present",
       "ambiguous_simultaneity",
-      "coordinated_past_present"
+      "coordinated_past_present",
+      "conditional_tense_mismatch",
+      "coordinated_tense_mismatch",
+      "past_present_past",
+      "same_subject_narrative_shift",
+      "local_narrative_tense_shift"
     ],
     "stages": [
       {
@@ -30,7 +36,7 @@
         "finding_count": 0,
         "coverage": "partial",
         "detail": "Padrões determinísticos; pontuação e interrogação também em falas/pensamentos. LanguageTool opcional.",
-        "duration_ms": 4
+        "duration_ms": 3
       },
       {
         "module": "morphosyntactic",
@@ -39,7 +45,7 @@
         "finding_count": 2,
         "coverage": "partial",
         "detail": "Tempo predominante, estrutura, quatro relações temporais locais, acentuação verbal contextual, crase, homófonos, concordância, regência e vírgula entre sujeito e verbo. Cobertura parcial; homógrafos permanecem dúvidas.",
-        "duration_ms": 805
+        "duration_ms": 714
       },
       {
         "module": "editorial",
@@ -48,7 +54,7 @@
         "finding_count": 3,
         "coverage": "partial",
         "detail": "Diálogo, repetições, gerundismo e referências em janelas curtas.",
-        "duration_ms": 16
+        "duration_ms": 15
       },
       {
         "module": "global_coherence",
@@ -74,8 +80,8 @@
       "unit": "unicode_codepoint",
       "separator": "\n",
       "scope": "nonempty_body_paragraphs_and_tables",
-      "length": 453,
-      "sha256": "e49386642583a0ccd53b1f8c37eab8125f632acfb8e7783d5fc8c925ba47ecf7",
+      "length": 455,
+      "sha256": "e6490eed72b005d1f09455eee29475cca2faf50fb89374776bcf3ca4df9f5eb5",
       "paragraphs": [
         {
           "paragraph": 1,
@@ -100,47 +106,47 @@
         {
           "paragraph": 5,
           "start": 118,
-          "end": 169
+          "end": 171
         },
         {
           "paragraph": 6,
-          "start": 170,
-          "end": 208
+          "start": 172,
+          "end": 210
         },
         {
           "paragraph": 7,
-          "start": 209,
-          "end": 251
+          "start": 211,
+          "end": 253
         },
         {
           "paragraph": 8,
-          "start": 252,
-          "end": 277
+          "start": 254,
+          "end": 279
         },
         {
           "paragraph": 9,
-          "start": 278,
-          "end": 321
+          "start": 280,
+          "end": 323
         },
         {
           "paragraph": 10,
-          "start": 322,
-          "end": 365
+          "start": 324,
+          "end": 367
         },
         {
           "paragraph": 11,
-          "start": 366,
-          "end": 403
+          "start": 368,
+          "end": 405
         },
         {
           "paragraph": 12,
-          "start": 404,
-          "end": 417
+          "start": 406,
+          "end": 419
         },
         {
           "paragraph": 13,
-          "start": 418,
-          "end": 453
+          "start": 420,
+          "end": 455
         }
       ]
     },
@@ -168,7 +174,7 @@
     ],
     "languagetool": false,
     "languagetool_origem": null,
-    "versao_fonte": "1.0.0"
+    "versao_fonte": "1.3.1"
   },
   "warnings": [
     "Escopo: corpo do documento e tabelas. Cabeçalhos, rodapés, notas, comentários, caixas de texto e imagens não são analisados. A localização usa parágrafos, não páginas.",
@@ -370,16 +376,16 @@
         {
           "paragraph": 5,
           "chapter": "Capítulo um",
-          "text": "Você não treina amanhã nem nos três dias seguintes.",
+          "text": "Você não trabalha amanhã nem nos três dias seguintes.",
           "start": 0,
-          "end": 51,
+          "end": 53,
           "document": "atual",
           "type": "text_evidence",
           "range": {
             "start": 118,
-            "end": 169
+            "end": 171
           },
-          "excerpt": "Você não treina amanhã nem nos três dias seguintes."
+          "excerpt": "Você não trabalha amanhã nem nos três dias seguintes."
         }
       ],
       "module": "global_coherence",
@@ -425,14 +431,14 @@
       ]
     },
     {
-      "id": "2913e63dfcdd2d6e",
+      "id": "8c01166045e479d4",
       "category": "Possível inconsistência temporal",
       "priority": "Verificar",
       "paragraph": 5,
       "chapter": "Capítulo um",
-      "text": "Você não treina amanhã nem nos três dias seguintes.",
-      "start": 16,
-      "end": 50,
+      "text": "Você não trabalha amanhã nem nos três dias seguintes.",
+      "start": 18,
+      "end": 52,
       "reason": "A expressão inclui amanhã e mais 3 dias, totalizando 4. O trecho relacionado informa 3 dias. Confira se ambos tratam da mesma pessoa, punição e contagem (dias corridos ou letivos).",
       "source": "FONTE Editorial · duracao_suspensao",
       "layer": "editorial",
@@ -442,16 +448,16 @@
         {
           "paragraph": 6,
           "chapter": "Capítulo um",
-          "text": "O jogador está suspenso por três dias.",
+          "text": "O técnico está afastado por três dias.",
           "start": 15,
           "end": 37,
           "document": "atual",
           "type": "text_evidence",
           "range": {
-            "start": 185,
-            "end": 207
+            "start": 187,
+            "end": 209
           },
-          "excerpt": "suspenso por três dias"
+          "excerpt": "afastado por três dias"
         }
       ],
       "context": [
@@ -486,30 +492,30 @@
         {
           "paragraph": 5,
           "chapter": "Capítulo um",
-          "text": "Você não treina amanhã nem nos três dias seguintes.",
+          "text": "Você não trabalha amanhã nem nos três dias seguintes.",
           "start": 0,
-          "end": 51,
+          "end": 53,
           "document": "atual",
           "type": "text_evidence",
           "range": {
             "start": 118,
-            "end": 169
+            "end": 171
           },
-          "excerpt": "Você não treina amanhã nem nos três dias seguintes."
+          "excerpt": "Você não trabalha amanhã nem nos três dias seguintes."
         },
         {
           "paragraph": 6,
           "chapter": "Capítulo um",
-          "text": "O jogador está suspenso por três dias.",
+          "text": "O técnico está afastado por três dias.",
           "start": 0,
           "end": 38,
           "document": "atual",
           "type": "text_evidence",
           "range": {
-            "start": 170,
-            "end": 208
+            "start": 172,
+            "end": 210
           },
-          "excerpt": "O jogador está suspenso por três dias."
+          "excerpt": "O técnico está afastado por três dias."
         },
         {
           "paragraph": 7,
@@ -520,8 +526,8 @@
           "document": "atual",
           "type": "text_evidence",
           "range": {
-            "start": 209,
-            "end": 251
+            "start": 211,
+            "end": 253
           },
           "excerpt": "Lívia entrou na sala. Lívia abriu o livro."
         }
@@ -531,8 +537,8 @@
       "confidence_score": 0.9,
       "category_code": "duracao_suspensao",
       "range": {
-        "start": 134,
-        "end": 168
+        "start": 136,
+        "end": 170
       },
       "excerpt": "amanhã nem nos três dias seguintes",
       "message": "A expressão inclui amanhã e mais 3 dias, totalizando 4. O trecho relacionado informa 3 dias. Confira se ambos tratam da mesma pessoa, punição e contagem (dias corridos ou letivos).",
@@ -541,40 +547,40 @@
         {
           "paragraph": 5,
           "chapter": "Capítulo um",
-          "text": "Você não treina amanhã nem nos três dias seguintes.",
-          "start": 16,
-          "end": 50,
+          "text": "Você não trabalha amanhã nem nos três dias seguintes.",
+          "start": 18,
+          "end": 52,
           "document": "atual",
           "type": "text_evidence",
           "range": {
-            "start": 134,
-            "end": 168
+            "start": 136,
+            "end": 170
           },
           "excerpt": "amanhã nem nos três dias seguintes"
         },
         {
           "paragraph": 6,
           "chapter": "Capítulo um",
-          "text": "O jogador está suspenso por três dias.",
+          "text": "O técnico está afastado por três dias.",
           "start": 15,
           "end": 37,
           "document": "atual",
           "type": "text_evidence",
           "range": {
-            "start": 185,
-            "end": 207
+            "start": 187,
+            "end": 209
           },
-          "excerpt": "suspenso por três dias"
+          "excerpt": "afastado por três dias"
         }
       ]
     },
     {
-      "id": "545635a8680e693a",
+      "id": "9b2bac5d2b7a180a",
       "category": "Tempo verbal",
       "priority": "Verificar",
       "paragraph": 6,
       "chapter": "Capítulo um",
-      "text": "O jogador está suspenso por três dias.",
+      "text": "O técnico está afastado por três dias.",
       "start": 10,
       "end": 14,
       "reason": "O modelo e o léxico sustentam uma leitura no presente, em texto configurado/inferido como passado. Isso não confirma erro: pensamento, comentário do narrador, presente geral e mudanças deliberadas de plano temporal precisam ser avaliados no contexto.",
@@ -585,8 +591,8 @@
       "confidence_score": 0.65,
       "category_code": "narrative_tense",
       "range": {
-        "start": 180,
-        "end": 184
+        "start": 182,
+        "end": 186
       },
       "excerpt": "está",
       "message": "O modelo e o léxico sustentam uma leitura no presente, em texto configurado/inferido como passado. Isso não confirma erro: pensamento, comentário do narrador, presente geral e mudanças deliberadas de plano temporal precisam ser avaliados no contexto.",
@@ -596,14 +602,14 @@
         {
           "paragraph": 6,
           "chapter": "Capítulo um",
-          "text": "O jogador está suspenso por três dias.",
+          "text": "O técnico está afastado por três dias.",
           "start": 10,
           "end": 14,
           "document": "atual",
           "type": "text_evidence",
           "range": {
-            "start": 180,
-            "end": 184
+            "start": 182,
+            "end": 186
           },
           "excerpt": "está"
         }
@@ -620,15 +626,15 @@
         {
           "paragraph": 5,
           "chapter": "Capítulo um",
-          "text": "Você não treina amanhã nem nos três dias seguintes.",
+          "text": "Você não trabalha amanhã nem nos três dias seguintes.",
           "start": 0,
-          "end": 51,
+          "end": 53,
           "document": "atual"
         },
         {
           "paragraph": 6,
           "chapter": "Capítulo um",
-          "text": "O jogador está suspenso por três dias.",
+          "text": "O técnico está afastado por três dias.",
           "start": 0,
           "end": 38,
           "document": "atual"
@@ -675,8 +681,8 @@
           "document": "atual",
           "type": "text_evidence",
           "range": {
-            "start": 252,
-            "end": 257
+            "start": 254,
+            "end": 259
           },
           "excerpt": "Lívya"
         }
@@ -685,30 +691,30 @@
         {
           "paragraph": 5,
           "chapter": "Capítulo um",
-          "text": "Você não treina amanhã nem nos três dias seguintes.",
+          "text": "Você não trabalha amanhã nem nos três dias seguintes.",
           "start": 0,
-          "end": 51,
+          "end": 53,
           "document": "atual",
           "type": "text_evidence",
           "range": {
             "start": 118,
-            "end": 169
+            "end": 171
           },
-          "excerpt": "Você não treina amanhã nem nos três dias seguintes."
+          "excerpt": "Você não trabalha amanhã nem nos três dias seguintes."
         },
         {
           "paragraph": 6,
           "chapter": "Capítulo um",
-          "text": "O jogador está suspenso por três dias.",
+          "text": "O técnico está afastado por três dias.",
           "start": 0,
           "end": 38,
           "document": "atual",
           "type": "text_evidence",
           "range": {
-            "start": 170,
-            "end": 208
+            "start": 172,
+            "end": 210
           },
-          "excerpt": "O jogador está suspenso por três dias."
+          "excerpt": "O técnico está afastado por três dias."
         },
         {
           "paragraph": 7,
@@ -719,8 +725,8 @@
           "document": "atual",
           "type": "text_evidence",
           "range": {
-            "start": 209,
-            "end": 251
+            "start": 211,
+            "end": 253
           },
           "excerpt": "Lívia entrou na sala. Lívia abriu o livro."
         },
@@ -733,8 +739,8 @@
           "document": "atual",
           "type": "text_evidence",
           "range": {
-            "start": 252,
-            "end": 277
+            "start": 254,
+            "end": 279
           },
           "excerpt": "Lívya voltou para a mesa."
         },
@@ -747,8 +753,8 @@
           "document": "atual",
           "type": "text_evidence",
           "range": {
-            "start": 278,
-            "end": 321
+            "start": 280,
+            "end": 323
           },
           "excerpt": "Ele começou a me explicar o mapa da região."
         }
@@ -758,8 +764,8 @@
       "confidence_score": 0.65,
       "category_code": "variacao_nome",
       "range": {
-        "start": 209,
-        "end": 214
+        "start": 211,
+        "end": 216
       },
       "excerpt": "Lívia",
       "message": "“Lívia” (2 ocorrências) e “Lívya” (1) têm grafias próximas. Podem ser nomes distintos. Confirme a grafia com o autor; nenhuma variante foi escolhida automaticamente.",
@@ -774,8 +780,8 @@
           "document": "atual",
           "type": "text_evidence",
           "range": {
-            "start": 209,
-            "end": 214
+            "start": 211,
+            "end": 216
           },
           "excerpt": "Lívia"
         },
@@ -788,8 +794,8 @@
           "document": "atual",
           "type": "text_evidence",
           "range": {
-            "start": 252,
-            "end": 257
+            "start": 254,
+            "end": 259
           },
           "excerpt": "Lívya"
         }
@@ -819,8 +825,8 @@
           "document": "atual",
           "type": "text_evidence",
           "range": {
-            "start": 278,
-            "end": 321
+            "start": 280,
+            "end": 323
           },
           "excerpt": "Ele começou a me explicar o mapa da região."
         }
@@ -835,8 +841,8 @@
           "document": "atual",
           "type": "text_evidence",
           "range": {
-            "start": 252,
-            "end": 277
+            "start": 254,
+            "end": 279
           },
           "excerpt": "Lívya voltou para a mesa."
         },
@@ -849,8 +855,8 @@
           "document": "atual",
           "type": "text_evidence",
           "range": {
-            "start": 278,
-            "end": 321
+            "start": 280,
+            "end": 323
           },
           "excerpt": "Ele começou a me explicar o mapa da região."
         },
@@ -863,8 +869,8 @@
           "document": "atual",
           "type": "text_evidence",
           "range": {
-            "start": 322,
-            "end": 365
+            "start": 324,
+            "end": 367
           },
           "excerpt": "Ele começou a me explicar o mapa da região."
         },
@@ -877,8 +883,8 @@
           "document": "atual",
           "type": "text_evidence",
           "range": {
-            "start": 366,
-            "end": 403
+            "start": 368,
+            "end": 405
           },
           "excerpt": "Clara abriu a janela e observa a rua."
         }
@@ -888,8 +894,8 @@
       "confidence_score": 0.9,
       "category_code": "frase_duplicada",
       "range": {
-        "start": 322,
-        "end": 365
+        "start": 324,
+        "end": 367
       },
       "excerpt": "Ele começou a me explicar o mapa da região.",
       "message": "Esta frase repete uma frase próxima. Confira se é refrão, retomada deliberada ou duplicação de edição.",
@@ -904,8 +910,8 @@
           "document": "atual",
           "type": "text_evidence",
           "range": {
-            "start": 322,
-            "end": 365
+            "start": 324,
+            "end": 367
           },
           "excerpt": "Ele começou a me explicar o mapa da região."
         },
@@ -918,15 +924,15 @@
           "document": "atual",
           "type": "text_evidence",
           "range": {
-            "start": 278,
-            "end": 321
+            "start": 280,
+            "end": 323
           },
           "excerpt": "Ele começou a me explicar o mapa da região."
         }
       ]
     },
     {
-      "id": "c6b28e28cdd746bd",
+      "id": "c243ffea88db68f2",
       "category": "Coerência temporal entre orações",
       "priority": "Verificar",
       "paragraph": 11,
@@ -934,15 +940,15 @@
       "text": "Clara abriu a janela e observa a rua.",
       "start": 23,
       "end": 30,
-      "reason": "A análise liga ‘observa’ (presente) a uma oração coordenada sob ‘abriu’ (passado). Confira se a descrição continua no mesmo momento ou se passa ao presente do narrador. Consequências que continuam válidas e mudanças intencionais podem justificar a alternância.",
-      "source": "FONTE Morfossintático · coordinated_past_present",
+      "reason": "‘observa’ (presente) e ‘abriu’ (passado) são ações coordenadas do mesmo sujeito, na mesma sequência. Provável inconsistência de tempo verbal: confira se as duas ações deveriam estar no mesmo tempo.",
+      "source": "FONTE Morfossintático · coordinated_tense_mismatch",
       "rule": "coerencia_temporal",
       "category_code": "temporal_consistency",
-      "relation": "coordinated_past_present",
-      "severity": "editorial_attention",
-      "confidence": "média",
-      "confidence_score": 0.65,
-      "suggestion": "observava",
+      "relation": "coordinated_tense_mismatch",
+      "severity": "probable_error",
+      "confidence": "alta",
+      "confidence_score": 0.88,
+      "suggestion": "observou",
       "suggestion_kind": "possible",
       "related": [
         {
@@ -954,8 +960,8 @@
           "document": "atual",
           "type": "text_evidence",
           "range": {
-            "start": 372,
-            "end": 377
+            "start": 374,
+            "end": 379
           },
           "excerpt": "abriu"
         }
@@ -964,15 +970,29 @@
         "anchor": "abriu",
         "anchor_form": "past",
         "target": "observa",
-        "target_form": "present"
+        "target_form": "present",
+        "function": "narrative_event",
+        "local_state": "past",
+        "local_tense_score": {
+          "past": 1.0,
+          "present": 0.0,
+          "other": 0.0
+        },
+        "previous_narrative_verbs": [
+          "começou",
+          "começou"
+        ],
+        "following_narrative_verbs": [],
+        "same_scene": true,
+        "same_subject": true
       },
       "module": "morphosyntactic",
       "range": {
-        "start": 389,
-        "end": 396
+        "start": 391,
+        "end": 398
       },
       "excerpt": "observa",
-      "message": "A análise liga ‘observa’ (presente) a uma oração coordenada sob ‘abriu’ (passado). Confira se a descrição continua no mesmo momento ou se passa ao presente do narrador. Consequências que continuam válidas e mudanças intencionais podem justificar a alternância.",
+      "message": "‘observa’ (presente) e ‘abriu’ (passado) são ações coordenadas do mesmo sujeito, na mesma sequência. Provável inconsistência de tempo verbal: confira se as duas ações deveriam estar no mesmo tempo.",
       "layer": "linguistica",
       "evidence": [
         {
@@ -984,8 +1004,8 @@
           "document": "atual",
           "type": "text_evidence",
           "range": {
-            "start": 389,
-            "end": 396
+            "start": 391,
+            "end": 398
           },
           "excerpt": "observa"
         },
@@ -998,8 +1018,8 @@
           "document": "atual",
           "type": "text_evidence",
           "range": {
-            "start": 372,
-            "end": 377
+            "start": 374,
+            "end": 379
           },
           "excerpt": "abriu"
         }
@@ -1056,8 +1076,8 @@
           "document": "atual",
           "type": "text_evidence",
           "range": {
-            "start": 404,
-            "end": 417
+            "start": 406,
+            "end": 419
           },
           "excerpt": "Capítulo dois"
         },
@@ -1070,8 +1090,8 @@
           "document": "atual",
           "type": "text_evidence",
           "range": {
-            "start": 418,
-            "end": 453
+            "start": 420,
+            "end": 455
           },
           "excerpt": "— Era melhor eu me preparar melhor."
         }
@@ -1081,8 +1101,8 @@
       "confidence_score": 0.4,
       "category_code": "palavra_proxima",
       "range": {
-        "start": 424,
-        "end": 452
+        "start": 426,
+        "end": 454
       },
       "excerpt": "melhor eu me preparar melhor",
       "message": "“melhor” aparece duas vezes em uma janela curta. A repetição pode ser necessária ou expressiva; confira se há redundância.",
@@ -1097,8 +1117,8 @@
           "document": "atual",
           "type": "text_evidence",
           "range": {
-            "start": 424,
-            "end": 452
+            "start": 426,
+            "end": 454
           },
           "excerpt": "melhor eu me preparar melhor"
         }

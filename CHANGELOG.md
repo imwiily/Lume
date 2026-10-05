@@ -2,6 +2,24 @@
 
 As seções antigas descrevem a cobertura e os resultados de cada entrega, não o estado atual. Nas seções anteriores à 1.0, caminhos citados são da antiga pasta `LumeMac/`; a correspondência com a estrutura atual está em [README.md](README.md#estrutura).
 
+## Próxima versão — em desenvolvimento
+
+- Aviso quando a narração contradiz o tempo escolhido: com Passado ou Presente escolhido, se ao
+  menos 20 verbos da narração e 70% dos que têm tempo identificado estão no outro tempo, o
+  relatório traz um aviso em “Sobre esta análise” e o campo opcional `metadata.tempo_contradito`
+  (`escolhido`, `predominante`, `passado`, `presente`); o app mostra uma faixa no topo da lista
+  de alertas. Os alertas não mudam. Sem aviso quando o escopo do tempo verbal inclui falas ou
+  pensamentos (o presente comum nelas distorce a contagem) ou quando a regra está desligada.
+  Motivo: um livro narrado no presente, analisado como passado, gerou milhares de alertas de
+  tempo verbal.
+- **Extrair falsos positivos** grava `falsos-positivos.json` na pasta do relatório, sem
+  perguntar o local (cada extração refaz o arquivo com as marcações atuais), e mostra
+  **Mostrar no Finder**. O painel de salvar só aparece se a pasta não aceitar gravação.
+- Frases de testes, exemplos, comentários e documentação parecidas com manuscritos reais foram
+  reescritas com outras palavras e outros contextos, mantendo o fenômeno que cada caso cobre.
+  Os DOCX de exemplo `Manuscrito-editorial` e `Mestre/Manuscrito-modular` mudaram e os
+  relatórios `examples/Editorial` e `examples/Mestre` foram regenerados pelo FONTE 1.3.1.
+
 ## Lume 1.4.1 / FONTE 1.3.1 · Coerencia 1.1.0 — 04/10/2026
 
 Correção: uma ocorrência com trecho inválido não descarta mais a análise inteira.
@@ -71,8 +89,8 @@ alertas sobre presentes legítimos e fragmentos deliberados.
   desenvolvimento): fala intercalada curta não zera mais a cena (cada parágrafo de fala pesa uma
   frase); frases sem verbo não consomem a janela; um só passado sem presente na janela já
   estabelece o estado; marcas de tempo valem só para o verbo que as governa (“desde que saímos”,
-  “o exame de hoje”, “mais alto ainda” não liberam o verbo principal); perífrase em que o modelo
-  pôs o gerúndio como raiz (“Fico olhando”); ‘para’ verbo (“o braço para no meio”); verbo
+  “a reunião de hoje”, “mais forte ainda” não liberam o verbo principal); perífrase em que o modelo
+  pôs o gerúndio como raiz (“Fico olhando”); ‘para’ verbo (“o carro para no meio”); verbo
   finito nunca logo depois de preposição (“em volta dele”).
 - Marcador discursivo (“Tá.”, “Tá bom.”, “Não importa.”): sem alerta temporal. O ramo presente →
   passado não dispara mais com estado vazio: sem verbos antes, `local_state` é `unknown` e o
@@ -134,7 +152,7 @@ deliberados e explicações mais claras.
 - Regência de “chegar em”: vira nota de registro, com prioridade “Explorar” e sem sugestão de
   troca, já que a forma é corrente no português brasileiro.
 - Vírgula em “além disso” (LanguageTool, `VERB_COMMA_CONJUNCTION`): sem alerta quando “além de”
-  completa um pronome ou sintagma (“não havia nada além disso”, “ninguém além dele”, “coisa
+  completa um pronome ou sintagma (“não sobrou nada além disso”, “ninguém além dele”, “coisa
   alguma além daquilo”, “nenhum caderno além desse”); o conector sem vírgulas (“cansado e além
   disso precisava”) continua apontado. A mensagem dessa regra deixa de afirmar que o conector
   “só deve ser utilizado no início duma frase”.

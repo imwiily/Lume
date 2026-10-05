@@ -24,7 +24,7 @@ class LinguisticTests(unittest.TestCase):
         return analyze([Block(1, text)], self.nlp, kwargs.pop("tense", "passado"), **kwargs)[0]
 
     def test_present_in_past_narrative(self):
-        f = self.scan("Davi andava pelas ruas vazias da cidade, quando alguém o intercepta por trás.")
+        f = self.scan("Davi atravessava o estacionamento, quando um segurança o intercepta.")
         self.assertTrue(any(x["category"] == "Tempo verbal" and x["text"][x["start"]:x["end"]] == "intercepta" for x in f))
 
     def test_unseen_tense_example(self):
@@ -42,7 +42,7 @@ class LinguisticTests(unittest.TestCase):
             self.assertEqual(self.scan(text), [])
 
     def test_dialogue_excluded(self):
-        for text in ['“Eu não sei o que está acontecendo”, disse Davi.', '"Eu estou bem", respondeu Ana.', '— Eu estou bem — disse Davi. — Não se preocupe.']:
+        for text in ['“Eu não entendo esse mapa”, disse Davi.', '"Eu estou bem", respondeu Ana.', '— Eu estou bem — disse Davi. — Não se preocupe.']:
             self.assertEqual(self.scan(text), [])
 
     def test_multiline_quote(self):
@@ -74,11 +74,11 @@ class LinguisticTests(unittest.TestCase):
         self.assertEqual(self.scan("Buzinas. Portas batendo. O vizinho reclamando."), [])
 
     def test_dialogue_action_comma(self):
-        f = self.scan('“Inacreditável”, as mãos do guarda voltavam à posição normal.')
+        f = self.scan('“Inacreditável”, o guarda balançou a cabeça.')
         self.assertTrue(any(x["category"] == "Pontuação de diálogo" for x in f))
 
     def test_dialogue_valid_action_separated(self):
-        self.assertEqual(self.scan('“Inacreditável.” As mãos do guarda voltavam à posição normal.'), [])
+        self.assertEqual(self.scan('“Inacreditável.” O guarda balançou a cabeça.'), [])
 
     def test_italic_thought(self):
         text = "Eu vejo tudo agora."
@@ -113,7 +113,7 @@ class LinguisticTests(unittest.TestCase):
     def test_cli_integration_preserves_docx(self):
         with tempfile.TemporaryDirectory() as td:
             path=Path(td)/"Manuscrito com espaços.docx";out=Path(td)/"resultado"
-            d=Document();d.add_paragraph("Davi andava pela rua quando alguém o intercepta por trás.");d.save(path)
+            d=Document();d.add_paragraph("Davi atravessava o pátio quando um segurança o intercepta.");d.save(path)
             original=path.read_bytes()
             with patch("fonte.cli.load_model",return_value=self.nlp):
                 self.assertEqual(main(["revisar",str(path),"--saida",str(out),"--tempo","passado"]),0)
@@ -191,7 +191,7 @@ class FragmentEllipsisTests(unittest.TestCase):
                 self.assertEqual(self.fragments(text), [])
 
     def test_without_recoverable_verb_still_candidate(self):
-        for text in ["Do outro lado, um grupo de turistas.",
+        for text in ["Na calçada oposta, um bando de pombos.",
                      # Preposição diferente: “pensei daquele…” não é retomada.
                      "Pensei no jardim molhado. Daquele homem de casaco cinza escuro.",
                      # (“Uma tarde inteira de chuva. Na janela…” saiu daqui: sequência de fragmentos

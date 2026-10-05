@@ -147,6 +147,14 @@ struct NarrativeSummary: Decodable {
     let events: Int
 }
 
+/// Verbos da narração que contradizem o tempo escolhido (campo opcional). Só aviso.
+struct TenseContradiction: Decodable, Equatable {
+    let escolhido: String
+    let predominante: String
+    let passado: Int
+    let presente: Int
+}
+
 struct ReportMetadata: Decodable {
     let tempo: String
     let paragrafos: Int
@@ -155,10 +163,12 @@ struct ReportMetadata: Decodable {
     let chapters: [ChapterMarker]?
     let stages: [AnalysisStage]?
     let narrativeSummary: NarrativeSummary?
+    let tempoContradito: TenseContradiction?
     enum CodingKeys: String, CodingKey {
         case tempo, paragrafos, languagetool, chapters, stages
         case versaoFonte = "versao_fonte"
         case narrativeSummary = "narrative_summary"
+        case tempoContradito = "tempo_contradito"
     }
 }
 

@@ -78,7 +78,7 @@ def nearest_anchor(root, groups, sentence):
 
 def own_clause(root):
     """Tokens da oração de `root`, sem as orações coordenadas ou subordinadas a ela (“…, mas ele
-    ainda…”, “desde que acordei”) e sem adjuntos de nome (“o exame de hoje”)."""
+    ainda…”, “desde que acordei”) e sem adjuntos de nome (“a reunião de hoje”)."""
     skip = set()
     for child in root.children:
         if child.dep_ in {"conj", "parataxis", "advcl", "ccomp", "acl", "acl:relcl"}:
@@ -102,7 +102,7 @@ def explicit_shift(root):
     markers = {t.lower_ for t in tokens} & TIME_SHIFTS
     # ‘Ainda’ mantém no presente um estado que continua (“está quebrado ainda”), não uma ação
     # da cena (“ainda caem pelo chão”).
-    # ‘Ficar’ muda de estado: “fica mais alto ainda” é intensidade, não continuidade.
+    # ‘Ficar’ muda de estado: “fica mais forte ainda” é intensidade, não continuidade.
     # ‘Estar’ sem predicativo (“ainda está no quintal”) é posição na cena; “está quebrado ainda” conta pela cópula.
     if markers == {"ainda"} and not (root.lemma_.casefold() in STATIVE | {"ser", "permanecer", "ter", "haver"}
                                      or root.pos_ in {"ADJ", "NOUN"} or any(c.dep_ == "cop" for c in root.children)):
@@ -406,7 +406,7 @@ def verbal_para(token):
 
 
 def sole_verb(token):
-    """Único candidato a verbo da frase, abrindo-a (sujeito elíptico: “Aponto para o cristal”) ou
+    """Único candidato a verbo da frase, abrindo-a (sujeito elíptico: “Aponto para o mapa”) ou
     logo depois do grupo nominal que a abre (“O relógio da sala demora a bater”): a frase precisa
     de um verbo e só ele pode sê-lo, mesmo sem objeto e com leitura nominal no léxico. O grupo
     nominal vale pela forma, não pelo rótulo do modelo, que às vezes faz do nome a raiz e do verbo

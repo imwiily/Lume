@@ -6,13 +6,13 @@ Os relatórios incluídos são registros das versões indicadas; contagens hist�
 
 `Manuscrito-modular.docx` é uma amostra sintética pequena. Não é uma análise do manuscrito A completo.
 
-Abra o documento, escolha Ambas, Passado e configuração padrão. O relatório incluído foi regenerado pelo FONTE 1.0.0 (spaCy 3.8.16 / pt_core_news_sm 3.8.0), com textos sintéticos.
+Abra o documento, escolha Ambas, Passado e configuração padrão. O relatório incluído foi regenerado pelo FONTE 1.3.1 (spaCy 3.8.16 / pt_core_news_sm 3.8.0), com textos sintéticos, sem o LanguageTool.
 
 Resultado observado: 11 alertas — 3 linguísticos, 3 morfossintáticos, 3 de contexto curto e 2 de coerência global limitada. O auditor está indisponível. Uma ocorrência pode ser uma escolha legítima: “São” e “Está”, por exemplo, continuam como atenção editorial, não erro confirmado.
 
 Confira “Além de disso”, “que, não” e “..”. A fala “Tô aqui, cê vem pro jantar, primo?” e as reticências “...” devem permanecer preservadas pelas novas regras determinísticas. Filtre por módulo e classificação e registre uma decisão sem alterar o DOCX.
 
-Nesta versão, “observa” recebe a explicação temporal específica, ligada a “abriu”, com a sugestão “observava”. A quantidade total continua a mesma. Consulte também `../Temporal` para exemplos independentes desta amostra.
+Nesta versão, “observa” recebe a explicação temporal específica, ligada a “abriu”, com a sugestão “observava”, classificada como provável erro. A quantidade total continua a mesma. Consulte também `../Temporal` para exemplos independentes desta amostra.
 
 ## Temporal
 

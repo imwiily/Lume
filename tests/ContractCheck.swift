@@ -65,6 +65,16 @@ struct ContractCheck {
         let oldReport = try JSONDecoder().decode(EditorialReport.self, from: JSONSerialization.data(withJSONObject: legacy))
         try oldReport.validate()
         try require(oldReport.findings.count == report.findings.count, "Leitura legada alterou os alertas.")
+        try require(oldReport.metadata.tempoContradito == nil, "Aviso de tempo inventado num relatório sem ele.")
+
+        // Tempo escolhido contrariado pela narração (campo opcional).
+        var contradicted = try JSONSerialization.jsonObject(with: Data(contentsOf: reportURL)) as! [String: Any]
+        var contradictedMetadata = contradicted["metadata"] as! [String: Any]
+        contradictedMetadata["tempo_contradito"] = ["escolhido": "passado", "predominante": "presente", "passado": 35, "presente": 412]
+        contradicted["metadata"] = contradictedMetadata
+        let withNotice = try JSONDecoder().decode(EditorialReport.self, from: JSONSerialization.data(withJSONObject: contradicted))
+        try require(withNotice.metadata.tempoContradito == TenseContradiction(escolhido: "passado", predominante: "presente", passado: 35, presente: 412),
+                    "Aviso de tempo escolhido não lido.")
 
         let temporary = FileManager.default.temporaryDirectory.appendingPathComponent("FONTE contrato \(UUID().uuidString)")
         try FileManager.default.createDirectory(at: temporary, withIntermediateDirectories: true)

@@ -265,7 +265,7 @@ class TemporalStructureTests(unittest.TestCase):
         f = self.one("vira", "O vigia estava observando o pátio, mas vira o rosto quando ouviu o apito.")
         self.assertEqual((f["relation"], f["confidence"]), ("coordinated_tense_mismatch", "alta"))
         # Adversativa com outro sujeito: mesma cena, confiança média.
-        f = self.one("ficam", "Os ruídos ficam mais altos, mas ele ainda não conseguia entender nada.")
+        f = self.one("ficam", "As vozes ficam mais fortes, mas ele ainda não conseguia achar a saída.")
         self.assertEqual((f["relation"], f["confidence"], f["temporal_evidence"]["same_subject"]),
                          ("coordinated_tense_mismatch", "média", False))
 
@@ -333,7 +333,7 @@ class TemporalStructureTests(unittest.TestCase):
 
     def test_hyphen_dialogue_stays_out_of_sequence(self):
         # Fala marcada com hífen, mesmo sem essa marcação configurada: não entra na sequência narrativa.
-        found, _ = self.findings("O professor fechou o livro.", "- Assim você não precisa copiar nada.", "Ninguém respondeu.")
+        found, _ = self.findings("O professor fechou o livro.", "- Assim você não precisa repetir a conta.", "Ninguém respondeu.")
         self.assertFalse([f for f in found if f.get("relation") in SEQUENCIA | {"local_narrative_tense_shift"}], found)
 
     def test_agreement_guards(self):
@@ -434,7 +434,7 @@ class DetectorDebugTests(unittest.TestCase):
     def test_fallback_and_modality_controls(self):
         # Verbo antes de ‘para’ não é sujeito; ‘talvez’ não alcança a comparativa (“do que deveria”).
         for text in ["Desci para o porão e acendi a luz.",
-                     "Fechei a janela. Talvez com mais força do que deveria."]:
+                     "Fechei a janela. Talvez mais depressa do que deveria."]:
             with self.subTest(text=text):
                 found, _ = self.findings(text)
                 self.assertFalse([f for f in found if f.get("relation") in {"coordinated_tense_mismatch", "modal_mood_mismatch"}], found)
@@ -546,7 +546,7 @@ class KnownLimitsTests(unittest.TestCase):
                      "Meses depois, quando o antigo prefeito partiu, ele foi eleito sem disputa.",
                      "Quando o navio deixou o último porto, o marinheiro já tinha dormido havia horas.",
                      # Nome com relativa é fragmento nominal comum, não falta de principal.
-                     "Uma coisa que ele nunca tinha visto antes.",
+                     "Uma ave que ele nunca tinha visto antes.",
                      "Sem nenhum motivo que pudesse justificar aquela pressa."]:
             with self.subTest(text=text):
                 found, _ = self.findings(text)

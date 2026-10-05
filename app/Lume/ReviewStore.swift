@@ -33,6 +33,8 @@ final class ReviewStore: ObservableObject {
     @Published private(set) var analysisStages: [AnalysisStage] = []
     @Published var report: EditorialReport?
     @Published var reportURL: URL?
+    /// Último `falsos-positivos.json` gravado para o relatório aberto.
+    @Published private(set) var falsePositivesURL: URL?
     @Published var decisions: [String: ReviewDecision] = [:]
     @Published var selectedID: String?
     @Published var category = "Todas"
@@ -162,7 +164,7 @@ final class ReviewStore: ObservableObject {
         documentURL = url
         restoreSearchSettings()
         screen = .preparation; analysisFailed = false
-        report = nil; reportURL = nil; selectedID = nil; decisions = [:]; editLog = nil
+        report = nil; reportURL = nil; falsePositivesURL = nil; selectedID = nil; decisions = [:]; editLog = nil
         category = "Todas"; decisionFilter = "Todas"; search = ""; layerFilter = "Todas"; moduleFilter = "Todas"; severityFilter = "Todas"
         status = "Manuscrito selecionado. O arquivo original será preservado."
     }
@@ -295,6 +297,7 @@ final class ReviewStore: ObservableObject {
             inherited = restored.count
         }
         report = loaded; reportURL = url; decisions = restored
+        falsePositivesURL = falsePositivesFile(next: url).flatMap { manager.fileExists(atPath: $0.path) ? $0 : nil }
         editLog = readEditLog(loaded.sha256)
         analysisStages = loaded.metadata.stages ?? []
         screen = .review; analysisFailed = false
@@ -803,14 +806,32 @@ final class ReviewStore: ObservableObject {
         guard let file = FalsePositiveExport(report: report, decisions: decisions, exportedAt: Date()) else {
             status = "Nenhum alerta marcado como falso positivo."; return
         }
-        let panel = NSSavePanel(); panel.allowedContentTypes = [.json]
-        panel.title = "Extrair falsos positivos"
-        panel.nameFieldStringValue = "lume-falsos-positivos.json"
-        guard panel.runModal() == .OK, let url = panel.url else { return }
         do {
-            try file.encoded().write(to: url, options: .atomic)
-            status = "\(file.findings.count) falsos positivos extraídos. O arquivo contém trechos do manuscrito."
+            let data = try file.encoded()
+            // Ao lado do relatório, sem perguntar; a cada extração o arquivo é refeito com as
+            // marcações atuais. Só se a pasta não aceitar gravação o local é perguntado.
+            var place = "ao lado do relatório"
+            if let url = falsePositivesFile(next: reportURL), (try? data.write(to: url, options: .atomic)) != nil {
+                falsePositivesURL = url
+            } else {
+                place = "no local escolhido"
+                let panel = NSSavePanel(); panel.allowedContentTypes = [.json]
+                panel.title = "Extrair falsos positivos"
+                panel.nameFieldStringValue = "falsos-positivos.json"
+                guard panel.runModal() == .OK, let url = panel.url else { return }
+                try data.write(to: url, options: .atomic)
+                falsePositivesURL = url
+            }
+            status = "\(file.findings.count) falsos positivos extraídos em “\(falsePositivesURL?.lastPathComponent ?? "")”, \(place). O arquivo contém trechos do manuscrito."
         } catch { errorText = error.localizedDescription }
+    }
+
+    private func falsePositivesFile(next report: URL?) -> URL? {
+        report?.deletingLastPathComponent().appendingPathComponent("falsos-positivos.json")
+    }
+
+    func revealFalsePositives() {
+        if let url = falsePositivesURL { NSWorkspace.shared.activateFileViewerSelecting([url]) }
     }
 
     func copyParagraph(_ finding: Finding) {

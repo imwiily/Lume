@@ -34,13 +34,13 @@ class DeterministicTests(unittest.TestCase):
         self.assertEqual(f['suggestion'], 'além disso')
         self.assertEqual(f['text'][f['start']:f['end']], 'além de disso')
 
-    def test_hns_two_periods_has_no_single_forced_solution(self):
-        f, = self.scan('Esses humanos.. São tão estranhos.')
+    def test_two_periods_have_no_single_forced_solution(self):
+        f, = self.scan('Essas máquinas.. São tão barulhentas.')
         self.assertEqual(f['severity'], 'probable_error')
         self.assertIsNone(f['suggestion'])
 
-    def test_hns_que_nao(self):
-        f, = self.scan('Ele tinha um sorriso, que, não era normal.')
+    def test_comma_que_comma_nao(self):
+        f, = self.scan('Ela usava um casaco, que, não era dela.')
         self.assertEqual(f['rule'], 'virgula_que_nao')
         self.assertEqual(f['suggestion'], 'que não')
         self.assertEqual(f['severity'], 'probable_error')
@@ -89,7 +89,7 @@ class DeterministicTests(unittest.TestCase):
         self.assertFalse(self.scan('  Ele saiu.\n    Depois voltou.'))
 
     def test_rules_can_be_disabled(self):
-        self.assertFalse(analyze([Block(1, 'Nada além de disso,, que, não  era normal.')], selected()))
+        self.assertFalse(analyze([Block(1, 'Nada além de disso,, que, não  era dela.')], selected()))
 
 
 class PipelineTests(unittest.TestCase):

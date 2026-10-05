@@ -19,25 +19,25 @@ class EditorialTests(unittest.TestCase):
         return {f['rule'] for f in analyze(blocks(*texts))[0]}
 
     def test_four_versus_three(self):
-        self.assertIn('duracao_suspensao', self.rules('Não treina amanhã nem nos três dias seguintes.', 'O jogador está suspenso por três dias.'))
+        self.assertIn('duracao_suspensao', self.rules('Não trabalha amanhã nem nos três dias seguintes.', 'O técnico foi afastado por três dias.'))
 
     def test_consistent_four_days(self):
-        self.assertNotIn('duracao_suspensao', self.rules('Não treina amanhã nem nos três dias seguintes.', 'Você está suspenso por quatro dias.'))
+        self.assertNotIn('duracao_suspensao', self.rules('Não trabalha amanhã nem nos três dias seguintes.', 'Você foi afastado por quatro dias.'))
 
     def test_numbers(self):
-        self.assertIn('duracao_suspensao', self.rules('Não virá amanhã e nos 2 dias seguintes. Está suspenso por 2 dias.'))
+        self.assertIn('duracao_suspensao', self.rules('Não abre a loja amanhã e nos 2 dias seguintes. Está suspensa por 2 dias.'))
 
     def test_no_chapter_crossing(self):
-        bs = blocks('Não treina amanhã nem nos três dias seguintes.', 'Capítulo 2', 'O jogador está suspenso por três dias.')
+        bs = blocks('Não trabalha amanhã nem nos três dias seguintes.', 'Capítulo 2', 'O técnico foi afastado por três dias.')
         bs[1].heading = True
         self.assertNotIn('duracao_suspensao', {f['rule'] for f in analyze(bs)[0]})
 
     def test_no_scene_crossing(self):
-        self.assertNotIn('duracao_suspensao', self.rules('Não treina amanhã nem nos três dias seguintes.', 'No dia seguinte, retornou.', 'O jogador está suspenso por três dias.'))
+        self.assertNotIn('duracao_suspensao', self.rules('Não trabalha amanhã nem nos três dias seguintes.', 'No dia seguinte, retornou.', 'O técnico foi afastado por três dias.'))
 
     def test_tomorrow(self):
-        self.assertIn('adiamento_amanha', self.rules('A aula foi adiada para amanhã.', 'Ganhei mais dois dias para me preparar.'))
-        self.assertNotIn('adiamento_amanha', self.rules('A aula foi adiada para amanhã.', 'Ganhei mais um dia para me preparar.'))
+        self.assertIn('adiamento_amanha', self.rules('A entrega foi adiada para amanhã.', 'Ganhei mais dois dias para terminar o projeto.'))
+        self.assertNotIn('adiamento_amanha', self.rules('A entrega foi adiada para amanhã.', 'Ganhei mais um dia para terminar o projeto.'))
 
     def test_unrelated_tomorrow(self):
         self.assertNotIn('adiamento_amanha', self.rules('Amanhã veremos o resultado.', 'Ganhei mais dois dias.'))
@@ -59,8 +59,8 @@ class EditorialTests(unittest.TestCase):
         self.assertNotIn('variacao_nome', self.rules('Você voltou. Você entrou. Vocês saíram.', 'Haaa! Haaa! Haaaa!', 'Hamm. Hamm. Humm. Humm.'))
 
     def test_different_evidence_changes_identity(self):
-        a = analyze(blocks('Não treina amanhã nem nos três dias seguintes.', 'Está suspenso por três dias.'))[0]
-        b = analyze(blocks('Não treina amanhã nem nos três dias seguintes.', 'Está suspenso por dois dias.'))[0]
+        a = analyze(blocks('Não trabalha amanhã nem nos três dias seguintes.', 'Foi afastado por três dias.'))[0]
+        b = analyze(blocks('Não trabalha amanhã nem nos três dias seguintes.', 'Foi afastado por dois dias.'))[0]
         self.assertNotEqual(a[0]['id'], b[0]['id'])
 
     def test_distinct_names(self):
@@ -80,7 +80,7 @@ class EditorialTests(unittest.TestCase):
         self.assertFalse(any(f['rule'] == 'pronome_apos_corte' for f in analyze(original, original)[0]))
 
     def test_unicode_and_stable_ids(self):
-        bs = blocks('🌿 Cafe\u0301. Era melhor eu me preparar melhor.', 'Não treina amanhã nem nos três dias seguintes.', 'Está suspenso por três dias.')
+        bs = blocks('🌿 Cafe\u0301. Era melhor eu me preparar melhor.', 'Não trabalha amanhã nem nos três dias seguintes.', 'Foi afastado por três dias.')
         findings, _ = analyze(bs)
         self.assertEqual(findings, analyze(bs)[0])
         self.assertEqual(len(findings), len({f['id'] for f in findings}))

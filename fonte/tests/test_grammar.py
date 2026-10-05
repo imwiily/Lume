@@ -225,7 +225,7 @@ class RegencyAndCommaTests(unittest.TestCase):
         # Vocativos e interjeições antes da vírgula não são sujeitos.
         for sentence in ["Os moradores, assustados, protestaram.", "Os moradores protestaram, e a obra parou.",
                          "Ana, que morava ali, protestou.", "Senhor Almeida, está atrasado?",
-                         "Ótimo, era disso que eu precisava.", "Hum, vai logo.", "Doutora, chegou o resultado."]:
+                         "Perfeito, agora funciona.", "Hum, vai logo.", "Doutora, chegou o resultado."]:
             with self.subTest(sentence=sentence):
                 self.assertEqual(excerpts(run(sentence), "virgula_sujeito_verbo"), [])
 
@@ -314,12 +314,12 @@ class RevisaoAutorTests(unittest.TestCase):
 
     def test_speech_verbs_with_bad_lemmas_are_still_speech_tags(self):
         from fonte.pipeline import run as pipeline
-        for text in ["— E aí, tudo certo? — perguntei para ele.", "— Sim, senhora — respondemos juntos.",
-                     "— Tá tudo bem — falei, tentando levantar."]:
+        for text in ["— E aí, tudo certo? — perguntei para ele.", "— Pode ser, senhora — respondemos em coro.",
+                     "— Pode deixar — falei, procurando a chave."]:
             with self.subTest(text=text):
                 findings = pipeline([Block(1, text)], lambda: NLP, settings=validate({}), mode="editorial")[0]
                 self.assertFalse(any(f.get("category_code") == "narrative_action_after_speech" for f in findings))
-        findings = pipeline([Block(1, "— Você viu? — o rosto dela ficou vermelho.")], lambda: NLP,
+        findings = pipeline([Block(1, "— Você viu? — as mãos dela tremeram.")], lambda: NLP,
                             settings=validate({}), mode="editorial")[0]
         self.assertTrue(any(f.get("category_code") == "narrative_action_after_speech" for f in findings))
 
@@ -330,7 +330,7 @@ class RevisaoAutorTests(unittest.TestCase):
                 self.assertEqual(vocativos(text), [])
 
     def test_explanation_with_tag_question_keeps_porque(self):
-        self.assertEqual(excerpts(run("— Porque isso vale até para os adultos, hein?"), "homofonos"), [])
+        self.assertEqual(excerpts(run("— Porque isso serve até para quem já sabe, hein?"), "homofonos"), [])
         self.assertEqual(excerpts(run("— Porque ele saiu cedo, né?"), "homofonos"), [])
         self.assertIn("Porque", excerpts(run("— Porque ele saiu tão cedo?")))
 

@@ -143,7 +143,7 @@ O resultado poderia ser:
 
 com uma explicação semelhante a:
 
-> A frase combina futuro do pretérito e futuro do presente dentro da mesma projeção narrativa. Verifique se “não seria nada boa” expressa melhor a relação temporal pretendida.
+> A frase combina futuro do pretérito e futuro do presente dentro da mesma projeção narrativa. Verifique se “seria muito caro” expressa melhor a relação temporal pretendida.
 
 O objetivo não é apenas dizer que algo está errado.
 
@@ -179,13 +179,13 @@ Esse módulo deve analisar questões como:
 
 Um exemplo seria:
 
-> — Você entendeu o que eu disse, Helena — o rosto de Helena ficou todo vermelho.
+> — Você entendeu o que eu disse, Helena — a voz de Helena falhou de repente.
 
 O problema não é simplesmente pontuação.
 
 O sistema deve entender que:
 
-> o rosto de Helena ficou todo vermelho
+> a voz de Helena falhou de repente
 
 não é uma oração de elocução.
 
@@ -358,7 +358,7 @@ Há forte evidência, mas ainda existe alguma possibilidade contextual.
 
 Exemplo:
 
-> iria fazer algo que não irá ser bom
+> venderia o carro que ninguém irá comprar
 
 ## Atenção editorial
 

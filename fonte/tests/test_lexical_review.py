@@ -17,12 +17,12 @@ class LexicalReviewTests(unittest.TestCase):
         self.assertFalse([f for f in self.scan(text) if f['category']==category], text)
 
     def test_feedback_first_person_complete(self):
-        for text in ['Abaixei os olhos, tentando não chamar atenção.',
-                     'Olhei para o relógio da parede.',
-                     'Confirmei que sim com um aceno.',
+        for text in ['Encolhi os ombros, evitando qualquer comentário.',
+                     'Conferi o calendário da cozinha.',
+                     'Respondi que não com um gesto.',
                      'Ouvi passos vindo de fora.',
                      'Bati o punho no balcão, irritado.',
-                     'Eu pus o copo em cima do mapa.',
+                     'Eu pus a chaleira no fogão.',
                      'Abri a janela lentamente.']:
             with self.subTest(text=text):
                 self.assert_no_category(text,'Estrutura da frase')
@@ -36,9 +36,9 @@ class LexicalReviewTests(unittest.TestCase):
                 self.assertEqual(self.scan(text),[])
 
     def test_feedback_wrong_confirmations(self):
-        for text in ['Saí da biblioteca pelo portão gigantesco da Biblioteca Central de Vale Alto.',
-                     '— A prova começará no ginásio — disse ele enquanto caminhávamos até lá.',
-                     'Finalmente, depois daquela prova, todo mundo iria me notar. Passávamos pelo corredor do térreo. Nada.']:
+        for text in ['Saí do mercado pela porta estreita da Feira Municipal de Pedra Branca.',
+                     '— O ensaio começará no teatro — avisou ela enquanto atravessávamos a praça.',
+                     'Enfim, depois da apresentação, a vizinhança inteira iria me cumprimentar. Cruzávamos a rua do mercado. Nada.']:
             with self.subTest(text=text):
                 self.assertEqual(self.scan(text),[])
 
@@ -49,42 +49,42 @@ class LexicalReviewTests(unittest.TestCase):
 
     def test_clitic_past(self):
         for text in ['Esforcei-me bastante para alcançar a prateleira.',
-                     'Posicionei-me, segurando o remo com firmeza.',
+                     'Acomodei-me, apoiando a bengala no chão.',
                      'Aproximei-me da porta e respirei fundo.']:
             self.assert_no_category(text,'Tempo verbal')
 
     def test_ambiguous_present_past_not_guessed(self):
         for text in ['Nós passamos pelo pátio até a cozinha.',
-                     'Nós saímos do prédio da prefeitura.',
+                     'Nós saímos da estação de trem.',
                      'Nós vendemos as roupas na feira.']:
             self.assert_no_category(text,'Tempo verbal')
 
     def test_adjectives_and_pronouns_are_not_finite(self):
         for text in ['O vizinho havia passado praticamente a tarde inteira discutindo com o carteiro.',
-                     'Eu já estava sentado, lendo no meu quarto, quando escutei um estalo.',
+                     'Eu já estava na cozinha, cortando cebolas, quando ouvi a campainha.',
                      '— O quê? — disse Otávio, surpreso.',
-                     'Ela estava aqui comigo.']:
+                     'Ela estava aqui com a irmã.']:
             self.assertEqual(self.scan(text),[])
 
     def test_vão_noun_vs_auxiliary(self):
-        self.assert_no_category('Todo o esforço acabou sendo em vão.','Tempo verbal')
-        self.assertTrue(any(f['category']=='Tempo verbal' for f in self.scan('Ah, não, eles vão acabar comigo.')))
+        self.assert_no_category('Toda a pressa foi em vão.','Tempo verbal')
+        self.assertTrue(any(f['category']=='Tempo verbal' for f in self.scan('Ih, eles vão rir de mim.')))
 
     def test_copulas_are_finite(self):
-        for text in ['— Não, pode entrar. — Era aquela vizinha de antes.',
-                     'Não era um sorriso normal.',
+        for text in ['— Claro, fique à vontade. — Era o mesmo carteiro de ontem.',
+                     'Não era um barulho comum.',
                      'Essa era a última carroça da feira.',
-                     'Eles são iguais aos da Beatriz.']:
+                     'Os botões são iguais aos do casaco.']:
             self.assert_no_category(text,'Estrutura da frase')
 
     def test_copulas_present_still_alert(self):
-        for text in ['Ela está aqui comigo.', 'Será que são os meus protótipos?',
-                     'A cidade é tão linda à noite.']:
+        for text in ['Ela está aqui com a irmã.', 'Será que são as minhas luvas?',
+                     'O porto é tão bonito no inverno.']:
             self.assertTrue(any(f['category']=='Tempo verbal' for f in self.scan(text)),text)
 
     def test_real_tense_candidates_preserved(self):
-        for text in ['Continuei andando. As luzes dos estabelecimentos iluminam as ruas.',
-                     'Ela começou a me ajudar. Mas não consigo.',
+        for text in ['Continuei remando. As gaivotas sobrevoam o barco.',
+                     'Ele tentou me acalmar. Mas não consigo.',
                      'Olhei para ele. Seus cabelos grisalhos caem sobre a testa.',
                      'O menino abriu a porta e observa a rua.']:
             self.assertTrue(any(f['category']=='Tempo verbal' for f in self.scan(text)),text)
@@ -96,7 +96,7 @@ class LexicalReviewTests(unittest.TestCase):
             self.assertTrue(any(f['category']=='Estrutura da frase' for f in self.scan(text)),text)
 
     def test_general_present_remains_editorial_decision(self):
-        self.assertTrue(any(f['category']=='Tempo verbal' for f in self.scan('Certas magias não precisam ser pronunciadas.')))
+        self.assertTrue(any(f['category']=='Tempo verbal' for f in self.scan('Certas receitas não precisam ser medidas.')))
 
 
 if __name__ == '__main__':

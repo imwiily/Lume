@@ -247,6 +247,22 @@ def narrative_masks(blocks, protect_italics=True):
     return masks, closing_positions, warnings
 
 
+def tense_contradiction(counts, tense, minimum=20, share=.7):
+    """Contagem de verbos da narração que contradiz o tempo escolhido pelo autor.
+
+    Só indica: os alertas continuam medidos pelo tempo escolhido. Exige ao menos `minimum`
+    verbos do outro tempo e `share` do total com tempo identificado (o mesmo critério do
+    modo automático); narração mista ou curta não sustenta a conclusão."""
+    if tense not in ("passado", "presente"):
+        return None
+    other = "presente" if tense == "passado" else "passado"
+    past, present = counts.get("passado", 0), counts.get("presente", 0)
+    found = counts.get(other, 0)
+    if found < minimum or found / max(1, past + present) < share:
+        return None
+    return {"escolhido": tense, "predominante": other, "passado": past, "presente": present}
+
+
 def analyze(blocks: list[Block], nlp, tense="auto", protect_italics=True, min_words=5, masks_override=None, enabled_rules=None):
     masks, closings, warnings = narrative_masks(blocks, protect_italics)
     if masks_override is not None:
@@ -331,7 +347,7 @@ def analyze(blocks: list[Block], nlp, tense="auto", protect_italics=True, min_wo
             # Oração subordinada sem principal (“Quando chegou ao quarto depois de falar com todos.”,
             # “O homem que estava parado na porta enquanto todos conversavam.”): tem verbo finito,
             # mas todos estão em orações dependentes. Confiança baixa: o fragmento pode ser estilo.
-            # Nome seguido só de relativa (“Uma coisa que nunca tinha visto.”) fica de fora: é
+            # Nome seguido só de relativa (“Uma ave que nunca tinha visto.”) fica de fora: é
             # fragmento nominal comum na prosa, e o modelo costuma engolir a principal na relativa.
             if "estrutura" in active and len(words) >= 6 and sent.text.rstrip().endswith("."):
                 root = sent.root

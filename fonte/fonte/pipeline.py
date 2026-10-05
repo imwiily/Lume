@@ -78,6 +78,20 @@ def run(blocks, model_loader, *, settings=None, tense="auto", mode="ambas",
         language_model = model()
         out, extra_warnings, data = legacy(blocks, language_model, tense, selected(["tempo_verbal", "estrutura"]))
         warnings.extend(extra_warnings); meta.update(data)
+        # Tempo escolhido contrariado pela narração: avisa, sem mudar os alertas. Falas no
+        # escopo distorcem a contagem (o presente é comum nelas); nesse caso, nada se conclui.
+        if rules["tempo_verbal"] and set(options["tense_scopes"]) == {"narracao"}:
+            from .analysis import tense_contradiction
+            contradiction = tense_contradiction(data.get("contagem_verbos", {}), tense)
+            if contradiction:
+                meta["tempo_contradito"] = contradiction
+                chosen, other = contradiction["escolhido"], contradiction["predominante"]
+                share = round(100 * contradiction[other] / (contradiction["passado"] + contradiction["presente"]))
+                warnings.append(
+                    f"Tempo escolhido: {chosen}. A narração tem {contradiction[other]} verbos no {other} e "
+                    f"{contradiction[chosen]} no {chosen} ({share}% no {other}). Se o livro é narrado no {other}, "
+                    f"analise de novo com {other.capitalize()}: os alertas de tempo verbal desta análise "
+                    "tratam como desvio o tempo da própria narração.")
         meta.update(modelo=language_model.meta.get("name"), versao_modelo=language_model.meta.get("version"))
         if rules["coerencia_temporal"] or rules["acentuacao_contextual"]:
             reference = tense if tense != "auto" else data.get("tempo", "inconclusivo")

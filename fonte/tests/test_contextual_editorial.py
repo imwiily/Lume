@@ -18,8 +18,8 @@ class ContextualEditorialTests(unittest.TestCase):
         return run(blocks, lambda: self.nlp, settings=options, mode='editorial')[0]
 
     def test_planted_dialogue_cases(self):
-        for text in ['— Você entendeu o que eu disse, Helena — o rosto de Helena ficou completamente pálido.',
-                     '— Talvez eles saibam — disse Helena — Só não ligam.']:
+        for text in ['— Você entendeu o que eu disse, Helena — a voz de Helena falhou de repente.',
+                     '— Pode ser que saibam — disse Helena — Só fingem que não.']:
             with self.subTest(text=text):
                 f, = self.scan([Block(1, text)])
                 self.assertEqual(f['rule'], 'dialogo_contextual')
@@ -40,9 +40,9 @@ class ContextualEditorialTests(unittest.TestCase):
         self.assertIn('maiúscula', f['reason'])
         self.assertIn('Ex.: “…Helena. — Ela pegou a bolsa…”', f['reason'])
         # Fala já encerrada: só a maiúscula, com a pontuação original no exemplo.
-        f, = self.scan([Block(1, '— Você viu? — o rosto dela ficou vermelho.')])
+        f, = self.scan([Block(1, '— Você viu? — as mãos dela tremeram.')])
         self.assertNotIn('falta pontuação', f['reason'])
-        self.assertIn('Ex.: “…viu? — O rosto dela ficou…”', f['reason'])
+        self.assertIn('Ex.: “…viu? — As mãos dela tremeram…”', f['reason'])
         # A ressalva sobre a lista de elocução continua, no fim.
         self.assertTrue(f['reason'].endswith('a lista de verbos de elocução é limitada.'))
 
@@ -63,22 +63,22 @@ class ContextualEditorialTests(unittest.TestCase):
         self.assertFalse(self.scan([Block(1, '— Não vou. — Virou-se Helena.')]))
 
     def test_valid_dialogue_and_disabled_dashes(self):
-        for text in ['— Talvez eles saibam — disse Helena. — Só não ligam.',
+        for text in ['— Pode ser que saibam — disse Helena. — Só fingem que não.',
                      '— Eu acho — disse Helena — que eles sabem.',
                      '— Você sabe — disse Helena — Maria.',
-                     '— Você sabe. — O rosto de Helena ficou pálido.',
+                     '— Você sabe. — As mãos de Helena tremeram.',
                      '— Você sabe — respondeu Helena.']:
             with self.subTest(text=text):
                 self.assertFalse(self.scan([Block(1, text)]))
-        self.assertFalse(self.scan([Block(1, '— Você sabe — o rosto ficou pálido.')], dialogue_dashes=False))
+        self.assertFalse(self.scan([Block(1, '— Você sabe — as mãos tremeram.')], dialogue_dashes=False))
 
     def test_gerundism_is_optional_attention(self):
-        f, = self.scan([Block(1, 'Eu não vou poder estar enviando o relatório hoje.')])
+        f, = self.scan([Block(1, 'Nós não vamos poder estar entregando o pedido hoje.')])
         self.assertEqual(f['rule'], 'gerundismo')
         self.assertEqual(f['severity'], 'editorial_attention')
-        self.assertEqual(f['excerpt'], 'vou poder estar enviando')
+        self.assertEqual(f['excerpt'], 'vamos poder estar entregando')
         self.assertFalse(self.scan([Block(1, 'Eu estava dizendo isso agora.')]))
-        self.assertFalse(self.scan([Block(1, '— Vou poder — disse ela — estar dizendo isso.')]))
+        self.assertFalse(self.scan([Block(1, '— Vamos poder — disse ela — estar conferindo isso.')]))
 
     def test_ambiguous_object_and_context_evidence(self):
         for split in [True, False]:
@@ -105,7 +105,7 @@ class ContextualEditorialTests(unittest.TestCase):
             with self.subTest(blocks=blocks): self.assertFalse(self.scan(blocks))
 
     def test_window_is_bounded_and_stops_at_scene_change(self):
-        blocks = [Block(1, 'Helena chegou.'), Block(2, 'Eu vou poder estar dizendo isso.'),
+        blocks = [Block(1, 'Helena chegou.'), Block(2, 'Nós vamos poder estar conferindo isso.'),
                   Block(3, 'Ela saiu.'), Block(4, 'No dia seguinte, voltou.'), Block(5, 'Fim.')]
         f, = self.scan(blocks)
         self.assertEqual([e['paragraph'] for e in f['context']], [1, 2, 3])
@@ -134,12 +134,12 @@ class SpeechVerbMissedByModelTests(unittest.TestCase):
 
     def test_speech_verb_before_gerund_or_second_clause(self):
         for text in ['— Já vou, senhora! — respondi, tropeçando enquanto subia a escada.',
-                     '— Está tudo certo, Baltasar — falei, tentando sentar, mas estava tonto.',
+                     '— Pode deixar, Baltasar — falei, procurando a chave, mas estava sem óculos.',
                      '— A reunião acabou e todos podem sair — terminou Laura.',
                      '— A reunião acabou e todos podem sair — terminou o diretor.',
                      '— As duas turmas serão avisadas e Ana voltará amanhã cedo — terminou Tadeu.']:
             with self.subTest(text=text):
                 self.assertFalse(self.scan([Block(1, text)]))
         # Ação sem verbo de fala continua apontada.
-        f, = self.scan([Block(1, '— Está tudo certo — tentei sentar na cadeira, mas estava tonto.')])
+        f, = self.scan([Block(1, '— Pode deixar — procurei a chave na bolsa, mas estava sem óculos.')])
         self.assertEqual(f['rule'], 'dialogo_contextual')

@@ -600,6 +600,9 @@ private struct FindingsColumn: View {
                     }.buttonStyle(.plain).help("Filtros").accessibilityLabel("Filtros, \(activeFilters) ativos")
                         .popover(isPresented: $showFilters, arrowEdge: .bottom) { filters }
                 }
+                if let contradiction = store.report?.metadata.tempoContradito {
+                    TenseNotice(contradiction: contradiction)
+                }
             }.padding(18)
             Rectangle().fill(LumeTheme.line).frame(height: 1)
             if store.filteredFindings.isEmpty {
@@ -677,6 +680,29 @@ private struct FindingsColumn: View {
                 Button("Limpar filtros", action: clearFilters).buttonStyle(LumeButtonStyle())
             }
         }.padding(20).frame(width: 340)
+    }
+}
+
+/// A narração contradiz o tempo escolhido: os alertas de tempo verbal tratam a própria narração
+/// como desvio. Só informa; a nova análise é escolha do autor.
+private struct TenseNotice: View {
+    let contradiction: TenseContradiction
+
+    var body: some View {
+        let other = contradiction.predominante, chosen = contradiction.escolhido
+        let found = other == "presente" ? contradiction.presente : contradiction.passado
+        let rest = other == "presente" ? contradiction.passado : contradiction.presente
+        HStack(alignment: .top, spacing: 9) {
+            Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(LumeTheme.amber)
+            VStack(alignment: .leading, spacing: 3) {
+                Text("A narração parece estar no \(other)").font(LumeFont.ui(12, weight: .semibold))
+                Text("Esta análise usou o \(chosen), mas a narração tem \(found) verbos no \(other) e \(rest) no \(chosen). Se o livro é narrado no \(other), escolha \(other.capitalized) e analise de novo: os alertas de tempo verbal desta lista tratam a própria narração como desvio.")
+                    .font(LumeFont.ui(11)).foregroundStyle(LumeTheme.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }.padding(10).frame(maxWidth: .infinity, alignment: .leading)
+            .background(RoundedRectangle(cornerRadius: 10).fill(LumeTheme.wash))
+            .accessibilityElement(children: .combine)
     }
 }
 
@@ -1055,7 +1081,11 @@ private struct StatusLine: View {
             if store.report != nil {
                 Button("Extrair falsos positivos") { store.exportFalsePositives() }.buttonStyle(.borderless)
                     .disabled(store.isBusy || store.falsePositiveCount == 0)
-                    .help("Salva em JSON os alertas marcados como falso positivo, para analisar e corrigir as regras")
+                    .help("Salva em JSON, ao lado do relatório, os alertas marcados como falso positivo, para analisar e corrigir as regras")
+                if store.falsePositivesURL != nil {
+                    Button("Mostrar no Finder") { store.revealFalsePositives() }.buttonStyle(.borderless)
+                        .help("Mostra o arquivo de falsos positivos no Finder")
+                }
             }
         }.font(LumeFont.ui(11)).foregroundStyle(LumeTheme.secondary)
             .padding(.horizontal, 18).padding(.vertical, 9)

@@ -59,7 +59,7 @@ class TemporalTests(unittest.TestCase):
         self.assertEqual(form(token), 'conditional')
 
     def test_consistent_conditional_preserved(self):
-        for text in ['Ele iria fazer algo que não seria bom.',
+        for text in ['O sobrinho venderia o carro que ninguém compraria.',
                      'Ela compraria uma casa que teria um jardim.',
                      'Nós construiríamos uma ponte que ligaria as margens.']:
             with self.subTest(text=text): self.assertFalse(self.scan(text))
@@ -108,7 +108,7 @@ class TemporalTests(unittest.TestCase):
 
     def test_nested_coordination_and_simple_coordination(self):
         # Estado no presente coordenado a um passado: atenção editorial.
-        for text in ['Parecia estar ligado direito e não está desligado.',
+        for text in ['Parecia estar ligado normalmente e não está desligado.',
                      'O objeto parecia intacto e está quebrado.']:
             with self.subTest(text=text):
                 f, = self.scan(text)
@@ -131,7 +131,7 @@ class TemporalTests(unittest.TestCase):
         for text in ['O cientista explicou que a água ferve a cem graus.',
                      'Ela lembrou que a Terra gira em torno do Sol.',
                      'O rapaz disse que voltará amanhã.',
-                     'Ela estava certa de que nada irá mudar.']:
+                     'Ela estava certa de que o preço irá subir.']:
             with self.subTest(text=text): self.assertFalse(self.scan(text))
 
     def test_syntax_disagreement_abstains_without_fabricating_relation(self):
@@ -206,7 +206,7 @@ class TemporalTests(unittest.TestCase):
         self.assertEqual(blocks, before)
 
     def test_specific_temporal_alert_replaces_generic_same_verb(self):
-        found, _, _ = run([Block(1, 'Parecia estar ligado direito e não está desligado.')], lambda: self.nlp,
+        found, _, _ = run([Block(1, 'Parecia estar ligado normalmente e não está desligado.')], lambda: self.nlp,
                           settings=options('tempo_verbal', 'coerencia_temporal'), tense='passado')
         matching = [f for f in found if f['excerpt'] == 'está']
         self.assertEqual(len(matching), 1)
@@ -261,3 +261,69 @@ class DialogueMechanicsTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+PRESENTE = ['A feirante arruma as laranjas e conta as moedas.', 'O vento empurra a lona da barraca.',
+            'Um menino pede uma fruta e espera calado.', 'A feirante sorri e entrega a sacola.',
+            'O caminhão do gelo chega atrasado.', 'O motorista desce e reclama do trânsito.',
+            'A fila cresce perto da banca de peixe.', 'Alguém derruba uma caixa de tomates.',
+            'O dono da banca xinga baixinho e recolhe tudo.', 'A chuva começa e todos procuram abrigo.']
+PASSADO = [frase.replace('arruma', 'arrumou').replace('conta', 'contou').replace('empurra', 'empurrou')
+           .replace('pede', 'pediu').replace('espera', 'esperou').replace('sorri', 'sorriu')
+           .replace('entrega', 'entregou').replace('chega', 'chegou').replace('desce', 'desceu')
+           .replace('reclama', 'reclamou').replace('cresce', 'cresceu').replace('derruba', 'derrubou')
+           .replace('xinga', 'xingou').replace('recolhe', 'recolheu').replace('começa', 'começou')
+           .replace('procuram', 'procuraram') for frase in PRESENTE]
+
+
+class TenseChoiceTests(unittest.TestCase):
+    """Contagem de verbos da narração que contradiz o tempo escolhido: só aviso, sem mudar alertas."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.nlp = spacy.load('pt_core_news_sm', disable=['ner'])
+
+    def meta(self, frases, tense, settings=None, vezes=3):
+        blocks = [Block(i + 1, frase) for i, frase in enumerate(frases * vezes)]
+        _, warnings, meta = run(blocks, lambda: self.nlp, settings=settings or options('tempo_verbal'),
+                                tense=tense, mode='linguistica')
+        return meta, [w for w in warnings if 'verbos' in w and 'escolhido' in w]
+
+    def test_present_book_analysed_as_past(self):
+        meta, avisos = self.meta(PRESENTE, 'passado')
+        contradito = meta['tempo_contradito']
+        self.assertEqual((contradito['escolhido'], contradito['predominante']), ('passado', 'presente'))
+        self.assertGreaterEqual(contradito['presente'], 20)
+        self.assertEqual(contradito['presente'] + contradito['passado'],
+                         meta['contagem_verbos'].get('presente', 0) + meta['contagem_verbos'].get('passado', 0))
+        aviso, = avisos
+        self.assertIn('Presente', aviso)
+
+    def test_past_book_analysed_as_present(self):
+        meta, avisos = self.meta(PASSADO, 'presente')
+        self.assertEqual(meta['tempo_contradito']['predominante'], 'passado')
+        self.assertEqual(len(avisos), 1)
+
+    def test_matching_choice_has_no_warning(self):
+        for frases, tense in [(PRESENTE, 'presente'), (PASSADO, 'passado')]:
+            with self.subTest(tense=tense):
+                meta, avisos = self.meta(frases, tense)
+                self.assertNotIn('tempo_contradito', meta)
+                self.assertEqual(avisos, [])
+
+    def test_short_text_and_mixed_narration_have_no_warning(self):
+        # Poucos verbos não sustentam a conclusão; narração mista não tem tempo predominante claro.
+        for frases, vezes in [(PRESENTE[:3], 1), (PRESENTE[:5] + PASSADO[5:], 3)]:
+            with self.subTest(frases=frases[0], vezes=vezes):
+                meta, avisos = self.meta(frases, 'passado', vezes=vezes)
+                self.assertNotIn('tempo_contradito', meta)
+                self.assertEqual(avisos, [])
+
+    def test_dialogue_in_scope_or_rule_off_has_no_warning(self):
+        # Falas no presente distorcem a contagem; sem a regra de tempo verbal não há contagem.
+        com_falas = options('tempo_verbal'); com_falas['tense_scopes'] = ['narracao', 'dialogo']
+        for settings in [com_falas, options('estrutura')]:
+            with self.subTest(settings=settings['tense_scopes']):
+                meta, avisos = self.meta(PRESENTE, 'passado', settings=settings)
+                self.assertNotIn('tempo_contradito', meta)
+                self.assertEqual(avisos, [])

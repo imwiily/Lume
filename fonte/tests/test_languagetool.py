@@ -266,7 +266,7 @@ class FiltrosSegundoRelatorioTests(unittest.TestCase):
 
     def test_alem_de_as_complement_is_not_the_connector(self):
         # ‘nada além disso’ = ‘nada mais do que isso’: ‘além de’ completa o pronome ou o sintagma.
-        for texto, marcado in [("Não havia nada além disso.", "nada além disso"),
+        for texto, marcado in [("Não sobrou nada além disso.", "nada além disso"),
                                ("Eu não queria nada além disso.", "nada além disso"),
                                ("Ninguém sabia nada além disso.", "nada além disso"),
                                ("Não encontrei ninguém além dele.", "ninguém além dele"),
@@ -286,7 +286,7 @@ class FiltrosSegundoRelatorioTests(unittest.TestCase):
         for texto, marcado, sugestao in [("Ele estava cansado e além disso precisava dormir.", "e além disso", "e, além disso"),
                                          ("Ele estava cansado além disso precisava dormir.", "cansado além disso", "cansado, além disso"),
                                          ("A tarefa era difícil e além disso faltava tempo.", "e além disso", "e, além disso"),
-                                         ("Não havia nada. Além disso estava escuro.", "Além disso", "Além disso,")]:
+                                         ("Não sobrou nada. Além disso estava escuro.", "Além disso", "Além disso,")]:
             with self.subTest(texto=texto):
                 encontrado = match(texto, marcado, "VERB_COMMA_CONJUNCTION", "uncategorized", "PUNCTUATION", [sugestao])
                 encontrado["message"] = ("Esta locução deve ser separada por vírgulas, e só deve ser utilizada no "
@@ -306,14 +306,14 @@ class FiltrosSegundoRelatorioTests(unittest.TestCase):
 
     def test_connector_message_keeps_correct_text(self):
         # Mensagem sem a afirmação falsa passa como veio do LanguageTool.
-        texto = "Não havia nada. Além disso estava escuro."
+        texto = "Não sobrou nada. Além disso estava escuro."
         encontrado = match(texto, "Além disso", "VERB_COMMA_CONJUNCTION", "uncategorized", "PUNCTUATION", ["Além disso,"])
         encontrado["message"] = "Esta locução deve ser separada por vírgulas."
         r, = check([Block(1, texto)], {texto: [encontrado]})[0]
         self.assertEqual(r["reason"], "Esta locução deve ser separada por vírgulas.")
 
     def test_agora_sim_needs_no_commas(self):
-        for texto in ["— Agora sim, a festa começou.", "Agora sim eu entendi o recado."]:
+        for texto in ["— Agora sim, dá para ouvir a banda.", "Agora sim eu entendi o recado."]:
             with self.subTest(texto=texto):
                 respostas = {texto: [match(texto, "Agora sim", "VERB_COMMA_CONJUNCTION", "grammar", "PUNCTUATION")]}
                 self.assertEqual(check([Block(1, texto)], respostas)[0], [])

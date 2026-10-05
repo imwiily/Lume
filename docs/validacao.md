@@ -3,6 +3,28 @@
 Os registros abaixo pertencem às versões indicadas. Caminhos citados nos registros anteriores à 1.0 são da antiga pasta `LumeMac/` (correspondência em [README.md](../README.md#estrutura)); os comandos abaixo usam a raiz do repositório. As verificações do hotfix aparecem primeiro; os registros anteriores são mantidos para rastreabilidade.
 
 
+## Próxima versão (desenvolvimento) — 05/10/2026
+
+Aviso de tempo escolhido contrariado, falsos positivos ao lado do relatório e reescrita de frases
+parecidas com os manuscritos. Base: `290f439`, numa worktree; saídas locais fora do repositório.
+
+- Varredura do repositório contra os manuscritos A e B (`.pages` atuais, copiados): sequências
+  de 5 palavras, de 4 palavras e semelhança por frase (inclusive no texto dos DOCX de exemplo).
+  As adaptações próximas foram reescritas; depois disso, nenhuma sequência de 5 palavras em
+  comum, e as semelhanças restantes são frases curtas e comuns.
+- Aviso de tempo: 5 testes novos (`TenseChoiceTests`: os dois sentidos; tempo certo; texto curto
+  e narração mista; falas no escopo e regra desligada). Os positivos falham sem a mudança.
+- 307 testes do analisador, 25 dos pacotes e do contrato Python e 24 do Coerencia aprovados.
+  Contrato Swift (com o campo novo presente e ausente), edição, falsos positivos e livro
+  aprovados; `xcodebuild` Debug sem erros. A faixa nova não foi inspecionada no app.
+- Corpus (todos, com LanguageTool): antes e depois iguais, 58/61, 75 ocorrências, 8 alarmes
+  falsos. Nenhum texto do corpus recebe o aviso.
+- Manuscritos A e B com Passado e LanguageTool: A 45 → 45, B 17 → 17, mesmos identificadores,
+  sem o aviso (A: 1.336 verbos no passado e 24 no presente). A com Presente, de propósito:
+  1.358 alertas e o aviso, 98% no passado.
+- Exemplos regenerados: Editorial 8 e Mestre 11 alertas, mesma distribuição por etapa; só
+  “observa” muda de atenção editorial para provável erro, efeito da 1.4.
+
 ## Lume 1.4.1 / FONTE 1.3.1 · Coerencia 1.1.0 — 04/10/2026
 
 Falha relatada pelo autor num livro de 13.449 parágrafos: depois de 43 minutos de revisão

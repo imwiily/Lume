@@ -63,7 +63,7 @@ class NoRedirect(HTTPRedirectHandler):
 def alem_integrado(text, start, end):
     """‘Além de’ como complemento dentro da oração, e não o conector ‘além disso’ (= ademais).
 
-    “Não havia nada além disso”, “ninguém além dele”, “coisa alguma além daquilo”,
+    “Não sobrou nada além disso”, “ninguém além dele”, “coisa alguma além daquilo”,
     “nenhum caderno além desse”: a palavra anterior, na mesma oração, é pronome ou
     quantificador que ‘além de’ completa, ou há ‘nenhum’ nas três palavras anteriores.
     Depois de conjunção, adjetivo, verbo ou pontuação, é o conector.
