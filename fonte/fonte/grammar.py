@@ -375,7 +375,9 @@ def agreement(block, doc, emit):
             continue
         if (number(noun) == "Plur" and noun.lower_.endswith("s") and number(token) == "Sing"
                 and not token.lower_.endswith("s")):
-            emit("concordancia", "Concordância nominal", noun.idx, token.idx + len(token.text), "probable_error", .75,
+            # Predicativo antes do sujeito (“Estavam apagada as luzes”): o trecho vai do primeiro termo ao último.
+            first, last = sorted((noun, token), key=lambda t: t.i)
+            emit("concordancia", "Concordância nominal", first.idx, last.idx + len(last.text), "probable_error", .75,
                  f"O adjetivo ‘{token.text}’ está no singular, mas se refere a ‘{noun.text}’, no plural.")
 
 

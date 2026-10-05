@@ -51,57 +51,80 @@ class Manuscript:
         }
 
 
-def standardize(items, module, manuscript):
-    """Mantém IDs e campos antigos para preservar decisões e leitores v1."""
+class InvalidOccurrence(ValueError):
+    """Ocorrência cujo trecho ou evidência não corresponde ao manuscrito capturado."""
+
+
+def standardize(items, module, manuscript, rejected=None):
+    """Mantém IDs e campos antigos para preservar decisões e leitores v1.
+
+    Ocorrência com trecho ou evidência fora do manuscrito interrompe a etapa, salvo quando
+    `rejected` é uma lista: então ela é descartada sozinha e descrita ali, e as demais seguem.
+    Nenhum alerta aponta trecho inexistente em nenhum dos dois casos."""
     locations = {b.number: (b, offset) for b, offset in zip(manuscript.blocks, manuscript.offsets)}
     result = []
     categories = {"Tempo verbal": "narrative_tense", "Estrutura da frase": "sentence_structure",
                   "Pontuação de diálogo": "dialogue_punctuation", "Palavra repetida": "repetition",
                   "Ortografia e gramática": "grammar"}
     for raw in items:
-        item = dict(raw)
-        block, offset = locations[item["paragraph"]]
-        start, end = item["start"], item["end"]
-        if (type(start) is not int or type(end) is not int or
-                not 0 <= start < end <= len(block.text) or item["text"] != block.text):
-            raise ValueError("Ocorrência incompatível com o manuscrito original "
-                             f"(módulo {module}, regra {item.get('rule', item['category'])}, "
-                             f"parágrafo {block.number}, intervalo {start}:{end}, "
-                             f"comprimento {len(block.text)}).")
-        severity = item.get("severity", "editorial_attention")
-        if item.get("rule") in ("duracao_suspensao", "adiamento_amanha"):
-            severity = "possible_inconsistency"
-        elif item.get("rule") in ("referente_proximidade", "pronome_apos_corte"):
-            severity = "author_query"
-        elif item["source"].startswith("LanguageTool"):
-            severity = "probable_error"
-        confidence = item.get("confidence", "média")
-        score = item.get("confidence_score", {"alta": .9, "média": .65, "baixa": .4}[confidence])
-        if module not in MODULES or severity not in SEVERITIES or not 0 <= score <= 1:
-            raise ValueError("Classificação de ocorrência inválida.")
-        item.update(module=module, severity=severity, confidence=confidence,
-                    confidence_score=score,
-                    category_code=item.get("category_code", item.get("rule", categories.get(item["category"], "editorial_review"))),
-                    range={"start": offset + start, "end": offset + end},
-                    excerpt=block.text[start:end], message=item["reason"])
-        item.setdefault("layer", "linguistica" if module in ("linguistic", "morphosyntactic") else "editorial")
-        item.setdefault("suggestion", None)
-        def enrich(proof):
-            proof = dict(proof)
-            if proof.get("document", "atual") == "atual" and proof.get("paragraph") in locations:
-                source, base = locations[proof["paragraph"]]
-                lo, hi = proof["start"], proof["end"]
-                if not 0 <= lo <= hi <= len(source.text) or proof["text"] != source.text:
-                    raise ValueError("Evidência incompatível com o manuscrito original.")
-                proof.update(type="text_evidence", range={"start": base+lo, "end": base+hi},
-                             excerpt=source.text[lo:hi])
-            return proof
-        for field in ("related", "context", "evidence"):
-            if field in item:
-                item[field] = [enrich(proof) for proof in item[field]]
-        item.setdefault("evidence", [enrich(dict(paragraph=block.number, chapter=block.chapter,
-                            text=block.text, start=start, end=end, document="atual")), *item.get("related", [])])
-        if manuscript.text[item["range"]["start"]:item["range"]["end"]] != item["excerpt"]:
-            raise ValueError("Offsets globais divergentes.")
+        try:
+            item = occurrence(raw, module, manuscript, locations, categories)
+        except InvalidOccurrence as error:
+            if rejected is None:
+                raise
+            rejected.append({"module": module, "rule": raw.get("rule", raw.get("category")),
+                             "paragraph": raw.get("paragraph"), "start": raw.get("start"),
+                             "end": raw.get("end"), "reason": str(error)})
+            continue
         result.append(item)
     return result
+
+
+def occurrence(raw, module, manuscript, locations, categories):
+    """Uma ocorrência no formato do relatório; InvalidOccurrence se não corresponder ao texto."""
+    item = dict(raw)
+    block, offset = locations[item["paragraph"]]
+    start, end = item["start"], item["end"]
+    if (type(start) is not int or type(end) is not int or
+            not 0 <= start < end <= len(block.text) or item["text"] != block.text):
+        raise InvalidOccurrence("Ocorrência incompatível com o manuscrito original "
+                                f"(módulo {module}, regra {item.get('rule', item['category'])}, "
+                                f"parágrafo {block.number}, intervalo {start}:{end}, "
+                                f"comprimento {len(block.text)}).")
+    severity = item.get("severity", "editorial_attention")
+    if item.get("rule") in ("duracao_suspensao", "adiamento_amanha"):
+        severity = "possible_inconsistency"
+    elif item.get("rule") in ("referente_proximidade", "pronome_apos_corte"):
+        severity = "author_query"
+    elif item["source"].startswith("LanguageTool"):
+        severity = "probable_error"
+    confidence = item.get("confidence", "média")
+    score = item.get("confidence_score", {"alta": .9, "média": .65, "baixa": .4}[confidence])
+    if module not in MODULES or severity not in SEVERITIES or not 0 <= score <= 1:
+        raise ValueError("Classificação de ocorrência inválida.")
+    item.update(module=module, severity=severity, confidence=confidence,
+                confidence_score=score,
+                category_code=item.get("category_code", item.get("rule", categories.get(item["category"], "editorial_review"))),
+                range={"start": offset + start, "end": offset + end},
+                excerpt=block.text[start:end], message=item["reason"])
+    item.setdefault("layer", "linguistica" if module in ("linguistic", "morphosyntactic") else "editorial")
+    item.setdefault("suggestion", None)
+    def enrich(proof):
+        proof = dict(proof)
+        if proof.get("document", "atual") == "atual" and proof.get("paragraph") in locations:
+            source, base = locations[proof["paragraph"]]
+            lo, hi = proof["start"], proof["end"]
+            if not 0 <= lo <= hi <= len(source.text) or proof["text"] != source.text:
+                raise InvalidOccurrence("Evidência incompatível com o manuscrito original "
+                                        f"(parágrafo {proof['paragraph']}, intervalo {lo}:{hi}).")
+            proof.update(type="text_evidence", range={"start": base+lo, "end": base+hi},
+                         excerpt=source.text[lo:hi])
+        return proof
+    for field in ("related", "context", "evidence"):
+        if field in item:
+            item[field] = [enrich(proof) for proof in item[field]]
+    item.setdefault("evidence", [enrich(dict(paragraph=block.number, chapter=block.chapter,
+                        text=block.text, start=start, end=end, document="atual")), *item.get("related", [])])
+    if manuscript.text[item["range"]["start"]:item["range"]["end"]] != item["excerpt"]:
+        raise ValueError("Offsets globais divergentes.")
+    return item

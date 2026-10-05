@@ -167,6 +167,38 @@ class PipelineTests(unittest.TestCase):
         raw[0]['end'] = 1000
         with self.assertRaises(ValueError): standardize(raw, 'linguistic', Manuscript.capture(blocks))
 
+    def test_invalid_occurrence_is_dropped_alone_when_asked(self):
+        blocks = [Block(1, 'Nada além de disso,,')]
+        raw = analyze(blocks, validate({}))
+        self.assertGreaterEqual(len(raw), 2)
+        broken = deepcopy(raw)
+        broken[0]['start'], broken[0]['end'] = 8, 7  # trecho invertido
+        rejected = []
+        kept = standardize(broken, 'linguistic', Manuscript.capture(blocks), rejected=rejected)
+        self.assertEqual([f['id'] for f in kept], [f['id'] for f in raw[1:]])
+        self.assertEqual([(r['paragraph'], r['start'], r['end']) for r in rejected], [(1, 8, 7)])
+        # Evidência fora do parágrafo também descarta só aquela ocorrência.
+        broken = deepcopy(raw)
+        broken[1]['evidence'] = [dict(paragraph=1, text=blocks[0].text, start=0, end=999, document='atual')]
+        rejected = []
+        kept = standardize(broken, 'linguistic', Manuscript.capture(blocks), rejected=rejected)
+        self.assertEqual(len(kept), len(raw) - 1)
+        self.assertEqual(len(rejected), 1)
+
+    def test_pipeline_keeps_the_stage_when_one_occurrence_is_invalid(self):
+        blocks = [Block(1, 'Nada além de disso,,')]
+        def faulty(blocks, options):
+            out = analyze(blocks, options)
+            out[0] = dict(out[0], start=8, end=7)
+            return out
+        expected = len(analyze(blocks, validate({}))) - 1
+        with patch('fonte.linguistic.analyze', side_effect=faulty):
+            findings, warnings, meta = run(blocks, Mock(), settings=selected(*LINGUISTIC_RULES), mode='linguistica')
+        self.assertEqual(len([f for f in findings if f['module'] == 'linguistic']), expected)
+        self.assertEqual(meta['stages'][0]['state'], 'completed')
+        self.assertEqual(len(meta['ocorrencias_descartadas']), 1)
+        self.assertTrue(any('descartado' in w for w in warnings))
+
     def test_consecutive_is_executed_once(self):
         findings, _, _ = run([Block(1, 'Ele foi foi até a rua.')], Mock(), settings=selected('palavra_consecutiva'))
         self.assertEqual(len(findings), 1)

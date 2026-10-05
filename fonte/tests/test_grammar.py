@@ -169,6 +169,20 @@ class AgreementTests(unittest.TestCase):
             with self.subTest(sentence=sentence):
                 self.assertEqual(excerpts(run(sentence), "concordancia"), [])
 
+    def test_inverted_predicative_keeps_a_valid_span(self):
+        # Predicativo antes do sujeito: o trecho vai do primeiro ao último termo, nunca com o início
+        # depois do fim (o contrato recusa o relatório inteiro). Árvore montada à mão: o modelo
+        # pequeno só produz essa leitura em frases longas.
+        from spacy.tokens import Doc
+        from fonte.grammar import agreement
+        text = "Estavam apagada luzes."
+        doc = Doc(NLP.vocab, words=["Estavam", "apagada", "luzes", "."], spaces=[True, True, False, False],
+                  pos=["AUX", "ADJ", "NOUN", "PUNCT"], deps=["cop", "ROOT", "nsubj", "punct"], heads=[1, 1, 1, 1],
+                  morphs=["Number=Plur|Person=3|VerbForm=Fin", "Gender=Fem|Number=Sing", "Gender=Fem|Number=Plur", ""])
+        spans = []
+        agreement(Block(1, text), doc, lambda rule, category, start, end, *rest, **kw: spans.append((start, end)))
+        self.assertEqual(spans, [(text.index("apagada"), text.index("luzes") + len("luzes"))])
+
     def test_agreement_is_not_applied_inside_dialogue(self):
         self.assertEqual(excerpts(run("— Os menino chegou cedo — disse ela."), "concordancia"), [])
 

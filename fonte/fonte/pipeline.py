@@ -172,7 +172,16 @@ def run(blocks, model_loader, *, settings=None, tense="auto", mode="ambas",
         atual["stage"] = stage
         started = perf_counter()
         try:
-            batch = standardize(action(), module, manuscript)
+            # Uma ocorrência com trecho fora do texto (defeito de uma regra) é descartada e
+            # avisada; não derruba a etapa nem o que já foi analisado.
+            rejected = []
+            batch = standardize(action(), module, manuscript, rejected=rejected)
+            if rejected:
+                meta.setdefault("ocorrencias_descartadas", []).extend(rejected)
+                rules_hit = ", ".join(sorted({str(r["rule"]) for r in rejected}))
+                warnings.append(f"{title}: {len(rejected)} alerta(s) descartado(s) porque apontavam um trecho "
+                                f"que não existe no manuscrito (regra {rules_hit}). É um defeito do Lume, não "
+                                "do seu texto; o restante da análise foi mantido.")
             seen = {f["id"]: f for f in findings}
             for item in batch:
                 if item["id"] in seen:

@@ -3,6 +3,29 @@
 Os registros abaixo pertencem às versões indicadas. Caminhos citados nos registros anteriores à 1.0 são da antiga pasta `LumeMac/` (correspondência em [README.md](../README.md#estrutura)); os comandos abaixo usam a raiz do repositório. As verificações do hotfix aparecem primeiro; os registros anteriores são mantidos para rastreabilidade.
 
 
+## Lume 1.4.1 / FONTE 1.3.1 · Coerencia 1.1.0 — 04/10/2026
+
+Falha relatada pelo autor num livro de 13.449 parágrafos: depois de 43 minutos de revisão
+linguística, a etapa morfossintática falhou com “Ocorrência incompatível com o manuscrito
+original (regra concordancia, intervalo 30:29)”, e a análise inteira foi perdida.
+
+- Causa reproduzida com árvore montada à mão (o modelo pequeno não gera a leitura em frase
+  curta inventada): predicativo antes do sujeito, trecho `(16, 15)` antes da correção. Os demais
+  trechos montados com dois tokens foram conferidos: a ordem já é garantida pela construção.
+- Descarte por ocorrência: testes com trecho invertido e com evidência fora do parágrafo; pelo
+  pipeline, a etapa termina, a ocorrência válida fica e o aviso aparece. Com o `pipeline.py`
+  anterior o teste falha (o erro derruba a etapa). O modo estrito continua testado.
+- 302 testes do analisador, 25 dos pacotes e do contrato Python e 24 do Coerencia aprovados.
+  Corpus sem mudança (48/61, 6 alarmes falsos). Sem comparação nos manuscritos A e B: a
+  correção só muda o trecho de uma ocorrência que antes derrubava a análise, e A e B já rodavam.
+- Com a análise concluída, o mesmo livro gerou relatório de 36 MB (11.115 ocorrências; o
+  contexto de cada uma responde por cerca de 10 MB) e o app recusou abri-lo pelo limite de 25 MB.
+  O contrato Swift decodifica e valida esse relatório em 1,1 s, com 241 MB de memória residente;
+  o limite passou a 200 MB.
+- Montagem `build/20261004-184041-F0EF4F15/`: regressões, `xcodebuild`, contratos Swift e diagnóstico do motor
+  aprovados. `release.json`: app 1.4.1 (build 24), motor 1.3.1, saudável; SHA-256 do ZIP
+  `e6f6fe028cb2270fc1e472f05a3e922b2a53e10a70bf09f64e6097a614dcd147`.
+
 ## Lume 1.4 / FONTE 1.3.0 · Coerencia 1.1.0 — 04/10/2026
 
 Limitações listadas na depuração, corrigidas e medidas contra `87edbbe`. Comparações sem

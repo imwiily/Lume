@@ -261,8 +261,10 @@ final class ReviewStore: ObservableObject {
 
     private func readData(_ url: URL) throws -> Data {
         let attrs = try manager.attributesOfItem(atPath: url.path)
-        guard let size = attrs[.size] as? NSNumber, size.intValue <= 25_000_000 else {
-            throw FonteError.message("O JSON excede o limite de 25 MB desta interface.")
+        // Trava contra arquivos absurdos, não contra livros longos: um romance de 13 mil parágrafos
+        // gera relatório de uns 36 MB, lido em cerca de 1 s com 240 MB de memória.
+        guard let size = attrs[.size] as? NSNumber, size.intValue <= 200_000_000 else {
+            throw FonteError.message("O JSON excede o limite de 200 MB desta interface.")
         }
         return try Data(contentsOf: url)
     }

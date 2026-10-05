@@ -2,6 +2,23 @@
 
 As seções antigas descrevem a cobertura e os resultados de cada entrega, não o estado atual. Nas seções anteriores à 1.0, caminhos citados são da antiga pasta `LumeMac/`; a correspondência com a estrutura atual está em [README.md](README.md#estrutura).
 
+## Lume 1.4.1 / FONTE 1.3.1 · Coerencia 1.1.0 — 04/10/2026
+
+Correção: uma ocorrência com trecho inválido não descarta mais a análise inteira.
+
+- Concordância nominal com o predicativo antes do sujeito (“Estavam apagada as luzes”): o
+  trecho ia do substantivo ao adjetivo e, com o substantivo depois, ficava com o início além do
+  fim. A conferência de integridade recusava o relatório e a etapa morfossintática falhava,
+  perdendo toda a análise já feita. O trecho agora vai do primeiro termo ao último. O defeito
+  existia desde a 0.11.
+- Ocorrência cujo trecho ou evidência não corresponde ao manuscrito (sempre um defeito de regra)
+  passa a ser descartada sozinha: a etapa termina, o relatório traz um aviso em “Sobre esta
+  análise” com a regra afetada, e os detalhes ficam em `metadata.ocorrencias_descartadas`
+  (chave nova). Nenhum alerta aponta trecho inexistente. Captura divergente do manuscrito,
+  classificação inválida e identificador repetido continuam interrompendo a etapa.
+- O app abre relatórios de até 200 MB (antes 25 MB). Um livro de 13 mil parágrafos gerou um
+  relatório de 36 MB que terminava a análise mas não abria; ele é lido em cerca de 1 s.
+
 ## Lume 1.4 / FONTE 1.3.0 · Coerencia 1.1.0 — 04/10/2026
 
 O tempo verbal passa a ser lido na sequência de ações da cena, e não só verbo a verbo; menos
