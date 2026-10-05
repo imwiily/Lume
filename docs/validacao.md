@@ -51,6 +51,31 @@ Gasto: US$ 0,56 em 4 rodadas, mais US$ 0,03 do teste da Etapa 5.
 - 341 testes do analisador, 29 dos pacotes e do contrato Python (4 novos da pontuação da
   auditoria) e 25 do Coerencia aprovados.
 
+## Auditoria final com IA — montagem e conferência final (05/10/2026)
+
+Etapa 7 do [plano](../.agent/plans/auditor-final.md).
+
+- **Montagem** `build/20261005-112500-9DCF7935/`:
+  - regressões aprovadas (341 do analisador, 29 dos pacotes);
+  - `xcodebuild` Release, contratos Swift (relatório, edição, falsos positivos, livro) e
+    diagnóstico do motor aprovados;
+  - `release.json`: app 1.4.1 (build 24), motor 1.3.1, saudável, corretor gramatical e
+    Coerência disponíveis;
+  - SHA-256 do ZIP `97b3b1198bab4cf573a926e558f8cfd6de645934143d0533f38d3009c50cf4bd`;
+  - os números de versão não mudaram: a versão da entrega ainda não foi decidida.
+- **Motor congelado:**
+  - `auditoria-estimar` roda sem rede;
+  - `revisar --auditoria-ia` no texto sintético da Etapa 5 enviou 2 pedidos (US$ 0,026),
+    porque o prompt mudou para a v3 e invalidou o que estava guardado. Esse gasto não estava
+    previsto nesta etapa;
+  - a segunda rodada não enviou nada e manteve os mesmos IDs.
+- **Manuscritos A e B** (Passado, LanguageTool, auditoria desligada, nada enviado): A 45 →
+  45 e B 17 → 17, mesmos identificadores da revisão `290f439`, sem aviso de tempo contradito.
+- **Coincidências:** sem sequências de 5 palavras em comum com A e B no repositório nem nos
+  DOCX de exemplo.
+- **Gasto total com a API no desenvolvimento do auditor:** US$ 0,62.
+- **Auditoria em A e B:** não rodada, por decisão do autor.
+
 ## Próxima versão (desenvolvimento) — 05/10/2026
 
 Aviso de tempo escolhido contrariado, falsos positivos ao lado do relatório e reescrita de frases

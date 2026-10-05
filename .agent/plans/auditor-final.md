@@ -405,7 +405,7 @@ cd fonte && .venv/bin/python -m fonte revisar <copia.pages> --saida <nova> --tem
 - [x] Etapa 4 — app (05/10)
 - [x] Etapa 5 — ponta a ponta com a API (05/10, autorizada)
 - [x] Etapa 6 — medição no corpus (05/10, autorizada; US$ 0,56 de US$ 2,00)
-- [ ] Etapa 7 — manuscritos, documentação e montagem (autorização)
+- [x] Etapa 7 — documentação, montagem e A/B sem auditoria (05/10). Auditoria em A e B: suspensa (decisão 6).
 
 05/10/2026: plano criado a partir do código em `290f439` mais as alterações locais da
 tarefa anterior. O cliente `Claude` da Coerência cobre saída estruturada, cache, recusa e
@@ -545,7 +545,22 @@ no corpus”). Em resumo:
 - **Decisão:** parei de ajustar o prompt depois da v3, porque as diferenças ficaram no nível
   do ruído entre rodadas.
 
-## Validação realizada e resultado final
+05/10/2026, Etapa 7:
+
+- **Documentação:**
+  - README: seção “Auditoria final com IA” e limites;
+  - `docs/arquitetura.md`: primeira linha atualizada;
+  - instruções do projeto: a regra 7 do `AGENTS.md` vale para os dois recursos com IA, a
+    Auditoria sai de “fora do escopo” (restrita às categorias de `auditoria_ia.py`) e o
+    `fonte/AGENTS.md` deixa de proibir anunciá-la.
+- **Montagem completa aprovada.** Detalhes em `docs/validacao.md`.
+- **Gasto não previsto de US$ 0,026:** a checagem do motor congelado reenviou o texto da
+  Etapa 5, porque a versão do prompt mudou. Lição: antes de qualquer `revisar
+  --auditoria-ia`, rodar `auditoria-estimar` e conferir `a_enviar`.
+- **Fica para a decisão de versão e entrega:**
+  - número de versão (2.0 ou intermediária) e CHANGELOG;
+  - `gh release`.
+
 
 Etapa 6 (05/10/2026):
 
