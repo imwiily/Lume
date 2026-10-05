@@ -51,6 +51,22 @@ Gasto: US$ 0,56 em 4 rodadas, mais US$ 0,03 do teste da Etapa 5.
 - 341 testes do analisador, 29 dos pacotes e do contrato Python (4 novos da pontuação da
   auditoria) e 25 do Coerencia aprovados.
 
+## Lume 1.5 / FONTE 1.4.0 · Coerencia 1.2.0 — montagem da entrega (05/10/2026)
+
+- **Montagem** `build/20261005-115037-D8BAC241/`:
+  - regressões aprovadas (341 do analisador, 29 dos pacotes);
+  - `xcodebuild` Release, contratos Swift (relatório, edição, falsos positivos, livro) e
+    diagnóstico do motor aprovados.
+- **`release.json`:**
+  - app 1.5 (build 25), motor 1.4.0, saudável;
+  - corretor gramatical e Coerência disponíveis;
+  - SHA-256 do ZIP `8161eecdf2fc60726185fe21e3c6a3b5a443b2ee246410175ec78a833dae93f0`.
+- **Evidências das mudanças** nas seções abaixo:
+  - Auditoria final: etapas 1 a 7;
+  - aviso de tempo, falsos positivos e frases reescritas.
+- **Pendência registrada:** rodar a auditoria nos manuscritos A e B, suspensa por decisão do
+  autor.
+
 ## Auditoria final com IA — montagem e conferência final (05/10/2026)
 
 Etapa 7 do [plano](../.agent/plans/auditor-final.md).
@@ -76,7 +92,7 @@ Etapa 7 do [plano](../.agent/plans/auditor-final.md).
 - **Gasto total com a API no desenvolvimento do auditor:** US$ 0,62.
 - **Auditoria em A e B:** não rodada, por decisão do autor.
 
-## Próxima versão (desenvolvimento) — 05/10/2026
+## Lume 1.5 / FONTE 1.4.0 · Coerencia 1.2.0 — aviso de tempo, falsos positivos e frases reescritas (05/10/2026)
 
 Aviso de tempo escolhido contrariado, falsos positivos ao lado do relatório e reescrita de frases
 parecidas com os manuscritos. Base: `290f439`, numa worktree; saídas locais fora do repositório.

@@ -1,2 +1,2 @@
 """FONTE: suspeitas para revisão humana, sem alterações no manuscrito."""
-__version__ = "1.3.1"
+__version__ = "1.4.0"

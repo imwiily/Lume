@@ -2,7 +2,9 @@
 
 As seções antigas descrevem a cobertura e os resultados de cada entrega, não o estado atual. Nas seções anteriores à 1.0, caminhos citados são da antiga pasta `LumeMac/`; a correspondência com a estrutura atual está em [README.md](README.md#estrutura).
 
-## Próxima versão — em desenvolvimento
+## Lume 1.5 / FONTE 1.4.0 · Coerencia 1.2.0 — 05/10/2026
+
+Auditoria final com IA, aviso de tempo contradito e falsos positivos salvos ao lado do relatório.
 
 - Auditoria final com IA (Claude), desligada por padrão porque custa dinheiro. Depois das
   outras etapas, o Claude relê cada capítulo com os alertas já encontrados e aponta só
@@ -32,6 +34,9 @@ As seções antigas descrevem a cobertura e os resultados de cada entrega, não 
   reescritas com outras palavras e outros contextos, mantendo o fenômeno que cada caso cobre.
   Os DOCX de exemplo `Manuscrito-editorial` e `Mestre/Manuscrito-modular` mudaram e os
   relatórios `examples/Editorial` e `examples/Mestre` foram regenerados pelo FONTE 1.3.1.
+- Coerencia 1.2.0: o cliente da API distingue recusa, resposta cortada e teto atingido
+  (`Recusa`, `RespostaCortada`, `TetoAtingido`, subclasses de `ErroModelo`, com as mesmas
+  mensagens). A Coerência funciona como antes.
 
 ## Lume 1.4.1 / FONTE 1.3.1 · Coerencia 1.1.0 — 04/10/2026
 
