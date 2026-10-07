@@ -10,7 +10,7 @@ def linguistic(blocks, nlp, tense, settings):
     rules=options['rules']
     # As regras de estrutura e pontuação continuam restritas à narração.
     for allowed,active in [(options['tense_scopes'], ['tempo_verbal']),
-                           (['narracao'], ['estrutura','pontuacao_dialogo'])]:
+                           (['narracao'], ['estrutura','residuo_edicao','pontuacao_dialogo'])]:
         enabled=[r for r in active if rules[r]]
         if not enabled or not allowed:
             continue

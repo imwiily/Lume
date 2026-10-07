@@ -28,12 +28,27 @@ class ComparacaoTests(unittest.TestCase):
         caminho.parent.mkdir(parents=True)
         caminho.write_text(json.dumps({'findings': alertas}))
 
+    def test_identical_reports_pass_even_if_only_the_rule_was_added(self):
+        self.relatorio('a', 'livro', [alerta('1')])
+        self.relatorio('b', 'livro', [alerta('1', rule='tempo_verbal')])
+        r, = [comparar.comparar(a, b) for _, a, b in comparar.pares(self.raiz / 'a', self.raiz / 'b')]
+        self.assertTrue(comparar.identico(r))
+        self.assertEqual(r['mudancas_descritivas'], {'rule': 1})
+        self.assertEqual(comparar.main([str(self.raiz / 'a'), str(self.raiz / 'b'), '--exigir-identico']), 0)
+
     def test_destination_change_and_lost_ids_fail(self):
         self.relatorio('a', 'livro', [alerta('1'), alerta('2')])
         self.relatorio('b', 'livro', [alerta('1', destino='informacao'), alerta('3')])
         r = comparar.comparar(self.raiz / 'a/livro/relatorio.json', self.raiz / 'b/livro/relatorio.json')
         self.assertEqual((r['saíram'], r['entraram'], r['mudancas_editoriais']), (['2'], ['3'], {'destino': 1}))
         self.assertEqual(comparar.main([str(self.raiz / 'a'), str(self.raiz / 'b'), '--exigir-identico']), 1)
+
+    def test_rule_added_keeps_the_statistical_class(self):
+        # A classe estatística vem da política: acrescentar `rule` não pode mudá-la.
+        self.relatorio('a', 'livro', [alerta('1')])
+        self.relatorio('b', 'livro', [dict(alerta('1', rule='tempo_verbal'), classe='narrative_tense')])
+        r, = [comparar.comparar(a, b) for _, a, b in comparar.pares(self.raiz / 'a', self.raiz / 'b')]
+        self.assertNotIn('classe', r['mudancas_editoriais'])
 
     def test_output_has_no_excerpts(self):
         self.relatorio('a', 'livro', [alerta('1')])

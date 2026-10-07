@@ -85,6 +85,24 @@ do Lume passa a ser interromper o editor só com boa razão e deixar o manuscrit
 - **Regra `tratamento` retirada** por decisão do autor (nasceu de um caso isolado). A chave
   continua aceita nas configurações salvas, sem efeito.
 
+Estabilização do FONTE, Fases 0 e 1 ([plano](.agent/plans/fonte-estabilizacao.md)), sem mudar
+nenhum alerta:
+
+- **Comparação alerta a alerta:**
+  - `scripts/comparar_relatorios.py` compara IDs, destinos, classes, severidades e confianças, sem
+    trechos na saída;
+  - `avaliar_deteccao.py --guardar-relatorios` guarda o relatório de cada texto do corpus.
+- **Identidade, regra e classe separadas:**
+  - todo alerta passa a ter `rule` (tempo verbal, estrutura, resíduo de edição, pontuação de
+    diálogo e LanguageTool não tinham);
+  - o motor grava a `classe` estatística, com os mesmos nomes de antes, então as medições da
+    Política v2 continuam valendo;
+  - os IDs não mudam;
+  - no app, a memória do livro aceita a chave antiga desses alertas. Sem isso, a herança real
+    cairia de 28 para 21 decisões num livro e de 15 para 7 em outro.
+- **Resíduo de edição com configuração própria** (`residuo_edicao`): configurações salvas antes
+  herdam o valor de “Estrutura da frase”, no motor e no app.
+
 Encerramento editorial, segunda parte:
 
 - **Auditoria final como controle de qualidade** (política v2):

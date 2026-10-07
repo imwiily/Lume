@@ -86,10 +86,14 @@ class PolicyTests(unittest.TestCase):
         self.assertEqual(self.resultado(achado("crase", "baixa")), ("diagnostico", False))
 
     def test_contract_rejects_inconsistent_destination(self):
-        check_destination({"destino": "pendencia", "impeditivo": True, "severity": "probable_error"})
-        for item in ({"destino": "informacao", "impeditivo": True, "severity": "probable_error"},
-                     {"destino": "pendencia", "impeditivo": True, "severity": "editorial_attention"},
-                     {"destino": "outro", "impeditivo": False}, {"destino": "pendencia", "impeditivo": 0}):
+        base = {"rule": "crase", "classe": "crase"}
+        check_destination(dict(base, destino="pendencia", impeditivo=True, severity="probable_error"))
+        for item in (dict(base, destino="informacao", impeditivo=True, severity="probable_error"),
+                     dict(base, destino="pendencia", impeditivo=True, severity="editorial_attention"),
+                     dict(base, destino="outro", impeditivo=False), dict(base, destino="pendencia", impeditivo=0),
+                     # Desde a estabilização (Fase 1), regra e classe estatística são obrigatórias.
+                     {"destino": "pendencia", "impeditivo": False, "classe": "crase"},
+                     {"destino": "pendencia", "impeditivo": False, "rule": "crase"}):
             with self.subTest(item=item), self.assertRaises(ValueError):
                 check_destination(item)
 
@@ -125,7 +129,7 @@ class PipelineDestinationTests(unittest.TestCase):
         self.assertEqual(sum(meta["destinos"].values()), len(found) + len(meta["diagnostico"]))
         def sem_politica(itens):
             for item in itens:
-                item.update(destino="pendencia", impeditivo=False)
+                item.update(destino="pendencia", impeditivo=False, classe=pol.classe(item))
             return itens, []
         with patch.object(pol, "aplicar", sem_politica):
             antes, _, _ = run(blocos, lambda: self.nlp, tense="passado", mode="ambas")

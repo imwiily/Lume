@@ -366,7 +366,8 @@ def check(blocks, port=8081, protect_italics=True, settings=None, avancar=None):
                          "a vírgula não se aplica.")
             item = asdict(finding(block, "Ortografia e gramática", "Verificar", start, end, explicar(texto, termo),
                                   "LanguageTool local · " + rule.get("id", "regra")))
-            item.update(suggestion=replacements[0] if replacements else None, suggestion_kind="possible",
+            item.update(rule="languagetool", category_code="grammar",
+                        suggestion=replacements[0] if replacements else None, suggestion_kind="possible",
                         confidence="alta" if spelling else "média",
                         confidence_score=.9 if spelling else .75)
             # Termo desconhecido e recorrente: pode ser vocabulário da obra; a sugestão do corretor

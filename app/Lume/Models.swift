@@ -386,7 +386,21 @@ struct DecisionFile: Codable {
 extension Finding {
     /// Identidade do alerta pelo conteúdo: categoria, regra, origem, parágrafo, trecho e evidências.
     /// Sem número de parágrafo nem capítulo, para sobreviver a parágrafos inseridos ou apagados.
-    var contentKey: String {
+    var contentKey: String { contentKey(rule: rule) }
+
+    /// Regras que só passaram a vir em `rule` na estabilização de 07/10/2026. Memórias de livro
+    /// gravadas antes guardam a chave sem regra; para o mesmo alerta (mesma categoria, origem, trecho
+    /// e evidências), ela continua valendo. Nenhuma outra regra usa essa equivalência.
+    static let rulesAddedLater: Set<String> = ["tempo_verbal", "estrutura", "residuo_edicao", "pontuacao_dialogo",
+                                               "languagetool"]
+
+    /// A chave de antes, sem a regra, só para os alertas dessas regras.
+    var legacyContentKey: String? {
+        guard let rule, Self.rulesAddedLater.contains(rule) else { return nil }
+        return contentKey(rule: nil)
+    }
+
+    private func contentKey(rule: String?) -> String {
         struct Evidence: Encodable { let text: String; let start: Int; let end: Int; let document: String }
         struct Key: Encodable {
             let category: String; let rule: String?; let source: String
@@ -592,14 +606,21 @@ struct BookMemory: Codable {
     /// Decisões (exceto Pendente) dos alertas idênticos. Chave repetida só herda, na ordem,
     /// quando a quantidade é a mesma antes e depois; senão é ambígua e fica pendente.
     func inherited(for report: EditorialReport) -> [String: ReviewDecision] {
-        let groups = Dictionary(grouping: report.findings, by: \.contentKey)
         var result: [String: ReviewDecision] = [:]
-        for (key, findings) in groups {
-            guard let previous = decisions[key], previous.count == findings.count else { continue }
-            for (finding, raw) in zip(findings, previous) {
-                if let value = ReviewDecision(rawValue: raw), value != .pending { result[finding.id] = value }
+        var matched = Set<String>()
+        func take(_ groups: [String: [Finding]]) {
+            for (key, findings) in groups {
+                guard let previous = decisions[key], previous.count == findings.count else { continue }
+                for (finding, raw) in zip(findings, previous) {
+                    matched.insert(finding.id)
+                    if let value = ReviewDecision(rawValue: raw), value != .pending { result[finding.id] = value }
+                }
             }
         }
+        take(Dictionary(grouping: report.findings, by: \.contentKey))
+        // Memória gravada antes de a regra vir no alerta: a chave antiga, só para os mesmos alertas.
+        let legacy = report.findings.filter { !matched.contains($0.id) && $0.legacyContentKey != nil }
+        take(Dictionary(grouping: legacy, by: { $0.legacyContentKey ?? "" }))
         return result
     }
 
@@ -633,7 +654,7 @@ struct SearchRule: Identifiable {
     let title: String
     static let newIDs: Set<String> = ["construcao_invalida", "pontuacao_duplicada", "espacamento", "virgula_que_nao", "que_tonico_interrogativo", "coerencia_temporal", "acentuacao_contextual", "vocativo", "capitalizacao_contextual", "dialogo_contextual", "referente_contextual", "gerundismo",
                                           "crase", "homofonos", "concordancia", "regencia", "virgula_sujeito_verbo",
-                                          "correlacao_tempos", "frase_cortada", "locucoes"]
+                                          "correlacao_tempos", "frase_cortada", "locucoes", "residuo_edicao"]
     /// Regras retiradas do motor (memória narrativa heurística; `tratamento`, em 07/10/2026):
     /// configurações antigas que as mencionam continuam abrindo, e essas chaves são descartadas.
     static let retiredIDs: Set<String> = ["memoria_narrativa", "conflito_habilidade", "conflito_objeto",
@@ -658,6 +679,7 @@ struct SearchRule: Identifiable {
         .init(id: "locucoes", title: "Ao invés de / em vez de; ‘embora’ sem verbo · narração"),
         .init(id: "tempo_verbal", title: "Mudanças de tempo verbal"),
         .init(id: "estrutura", title: "Estrutura da frase · narração"),
+        .init(id: "residuo_edicao", title: "Resíduo de edição: dois auxiliares seguidos · narração"),
         .init(id: "pontuacao_dialogo", title: "Ligação entre fala e narração"),
         .init(id: "dialogo_contextual", title: "Ações e retomadas de fala por travessão"),
         .init(id: "referente_contextual", title: "Objeto após enumeração · contexto curto"),
@@ -717,6 +739,10 @@ struct SearchSettings: Codable {
                   $0.count <= 500 && $0.allSatisfy({ !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && $0.count <= 200 })
               }) else { throw FonteError.message("Configuração de busca inválida ou incompatível.") }
         let allDisabled = !result.rules.values.contains(true)
+        // Antes da separação, o resíduo de edição seguia ‘estrutura’: continua seguindo.
+        if result.rules["residuo_edicao"] == nil, let structure = result.rules["estrutura"] {
+            result.rules["residuo_edicao"] = structure
+        }
         for key in SearchRule.newIDs where result.rules[key] == nil {
             result.rules[key] = !allDisabled
         }

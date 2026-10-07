@@ -20,6 +20,10 @@ from pathlib import Path
 
 DESTINOS = ("diagnostico", "informacao", "pendencia")
 SEVERIDADES_DE_ERRO = {"confirmed_error", "probable_error"}
+# Regras que só ganharam `rule` na estabilização de 07/10/2026 (antes saíam sem ele). A classe
+# estatística delas continua sendo o `category_code` de antes (narrative_tense, sentence_structure,
+# editorial_review, dialogue_punctuation…), para não perder as medições já feitas.
+REGRAS_SEM_CLASSE_PROPRIA = {"tempo_verbal", "estrutura", "residuo_edicao", "pontuacao_dialogo", "languagetool"}
 
 
 @lru_cache(maxsize=1)
@@ -28,14 +32,20 @@ def politica():
 
 
 def classe(ocorrencia):
-    """Regra do alerta; o LanguageTool separa ortografia de gramática, que se comportam diferente.
-    Mesma chave usada por `scripts/medir_precisao.py`."""
+    """Classe estatística do alerta: a gravada pelo motor (`classe`) ou, em relatórios anteriores, a
+    mesma dedução de sempre. O LanguageTool separa ortografia de gramática, que se comportam
+    diferente. Mesma chave usada por `scripts/medir_precisao.py` e `scripts/comparar_relatorios.py`.
+    Não confundir com a identidade (`id`) nem com a regra (`rule`)."""
+    if ocorrencia.get("classe"):
+        return ocorrencia["classe"]
     fonte = ocorrencia.get("source") or ""
     if fonte.startswith("LanguageTool"):
         return "languagetool:ortografia" if "MORFOLOGIK" in fonte or "SPELLING" in fonte else "languagetool:gramatica"
     # A Auditoria mede-se por categoria (audit_crase, audit_referencia…), não pela regra comum.
     if ocorrencia.get("rule") == "auditoria_ia" and ocorrencia.get("category_code"):
         return ocorrencia["category_code"]
+    if ocorrencia.get("rule") in REGRAS_SEM_CLASSE_PROPRIA:
+        return ocorrencia.get("category_code") or ocorrencia.get("category") or "desconhecida"
     return ocorrencia.get("rule") or ocorrencia.get("category_code") or ocorrencia.get("category") or "desconhecida"
 
 
@@ -78,6 +88,7 @@ def aplicar(ocorrencias):
     IDs, trechos e severidades não mudam, então as decisões antigas continuam valendo."""
     mesa, diagnostico = [], []
     for item in ocorrencias:
+        item["classe"] = classe(item)
         alvo = destino(item)
         item.update(destino=alvo, impeditivo=impeditivo(item, alvo))
         (diagnostico if alvo == "diagnostico" else mesa).append(item)

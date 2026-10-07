@@ -323,6 +323,17 @@ def lista_ou_rotulo(texto):
             and all(p[0].isupper() or p[0].isdigit() for p in partes))
 
 
+# Regra e código de categoria de cada alerta deste módulo. O código é o mesmo que a padronização
+# deduzia antes de existir `rule` aqui; ele é também a classe estatística (política e medição).
+REGRA_POR_CATEGORIA = {
+    "Tempo verbal": {"rule": "tempo_verbal", "category_code": "narrative_tense"},
+    "Estrutura da frase": {"rule": "estrutura", "category_code": "sentence_structure"},
+    "Resíduo de edição": {"rule": "residuo_edicao", "category_code": "editorial_review"},
+    "Pontuação de diálogo": {"rule": "pontuacao_dialogo", "category_code": "dialogue_punctuation"},
+    "Palavra repetida": {"rule": "palavra_consecutiva", "category_code": "repetition"},
+}
+
+
 def explicar(texto, termo):
     """Explicação em linguagem do dia a dia e, numa linha final, o nome gramatical para quem quiser
     pesquisar. Termos técnicos ficam só nessa linha."""
@@ -412,7 +423,7 @@ def analyze(blocks: list[Block], nlp, tense="auto", protect_italics=True, min_wo
     masks, closings, warnings = narrative_masks(blocks, protect_italics)
     if masks_override is not None:
         masks = masks_override
-    active = set(enabled_rules) if enabled_rules is not None else {'tempo_verbal','estrutura','pontuacao_dialogo','palavra_consecutiva'}
+    active = set(enabled_rules) if enabled_rules is not None else {'tempo_verbal','estrutura','residuo_edicao','pontuacao_dialogo','palavra_consecutiva'}
     docs = list(nlp.pipe(masks, batch_size=32))
     counts = Counter(indicative_tense(t) for d in docs for t in d)
     counts.pop(None, None)
@@ -571,7 +582,7 @@ def analyze(blocks: list[Block], nlp, tense="auto", protect_italics=True, min_wo
         # Resíduo de edição: dois auxiliares conjugados seguidos no mesmo predicado (“tinha havia
         # percebido”). Na locução verbal só o primeiro é finito; os outros ficam no infinitivo,
         # gerúndio ou particípio (“tinha sido”, “vai ter”, “estava sendo”).
-        for head in (doc if "estrutura" in active else []):
+        for head in (doc if "residuo_edicao" in active else []):
             auxiliaries = [c for c in head.children if c.dep_ in {"aux", "aux:pass", "cop"} and finite(c)]
             for first, second in zip(auxiliaries, auxiliaries[1:]):
                 # Verbos de orações diferentes (“o porão em que dormem é…”) não formam locução.
@@ -591,4 +602,5 @@ def analyze(blocks: list[Block], nlp, tense="auto", protect_italics=True, min_wo
         # Só a rodada da estrutura informa: as outras não apagam a contagem no relatório.
         metadata["fragmentos_sem_verbo"] = dict(fragment_classes)
     low = {"confidence": "baixa", "confidence_score": .4}
-    return [asdict(f) | (low if f.id in low_confidence else {}) | extras.get(f.id, {}) for f in results], warnings, metadata
+    return [asdict(f) | REGRA_POR_CATEGORIA[f.category] | (low if f.id in low_confidence else {}) | extras.get(f.id, {})
+            for f in results], warnings, metadata

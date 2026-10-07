@@ -16,6 +16,7 @@ from collections import Counter, defaultdict
 import hashlib
 import json
 from pathlib import Path
+import sys
 
 PADRAO = Path.home() / 'Library/Application Support/FONTE'
 DESFECHOS = {'Erro confirmado': 'erro', 'Corrigido': 'erro', 'Falso positivo': 'falso_positivo',
@@ -25,14 +26,8 @@ MINIMO = 20
 LIMIAR = .9
 
 
-def classe(finding):
-    """Regra do alerta; o LanguageTool separa ortografia de gramática, que se comportam diferente."""
-    source = finding.get('source') or ''
-    if source.startswith('LanguageTool'):
-        return 'languagetool:ortografia' if 'MORFOLOGIK' in source or 'SPELLING' in source else 'languagetool:gramatica'
-    if finding.get('rule') == 'auditoria_ia' and finding.get('category_code'):
-        return finding['category_code']
-    return finding.get('rule') or finding.get('category_code') or finding.get('category') or 'desconhecida'
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'fonte'))
+from fonte.politica import classe  # noqa: E402 — a mesma chave estatística da política
 
 
 def carregar(dados):

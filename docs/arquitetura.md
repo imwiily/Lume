@@ -134,6 +134,15 @@ terminar ([visão](visao.md#ocorrência-pendência-e-encerramento)).
   erro real vai para informação (critério de não-interrupção, não de qualidade); sem medição,
   confiança baixa vai para informação e as demais para pendência. Pendência não afirma que a regra
   é confiável. Classe nova entra como informação ou diagnóstico.
+- **Identidade, regra e classe** são três coisas distintas:
+  - `id`, a identidade persistente, usada pelas decisões; não muda quando o resto muda;
+  - `rule`, a regra que emitiu o alerta, presente em todos desde a estabilização de 07/10/2026;
+  - `classe`, a chave estatística da política e da medição.
+
+  As regras que só ganharam `rule` nessa data (tempo verbal, estrutura, resíduo de edição,
+  pontuação de diálogo e LanguageTool) mantêm a classe de antes (`narrative_tense`,
+  `sentence_structure`, `editorial_review`, `dialogue_punctuation`…). A memória do livro no app
+  aceita para elas a chave antiga, sem regra.
 - **Relatório:** cada ocorrência leva `destino` e `impeditivo`; `metadata` leva `politica_versao`,
   `destinos` (contagem), `impeditivos` e `diagnostico` (lista fora de `findings`).
 - **Política v1 (07/10/2026):** nenhuma classe é impeditiva. As duas que passam de 90% em 20

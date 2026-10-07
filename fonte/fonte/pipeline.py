@@ -77,7 +77,7 @@ def run(blocks, model_loader, *, settings=None, tense="auto", mode="ambas",
         from .search import linguistic as legacy
         from .temporal import analyze as temporal
         language_model = model()
-        out, extra_warnings, data = legacy(blocks, language_model, tense, selected(["tempo_verbal", "estrutura"]))
+        out, extra_warnings, data = legacy(blocks, language_model, tense, selected(["tempo_verbal", "estrutura", "residuo_edicao"]))
         warnings.extend(extra_warnings); meta.update(data)
         # Tempo escolhido contrariado pela narração: avisa, sem mudar os alertas. Falas no
         # escopo distorcem a contagem (o presente é comum nelas); nesse caso, nada se conclui.
@@ -175,7 +175,7 @@ def run(blocks, model_loader, *, settings=None, tense="auto", mode="ambas",
     jobs = [
         (linguistic_mode and (languagetool or any(rules[r] for r in (*RULES, "palavra_consecutiva"))), linguistic,
          "Padrões determinísticos; pontuação e interrogação também em falas/pensamentos. LanguageTool opcional."),
-        (linguistic_mode and (rules["estrutura"] or rules["acentuacao_contextual"] or
+        (linguistic_mode and (rules["estrutura"] or rules["residuo_edicao"] or rules["acentuacao_contextual"] or
             any(rules[r] for r in GRAMMAR_RULES) or
             ((rules["tempo_verbal"] or rules["coerencia_temporal"]) and options["tense_scopes"])), morphosyntactic,
          "Tempo predominante, estrutura, quatro relações temporais locais, acentuação verbal contextual, crase, homófonos, concordância, regência, vírgula entre sujeito e verbo, correlação de tempos, frase cortada e locuções. Cobertura parcial; homógrafos permanecem dúvidas."),

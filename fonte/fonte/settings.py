@@ -23,6 +23,8 @@ RETIRED_RULES = ['memoria_narrativa', 'conflito_habilidade', 'conflito_objeto', 
 GRAMMAR_RULES = ['crase', 'homofonos', 'concordancia', 'regencia', 'virgula_sujeito_verbo',
                  'correlacao_tempos', 'frase_cortada', 'locucoes']
 RULES += GRAMMAR_RULES
+# Separada de 'estrutura' em 07/10/2026: sem a chave, a configuração herda o valor de 'estrutura'.
+RULES += ['residuo_edicao']
 SCOPES = ['narracao', 'dialogo', 'pensamento']
 DEFAULT = {
     'schema_version': 1,
@@ -57,6 +59,9 @@ def validate(value):
     # Preserva ‘desativar todas’ em configurações da versão anterior.
     if set(LEGACY_RULES).issubset(rules) and not any(rules.values()):
         result['rules'] = {r: False for r in RULES}
+    # Configurações anteriores à separação: o resíduo de edição seguia 'estrutura' e continua seguindo.
+    if 'residuo_edicao' not in rules:
+        result['rules']['residuo_edicao'] = result['rules']['estrutura']
     for key in ['tense_scopes','repetition_scopes']:
         if not isinstance(result[key], list) or any(x not in SCOPES for x in result[key]):
             raise ValueError('Áreas de busca inválidas: ' + key)

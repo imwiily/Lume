@@ -1,0 +1,717 @@
+# Estabilização final do FONTE
+
+Pedido do autor (07/10/2026). Branch `fonte-estabilizacao-final`, criada a partir do marco
+estável `9f0f6d801b14aad62e25d9722588b787e0694c59` (`organizacao-e-deteccao`, não alterada).
+Objetivo: responder se tudo o que o FONTE se propõe a detectar está bem definido, é
+generalizável, coerente e confiável. **Detectar menos coisas com mais consistência.**
+
+Restrições:
+- não mexer em Mesa, encerramento, destinos ou critérios da Política;
+- a Auditoria continua como controle de qualidade;
+- nenhuma regra nova a partir de caso isolado;
+- preservar IDs, relatórios e decisões;
+- nenhuma chamada à API.
+
+## Progresso
+
+- [x] Etapa 1 — inventário (07/10, sem alterar código).
+- [x] Etapa 2 — auditoria arquitetural (07/10, sem alterar código).
+- [x] Etapa 3 — plano de estabilização (07/10; aguarda aprovação, nada implementado).
+- [x] Fase 0 — linha de base e comparação (07/10).
+- [x] Fase 1 — identidade, regra e classe (07/10). Parada para revisão do autor.
+- [ ] Fases 2a–8.
+
+## Fontes de evidência usadas
+
+| Fonte | Conteúdo | Limites |
+|---|---|---|
+| Decisões reais (`build/precisao-20261007/`) | 650 decisões únicas, 6 livros, 1 autor | Classes com n < 20 não têm precisão medida |
+| Quatro textos reais analisados hoje, sem LanguageTool | A, B e C (do autor) e um texto de terceiros | A e B já revisados: poucos erros restantes |
+| Corpus `todos` por classe, sem LanguageTool | 4.084 palavras | Escrito junto com as regras: quase todas as classes dão 100%, o que mede pouco |
+| Uso real | 58 de 58 relatórios rodaram com LanguageTool | — |
+
+“Disparos A/B/C/X” abaixo é a contagem nos quatro textos.
+
+## Etapa 1 — Inventário
+
+Legenda:
+- **Natureza:** O = objetiva; E = editorial; R = registro ou estilo.
+- **Destino:** destino segundo a política v2.
+- **Impl.:** G = estrutural ou geral; H = heurística com listas ou regex estreitas; X = nasceu de
+  um exemplo isolado.
+
+### Etapa Linguística (`linguistic.py`, `editorial/repetition.py`, `languagetool.py`)
+
+| ID (regra) | Função | O que detecta | Evidência | Conf. | Sev. | Destino | Decisões (prec.) | Disparos A/B/C/X | Nat. | Impl. |
+|---|---|---|---|---|---|---|---|---|---|---|
+| `construcao_invalida` | `linguistic.RULES` | só “além de disso” | 1 regex | alta | confirmed | pendência | 1 (100%) | 0/0/0/0 | O | X |
+| `pontuacao_duplicada` | `linguistic.RULES` | `,,` `;;` `..` | regex | alta | confirmed/probable | pendência | 12 (92%) | 0 | O | G |
+| `espacamento` | `linguistic.RULES` | espaço duplo; espaço antes de `,;` | regex | alta | probable | pendência | 1 | 0 | O | G |
+| `virgula_que_nao` | `linguistic.RULES` | “que, não” | regex com 3 exceções | média | probable | pendência | 1 | 0 | O? | X |
+| `que_tonico_interrogativo` | `linguistic.RULES` | “que?” → “quê?” | regex | alta | probable | pendência | 4 (100%) | 0 | O | G |
+| `capitalizacao_contextual` | `linguistic.RULES` | pronome minúsculo depois de `?` ou `!` | regex com lista de pronomes | média | probable | pendência | 0 | 0 | O? | H |
+| `vocativo` | `linguistic.vocatives` | nome inicial + aposto + verbo; nome + “você”/“não faça”; “Sim/Oi + nome” | 3 regex + léxico | média | probable | pendência | 0 | 0 | O? | H |
+| `palavra_consecutiva` | `editorial/repetition.analyze` | “o o”, palavra dobrada | regex + léxico | média | — | pendência | 1 (0%) | 0 | O | G |
+| (LanguageTool) `languagetool:ortografia` | `languagetool.check` | grafia | LT + filtros de nomes e itálico | alta (forçada) | probable (forçada) | pendência | 13 (31%) | — | O | G (externa) |
+| (LanguageTool) `languagetool:gramatica` | `languagetool.check` | concordância, crase, pontuação etc. | LT + 12 filtros pontuais | média (forçada) | probable (forçada) | pendência | 30 (60%) | — | O | G (externa) |
+
+### Etapa Morfossintática
+
+| ID | Função | O que detecta | Evidência | Conf. | Sev. | Destino | Decisões (prec.) | Disparos A/B/C/X | Nat. | Impl. |
+|---|---|---|---|---|---|---|---|---|---|---|
+| `tempo_verbal` (category_code `narrative_tense`, sem `rule`) | `analysis.analyze` | verbo fora do tempo escolhido, um a um | léxico (`indicative_tense`) + modelo + `legitimate_present`, `present_function`, `past_plane`, `narrator_frame`, `lista_ou_rotulo` | média/baixa | (sem severity → editorial_attention) | pendência (média); observação (baixa) | média 408 (91%); baixa 8 (0%) | 12/0/6/16 | E | G + camadas de exceções |
+| `estrutura` (`sentence_structure`) | `analysis.analyze` | frase sem verbo finito; fragmento incompleto | modelo + `verbo_finito_possivel` + segunda leitura + `classificar_fragmento`, `fragmento_deliberado`, `elipse_de_complemento`, `para_verbal`, `fragmento_suspenso` | média/baixa | — | pendência / observação | média 18 (39%); baixa 10 (10%) | 0/1/4/1 | E | H (pilha de exceções) |
+| `estrutura` (`incomplete_subordinate_clause`) | `analysis.analyze` | subordinada sem principal | `abertura_subordinada` + árvore | baixa | — | observação | 1 | 0/0/1/0 | E | H |
+| `estrutura` (Resíduo de edição, `editorial_review`, sem `rule`) | `analysis.analyze` | dois auxiliares finitos seguidos | árvore (aux) | média | — | pendência | 2 (50%) | 0 | O | G |
+| `coerencia_temporal` (10 subtipos) | `temporal.relations/conditionals/modality/sequence/surface_coordination` | tempos incompatíveis entre orações e na sequência narrativa | árvore + `form`/`event_tense` + estado local + listas (`STATIVE`, `TIME_SHIFTS`…) | alta/média/baixa | probable/attention | pendência / observação | alta 12 (100%); média 14 (57%); baixa 2 | ver subtipos | E | G + H |
+| ├ `conditional_tense_mismatch`, `conditional_future` | `conditionals`, `relations` | “se … iria … irá” | árvore + terminação | | probable | | | 0 | | G |
+| ├ `modal_mood_mismatch` | `modality` | “talvez” + indicativo | advérbio + modo | | attention | | | 1/0/0/0 | | H |
+| ├ `simultaneous_present`, `ambiguous_simultaneity`, `coordinated_past_present` | `relations` (geração antiga) | presente ligado a passado | árvore | | | | | 0 | | G |
+| └ `coordinated_tense_mismatch`, `past_present_past`, `same_subject_narrative_shift`, `local_narrative_tense_shift` | `sequence`, `surface_coordination` (geração nova) | desvio na sequência narrativa | eventos + estado | | probable | | | 9/0/0/2 | | G |
+| `acentuacao_contextual` | `temporal.accents` | “caiam” → “caíam” no passado | léxico (hiato) + raiz + sujeito | média | probable | pendência | 2 (50%) | 0 | O | G |
+| `crase` (6 subclasses) | `grammar.crase` | locuções fixas; “às vezes”; horas; “à” + verbo/masculino; dativo feminino; locução prepositiva | regex + listas (`DATIVE`, `COMMON_GENDER`, `LOCUTIONS`) + árvore | alta/média | probable | pendência | 0 próprias | 0/1/0/0 | O | G (fixas) / H (dativo) |
+| `homofonos` (7 subclasses) | `grammar.homophones` | por que/porque; mas/mais; mal/mau; há/a; onde/aonde; debaixo/em cima | regex + listas de exceções | alta/média | probable | pendência | 0 | 0 | O | H (exceções acumuladas em há/a, mais) |
+| `concordancia` (5 subclasses) | `grammar.agreement`, `elided_subject_plural` | haver impessoal; sujeito × verbo; um/nenhum; atração; nominal; sujeito oculto + predicativo plural | árvore (`nsubj`, `Number`) + guardas | média | probable | pendência | 5 (100%) | 0/0/1/0 | O | G + H |
+| `regencia` (3) | `grammar.regency` | “chegar em”; “ajudou ela”; “pedir para que” | árvore + listas | média | attention | pendência | 4 (75%) | 1/0/0/0 | **R** | X |
+| `virgula_sujeito_verbo` (2) | `grammar.subject_comma`, `relative_subject_comma` | vírgula isolada entre sujeito e verbo | árvore + forma | média | probable | pendência | 2 (50%) | 0/0/1/0 | O | G + H |
+| `correlacao_tempos` | `grammar.correlation` | subordinada no imperfeito do subjuntivo + principal no presente | lista de conectores + terminação | média | probable/attention | pendência | 7 (86%) | 0/0/5/0 | E | H |
+| `frase_cortada` (3) | `grammar.truncated` | frase que termina em preposição ou em “cada”; parágrafo sem ponto final; “Que” maiúsculo depois de reticências | listas + regex | média | probable/attention | pendência | 3 (100%) | 19/1/3/1 | O / E | H; X (“cada”, “Que”) |
+| `locucoes` (2) | `grammar.locutions` | “ao invés de”; “embora” + nome | regex | média | attention/probable | pendência | 2 (100%) | 0/0/2/0 | R / O | X |
+
+### Etapa Editorial (contexto curto)
+
+| ID | Função | O que detecta | Evidência | Conf. | Sev. | Destino | Decisões (prec.) | Disparos A/B/C/X | Nat. | Impl. |
+|---|---|---|---|---|---|---|---|---|---|---|
+| `pontuacao_dialogo` (`dialogue_punctuation`, sem `rule`) | `analysis.analyze` | aspas + vírgula + verbo que não é de fala | fechamento de aspas (`narrative_masks`) + lista `SPEECH` | média | — | pendência | 9 (78%) | 0 | E | H |
+| `dialogo_contextual` (2) | `editorial/context.analyze` | ação depois do travessão sem pontuação; fala retomada com maiúscula | segmentação + verbo de fala | baixa (rótulo) | attention | pendência (dados) | 32 (91%) | 0 | O? / E | G + lista de fala |
+| `referente_contextual` | `editorial/context.analyze` | só a palavra “o objeto” depois de enumeração | literal “objeto” | baixa | author_query | observação | 0 | 0 | E | **X** |
+| `gerundismo` | `editorial/context.analyze` | “vou estar fazendo” | regex | baixa | attention | observação | 1 (0%) | 1/0/0/0 | **R** (a mensagem diz “não é erro”) | H |
+| `palavra_proxima` | `editorial/repetition.analyze` | mesma palavra a ≤ 8 palavras | contagem + exceções expressivas | baixa | attention | observação | 43 (23%) | 19/12/4/15 | **R** | H |
+| `frase_duplicada` | `editorial/repetition.analyze` | frase repetida | igualdade ou semelhança | alta/baixa | attention | pendência / observação | 0 | 0 | E | G |
+| `referente_proximidade` | `editorial/references.analyze` | só “Eles/Elas + estavam/estão/ficaram + tão/muito/bem + perto” sem plural antes | 1 regex | baixa | author_query | observação | 0 | 0 | E | **X** |
+| `pronome_apos_corte` | `editorial/references.edit_scars` | pronome perto de trecho cortado em relação ao original | diff de palavras (exige `--original`) | baixa | author_query | observação | 0 | 0 | E | H |
+
+### Etapa Coerência global
+
+| ID | Função | O que detecta | Evidência | Conf. | Sev. | Destino | Decisões | Disparos | Nat. | Impl. |
+|---|---|---|---|---|---|---|---|---|---|---|
+| `variacao_nome` (2) | `editorial/entities.analyze`, `capitalization` | nomes a uma letra de distância; o mesmo termo com e sem maiúscula | léxico + distância | média | attention | pendência | 2 (0%, intencionais) | 0/0/2/4 | E | G |
+| `duracao_suspensao` | `editorial/chronology` | “suspenso por N dias” × “amanhã e os N dias seguintes” | 2 regex | alta | possible_inconsistency | pendência | 0 | 0 | E | **X** |
+| `adiamento_amanha` | `editorial/chronology` | “adiado para amanhã” × “mais N dias” | 2 regex | média | possible_inconsistency | pendência | 0 | 0 | E | **X** |
+| `coerencia_ia` | `coerencia_ia.py` (Coerencia) | contradições narrativas | IA + trechos conferidos | média/alta | possible_inconsistency | pendência | 0 | — | E | (IA) |
+| `auditoria_ia` | `auditoria_ia.py` | QA, 11 categorias | IA | média/baixa | attention/possible | diagnóstico / observação | 0 | — | — | (IA) |
+
+**Total:** 30 regras configuráveis ativas, mais 2 classes do LanguageTool e 2 recursos com IA. Dentro
+delas há cerca de 45 subclasses com mensagem própria.
+
+## Etapa 2 — Auditoria arquitetural
+
+### A. Regras frágeis
+- **Nascidas de um único exemplo (X):**
+  - `construcao_invalida` (um regex: “além de disso”);
+  - `referente_proximidade` (uma frase-modelo);
+  - `referente_contextual` (a palavra literal “objeto”);
+  - `duracao_suspensao` e `adiamento_amanha` (prazos de uma cena específica);
+  - `frase_cortada` nas partes “cada” e “Que” depois de reticências;
+  - `locucoes` na parte “embora + nome”;
+  - `virgula_que_nao`.
+
+  Nenhuma disparou nos quatro textos reais. Juntas somam 1 decisão real.
+- **Exceções acumuladas:**
+  - **`homofonos`, parte há/a:** listas de verbos e palavras que impedem o alerta (“daqui”,
+    “faltava”, “chegar”, “voltar”…).
+  - **`homofonos`, parte mas/mais:** lista de palavras seguintes.
+  - **`estrutura`:** seis funções de exceção encadeadas e uma segunda leitura. A precisão real é
+    de 39% (média) e 10% (baixa).
+  - **`tempo_verbal`:** `legitimate_present` com listas (`STATIVE`, verbos de fala, “há + tempo”,
+    “quer que”, “poder confirmar”), mais `present_function`, `past_plane` e `narrator_frame`. Elas
+    funcionam (91% em 408), mas cada caso real virou mais uma lista.
+- **Regex sem estrutura:**
+  - `capitalizacao_contextual`, `vocativo` (três padrões) e `gerundismo`;
+  - `chronology`.
+- **Segmentação frágil:** `pontuacao_dialogo` depende de `narrative_masks`, uma segunda
+  implementação de fala e narração, diferente de `segments.classify` (ver C).
+
+### B. Sobreposição
+1. **Tempo verbal: quatro detectores para o mesmo verbo.**
+   - Os detectores são `tempo_verbal` (desvio do tempo escolhido), `coerencia_temporal` (duas
+     gerações de relações), `correlacao_tempos` e, na Auditoria, `tempo_verbal`.
+   - Existem dois mecanismos de remoção de duplicatas para conter isso: em
+     `pipeline.morphosyntactic` e em `temporal.PRECEDENCE`.
+   - A geração antiga (`simultaneous_present`, `ambiguous_simultaneity`, `coordinated_past_present`,
+     `conditional_future`) só sobrevive onde a nova não aponta, e não disparou em nenhum texto real.
+   - Os fenômenos são legítimos e diferentes: desvio global, relação entre orações, correlação do
+     subjuntivo. A análise base, porém, deveria ser uma só.
+2. **Palavra dobrada: três implementações.**
+   - `editorial/repetition` (ativa), um ramo morto em `analysis.analyze` e a regra
+     `PORTUGUESE_WORD_REPEAT_RULE` do LanguageTool.
+   - A Auditoria também tem a categoria `repeticao`.
+3. **Pontuação de diálogo: duas regras para a mesma classe** (ação narrativa depois da fala).
+   - `pontuacao_dialogo` cobre falas com aspas; `dialogo_contextual`, falas com travessão.
+   - São listas de verbos de fala e segmentações diferentes.
+4. **Espaços e pontuação** (`espacamento`, `pontuacao_duplicada`, `capitalizacao_contextual`)
+   repetem regras do LanguageTool, que é mais amplo.
+5. **Crase, homófonos e concordância:** as regras próprias convivem com as equivalentes do LT, e a
+   pipeline só esconde a própria quando o LT apontou o mesmo trecho.
+
+### C. Componentes compartilhados com problema (corrigir na base, não nas regras)
+1. **“Verbo finito”: sete definições.**
+   - `lexicon.finite`, `lexicon.model_finite`, `analysis.verbo_finito_possivel` + `posicao_de_verbo`,
+     `temporal.form`, `temporal.event_tense`, `grammar.verbal`, `grammar.present_main.only_finite`.
+   - Além delas, o teste direto de `"Fin"` em `grammar.agreement` e `subject_comma`.
+   - Regras diferentes discordam sobre o mesmo token. Os casos “Corri… entro” e “Olho” vêm daí:
+     o modelo marca a primeira palavra como nome, e cada regra se recupera (ou não) do seu jeito.
+2. **Tempo de um verbo: três classificadores.**
+   - `lexicon.indicative_tense` (usado por `tempo_verbal`), `temporal.form` e `temporal.event_tense`.
+3. **Fala e narração: duas segmentações.**
+   - `segments.classify` (corrigida em 07/10 para fala por linha) e `analysis.narrative_masks`, que
+     ainda tem a lógica antiga e só alimenta os fechamentos de aspas de `pontuacao_dialogo`.
+4. **Verbos de fala: quatro listas.**
+   - `analysis.SPEECH`, `IRREGULARES_DE_FALA`, `forma_de_fala` e `grammar.COMPLEMENT_VERBS`.
+   - Elas aparecem em `dialogo_contextual`, `pontuacao_dialogo`, `virgula_sujeito_verbo`,
+     `regencia`, `frase_cortada` e `tempo_verbal`.
+5. **Identificador da regra ausente.**
+   - Os alertas de `analysis.py` (tempo verbal, estrutura, resíduo de edição, pontuação de diálogo)
+     não têm `rule`. A política e a medição os reconhecem pelo `category_code`, e o resíduo de
+     edição aparece como `editorial_review`, um código genérico.
+   - Desligar `estrutura` desliga também o resíduo de edição, que é outra classe.
+6. **Código morto:** o ramo `palavra_consecutiva` e as máscaras de `narrative_masks` (sobrescritas
+   por `masks_override`) em `analysis.analyze`.
+
+### D. Regras específicas demais (as 5 perguntas)
+
+| Regra | Classe real? | Generalizável? | Ocorre em textos diferentes? | Detecção confiável? | Ferramenta melhor? | Proposta |
+|---|---|---|---|---|---|---|
+| `construcao_invalida` | sim (locução deformada) | não, como está (1 padrão) | não (0 disparos) | sim no padrão | LT tem regras de locução | retirar ou generalizar com uma lista curada de locuções deformadas |
+| `referente_proximidade` | sim (referência) | não | não | não | IA | retirar |
+| `referente_contextual` | sim | não (palavra literal) | não | não | IA | retirar |
+| `duracao_suspensao`, `adiamento_amanha` | sim (continuidade de prazos) | não | não | não | Coerência com IA | retirar |
+| `frase_cortada`: “cada”, “Que” | parcialmente | não | não | sim no padrão | — | retirar essas duas partes |
+| `locucoes`: “embora + nome” | sim | estreita | não | média | — | simplificar ou retirar |
+| `virgula_que_nao` | sim (vírgula indevida) | estreita | não | média | — | retirar ou fundir num futuro detector de vírgula |
+| `regencia` (3 casos) | é registro, não erro | — | raro | sim | — | retirar (conflita com “não sugerir estilo”) |
+| `gerundismo` | é estilo | — | raro | — | — | retirar (a própria mensagem diz “não é erro”) |
+| `palavra_proxima` | é estilo | — | muito | 23% | — | retirar (o princípio “nunca sugerir limpeza de repetição” já exclui; hoje é observação) |
+| `locucoes`: “ao invés de” | prescrição discutível | — | raro | média | — | retirar ou manter só como observação |
+
+### E. Mensagens mais fortes que a evidência
+- **LanguageTool:** `contracts.occurrence` força `probable_error` em todo alerta do LT, inclusive
+  nos de confiança baixa. A ortografia do LT aparece como “alta”, mas acertou 31% em 13 decisões.
+- **`concordancia` e `crase` (dativo):** afirmam quem faz ou recebe a ação (“Quem faz a ação é
+  X”), mas isso vem do analisador sintático. Deveriam dizer “parece”.
+- **Pontuação final ausente:** “O parágrafo termina sem ponto.” como `probable_error` .8. Linhas
+  de título, epígrafe, verso e lista são legítimas (A tem 19 disparos sem decisão).
+- **`capitalizacao_contextual` e `vocativo`:** `probable_error` .85 sem nenhuma medição.
+- **Confiança “alta”:** `pontuacao_duplicada`, `espacamento` e `que_tonico` declaram 0,9 ou mais
+  sem medição suficiente (exceto `pontuacao_duplicada`, 92% em 12).
+- **Na direção oposta, rótulo fraco demais:** `dialogo_contextual` aparece como “baixa”, mas acertou
+  91% em 32 decisões. A política já corrige isso pelo dado.
+
+### F. LanguageTool
+- **Uso real:** ligado em 58 de 58 análises. Na prática, é sempre a primeira fonte de ortografia e
+  gramática geral.
+- **Precedência invertida entre etapas:**
+  - na etapa linguística, a regra própria vence (o alerta do LT no mesmo trecho é descartado);
+  - na morfossintática, o LT vence (a regra gramatical própria é pulada no trecho do LT).
+- **Duplicação sem ganho:** `espacamento`, `pontuacao_duplicada` (em parte), `palavra_consecutiva`
+  e `capitalizacao_contextual` repetem regras do LT.
+- **O que o FONTE acrescenta e o LT não tem:**
+  - tempo verbal da narração e coerência temporal;
+  - correlação de tempos;
+  - estrutura de diálogo;
+  - crase dativa e com horas;
+  - “haver” impessoal com contexto;
+  - vírgula entre sujeito e verbo com relativa;
+  - acentuação contextual no passado;
+  - variação de nomes da obra.
+- **Recomendação:** tratar o LT só como fonte de ocorrência. O contrato deixaria de forçar
+  severidade e confiança, e a política e os dados decidiriam o peso de cada classe do LT
+  (`languagetool:ortografia` e `:gramatica` já são classes medidas).
+
+### Resumo da Etapa 2
+
+1. **Regras saudáveis** (classe real, implementação estrutural, evidência boa ou objetiva):
+   - `pontuacao_duplicada` (92% em 12), `que_tonico_interrogativo` e `acentuacao_contextual`;
+   - `concordancia` (exceto as mensagens);
+   - `crase` nas locuções fixas, nas horas e em “à” + verbo/masculino;
+   - `tempo_verbal` (91% em 408) e a geração nova de `coerencia_temporal` (100% em 12, alta);
+   - `dialogo_contextual` (91% em 32), `frase_duplicada` e `variacao_nome`;
+   - `correlacao_tempos` (86% em 7) e o resíduo de edição.
+2. **Precisam de refatoração:**
+   - `estrutura` (pilha de exceções; 39% e 10%);
+   - `tempo_verbal` e `coerencia_temporal` (análise base comum, ver C1–C2);
+   - `pontuacao_dialogo` e `dialogo_contextual` (uma segmentação e uma lista de fala);
+   - `homofonos` nas partes há/a e mas/mais;
+   - `frase_cortada` na parte de pontuação final ausente (títulos, versos, epígrafes).
+3. **Redundantes:**
+   - o ramo `palavra_consecutiva` de `analysis.py` (morto) e as máscaras de `narrative_masks`;
+   - a geração antiga de relações temporais;
+   - `espacamento` e `capitalizacao_contextual` diante do LanguageTool.
+4. **Frágeis (H):**
+   - `vocativo`, `capitalizacao_contextual` e `virgula_que_nao`;
+   - `homofonos` nas partes com exceções;
+   - `crase` no dativo;
+   - `locucoes`;
+   - `correlacao_tempos` na parte “se”.
+5. **Candidatas à retirada:**
+   - nascidas de exemplo isolado: `construcao_invalida` (ou generalizar), `referente_proximidade`,
+     `referente_contextual`, `duracao_suspensao`, `adiamento_amanha`, as partes “cada” e “Que” de
+     `frase_cortada` e a parte “embora + nome” de `locucoes`;
+   - estilo ou registro, em conflito com “não sugerir estilo”: `gerundismo`, `palavra_proxima`,
+     `regencia` e “ao invés de”.
+6. **Componentes compartilhados a melhorar:**
+   - verbo finito único (C1);
+   - classificador de tempo único (C2);
+   - segmentação de fala única (C3);
+   - lista de verbos de fala única (C4);
+   - `rule` explícito em todos os alertas (C5).
+7. **Conflitos com o LanguageTool:**
+   - precedência invertida entre etapas;
+   - severidade e confiança forçadas no contrato;
+   - duplicação em espaços, pontuação e palavra dobrada.
+8. **Riscos de regressão:**
+   - **IDs:** a chave inclui categoria e origem (`source`), então mudar a categoria ou a origem de
+     um alerta muda o ID. As retiradas não afetam IDs de outras regras.
+   - **Política:** a medição é por classe; renomear ou unificar classes zera a medição (precisa de
+     um mapa de classes antigas).
+   - **Verbo finito:** é a mudança de maior alcance. Pode alterar tempo verbal, estrutura,
+     concordância e vírgula ao mesmo tempo, então exige comparação antes/depois por classe em A, B,
+     C, no texto de terceiros e no corpus.
+   - **Corpus:** ele foi escrito junto com as regras (quase tudo dá 100%) e não detecta queda de
+     precisão real. A métrica principal precisa vir das decisões reais.
+   - **Configurações salvas:** regras retiradas entram em `RETIRED_RULES` e `retiredIDs`.
+
+**Erros fora da cobertura vistos nesta auditoria** (registrados, sem regra nova):
+- 1ª pessoa no início de frase sem sujeito (“Olho”, “Corri… entro”);
+- mistura de tu e você entre falas;
+- palavra estrangeira sem itálico.
+
+Todos dependem de componentes base (C1) ou de atribuição de falante. Nenhum tem dados que
+justifiquem uma regra própria.
+
+
+## Etapa 3 — Plano de estabilização
+
+Ordem pedida pelo autor:
+1. núcleo linguístico;
+2. reavaliação das regras;
+3. sobreposição;
+4. LanguageTool;
+5. dados e compatibilidade (transversal);
+6. evidência independente (transversal).
+
+Nenhuma regra nova. Cada fase vira um commit próprio na branch `fonte-estabilizacao-final`. A
+**reversão** de qualquer fase é `git revert` desse commit: nenhuma fase muda formato de arquivo de
+forma incompatível, todos os campos novos só se somam, e a Política v2 não muda.
+
+### Fatos de compatibilidade que guiam o plano
+- **ID do alerta:** `sha256(parágrafo:categoria:origem:início:fim:texto)`. Não inclui `rule`,
+  severidade, confiança nem mensagem. Mudar **categoria** ou **origem** (`source`) muda o ID; mudar
+  o resto não.
+- **Memória do livro** (`BookMemory.contentKey`, Swift): usa categoria, **`rule`**, origem, trecho e
+  evidências.
+  - Acrescentar `rule` a alertas que hoje saem sem ele **quebraria em silêncio** a herança de
+    decisões entre versões do livro.
+  - Exige migração (Fase 1).
+- **Política e medição:** `politica.classe()` usa `rule` primeiro e `category_code` depois.
+  Acrescentar `rule="tempo_verbal"` mudaria a classe estatística de `narrative_tense` para
+  `tempo_verbal` e perderia as 408 decisões medidas. Exige uma classe estatística estável (Fase 1).
+
+### Quatro tipos de evidência (Prioridade 6)
+
+| Tipo | O que prova | Ferramenta | Basta para dizer que a regra é “saudável”? |
+|---|---|---|---|
+| 1. Funcionamento | o código faz o que diz | testes unitários | não |
+| 2. Regressão | nada mudou sem querer | relatório antes/depois por ID, destino e classe em A, B, C, texto de terceiros e corpus; script novo de comparação (ferramenta, não regra) | não |
+| 3. Generalização | a regra se comporta em texto que não vimos | textos independentes (ver decisão D7): alertas e alarmes por 10 mil palavras | parcialmente |
+| 4. Decisões reais | precisão editorial | `scripts/medir_precisao.py` | sim, com n ≥ 20 |
+
+Uma regra só é declarada saudável com evidência dos tipos 3 e 4. Sem n ≥ 20, o estado dela é
+“sem evidência suficiente”, nunca “saudável”.
+
+### Análise semântica das definições de verbo finito (base da Fase 2)
+Não são sete versões da mesma pergunta. São **três perguntas diferentes**, mais um ingrediente:
+
+| Definição | Pergunta que responde | Quem usa | Por que funciona ali |
+|---|---|---|---|
+| `lexicon.model_finite` | o modelo diz que é finito? | ingrediente das outras | — |
+| `lexicon.finite` | **é certamente verbo finito?** (modelo + léxico + filtros nominais) | tempo verbal, estrutura (primeira leitura), correlação, frase cortada, vírgula com relativa | alertar *sobre* um verbo exige certeza |
+| `temporal.form` | idem, já com o **tempo** (passado, presente, condicional, ambíguo) | coerência temporal | idem |
+| `analysis.verbo_finito_possivel` + `posicao_de_verbo` | **pode ser verbo finito?** (basta uma fonte com apoio) | estrutura (“sem verbo”) | alertar a *ausência* de verbo exige abster-se na dúvida |
+| `temporal.event_tense` | qual o tempo deste **evento**, recuperando erros do modelo pelo léxico e pela sintaxe? | sequência narrativa (âncoras) | recuperação, sem alerta direto |
+| `grammar.verbal` | há **forma verbal** aqui? (modelo ou léxico só-verbo, sem posição) | guardas de homófonos (“porque”, “mais”) e de lema | guarda negativa: “não alertar se houver verbo antes” |
+| `grammar.present_main.only_finite` | o léxico só conhece como verbo? | correlação (verbo principal) | recuperação pontual |
+| teste direto de `"Fin"` | o modelo diz finito? (sem léxico) | concordância, vírgula sujeito–verbo | precisa do número e da pessoa do modelo |
+
+**Consequência:** a unificação certa é **um núcleo com três políticas nomeadas e explícitas**, não
+uma função só:
+- `finito_certo`, para alertar sobre um verbo;
+- `finito_possivel`, para se abster de afirmar ausência de verbo;
+- `forma_verbal`, para guardas.
+
+Além delas, **um** classificador de tempo, com modo estrito (alvo de alerta) e modo de recuperação
+(âncora). Cada uso atual é ligado à política que corresponde ao que ele já faz.
+
+### Fases
+
+#### Fase 0 — Linha de base e ferramenta de comparação (sem mudança de comportamento)
+- **Arquivos:** `scripts/comparar_relatorios.py` (novo; compara por ID, destino e classe) e testes
+  dele.
+- **Problema:** hoje as comparações são feitas à mão. Sem uma linha de base fixa, mudanças do
+  núcleo não são verificáveis.
+- **O que deve permanecer:** tudo; não há mudança no motor.
+- **Testes:** os da própria ferramenta.
+- **Evidências fixadas:** linha de base em `build/` (fora do Git) para A, B, C, texto de terceiros
+  e corpus, com e sem LanguageTool; precisão por classe nas decisões reais; textos independentes
+  (D7).
+- **Risco:** nenhum.
+- **Aprovação:** linha de base registrada no plano, com hashes dos textos e versão.
+
+#### Fase 1 — Identificador explícito e classe estatística estável (C5)
+- **Arquivos:** `analysis.py`, `politica.py`, `scripts/medir_precisao.py`, `contracts.py`,
+  `app/Lume/Models.swift` (`contentKey`) e testes.
+- **Problema:**
+  - tempo verbal, estrutura, resíduo de edição e pontuação de diálogo saem sem `rule`;
+  - o resíduo de edição é desligado junto com `estrutura`;
+  - a classe estatística é deduzida de forma frágil.
+- **Mudança:**
+  1. Todo alerta passa a ter `rule` (`tempo_verbal`, `estrutura`, `residuo_edicao`,
+     `pontuacao_dialogo`).
+  2. Campo novo `classe` emitido pelo motor: a chave estatística. Ela fica **idêntica à de hoje**
+     (`narrative_tense`, `sentence_structure`, `incomplete_subordinate_clause`,
+     `editorial_review` etc.). Política e medição passam a ler `classe`, e relatórios antigos usam
+     a dedução atual.
+  3. Compatibilidade do `contentKey`: alertas cujo `rule` foi acrescentado nesta fase geram também
+     a chave antiga (sem `rule`), e a herança aceita as duas.
+  4. Configuração própria para o resíduo de edição (D2).
+- **O que deve permanecer:** IDs e destinos 100% iguais; herança de decisões de memórias antigas.
+- **Testes:**
+  - funcionamento (todo alerta tem `rule` e `classe`);
+  - regressão (IDs e destinos iguais nos cinco conjuntos);
+  - Swift: memória antiga continua herdando;
+  - configuração antiga com `estrutura: false` mantém o resíduo desligado (D2).
+- **Risco:** baixo. **Precisão:** neutra.
+- **Aprovação:** zero diferenças de ID e destino; `BookMemoryCheck` com memória antiga verde.
+
+#### Fase 2 — Núcleo do verbo finito (C1)
+- **Arquivos:** `fonte/fonte/verbo.py` (novo núcleo), `lexicon.py`, `analysis.py`, `temporal.py`,
+  `grammar.py` e testes.
+- **2a, refatoração sem mudança:**
+  - as três políticas nomeadas reproduzem **exatamente** as definições atuais;
+  - os chamadores passam a usar o núcleo;
+  - `verbo_finito_possivel`, `verbal` e `only_finite` viram aliases e depois somem.
+- **2b, alinhamento de divergências, uma por vez:**
+  - exemplo: concordância e vírgula usam `"Fin"` cru e passariam a `finito_certo`, mantendo o
+    número e a pessoa do modelo;
+  - cada divergência é uma mudança separada, medida por classe.
+- **O que deve permanecer:** 2a, saída idêntica; 2b, nenhuma classe medida perde precisão.
+- **Testes:**
+  - regressão byte a byte (2a);
+  - testes de contrato das três políticas, com casos em que discordam de propósito (homógrafo
+    nome/verbo, verbo ligado como complemento, 1ª pessoa sem sujeito);
+  - generalização (2b).
+- **Risco:** **alto** em 2b; atinge tempo verbal, estrutura, concordância e vírgula.
+- **Precisão:** esperada maior na estrutura (39% → ?) e neutra no tempo verbal.
+- **Aprovação 2b:**
+  - nenhuma classe com n ≥ 20 cai de precisão (recalculada com os alertas que continuam);
+  - alarmes por 10 mil palavras nos textos independentes não sobem;
+  - toda mudança de alerta em A, B, C e texto de terceiros é listada e justificada.
+- **Reversão:** 2a e 2b em commits separados.
+
+#### Fase 3 — Classificador de tempo único (C2)
+- **Arquivos:** `verbo.py`, `lexicon.indicative_tense`, `temporal.form` e `event_tense`,
+  `grammar.correlation`.
+- **Mudança:** os três classificadores viram `tempo(token, modo)`, com modo `estrito` (alvo de
+  alerta) e `recuperacao` (âncora). Mesmo esquema da Fase 2: 3a idêntica, 3b alinhada e medida.
+- **O que deve permanecer:** tempo verbal com média ≥ 91% (408 decisões); coerência temporal alta.
+- **Risco:** médio-alto.
+- **Aprovação e reversão:** como na Fase 2.
+
+#### Fase 4 — Segmentação única de fala e narração (C3)
+- **Arquivos:** `analysis.py` (`narrative_masks`, `pontuacao_dialogo`), `segments.py`.
+- **Mudança:** os fechamentos de aspas usados por `pontuacao_dialogo` passam a vir de
+  `segments.classify`. A lógica duplicada de `narrative_masks` sai.
+- **O que deve permanecer:** os alertas de pontuação de diálogo nos textos com aspas. As diferenças
+  esperadas vêm só da fala por linha, a correção de 07/10.
+- **Testes:**
+  - equivalência nos conjuntos;
+  - aspas que atravessam parágrafos;
+  - aspas de destaque;
+  - fala no meio do parágrafo.
+- **Risco:** médio (aspas desbalanceadas). **Aprovação:** toda diferença explicada.
+
+#### Fase 5 — Léxico único de elocução (C4)
+- **Arquivos:** `analysis.py` (`SPEECH`, `forma_de_fala`, `IRREGULARES_DE_FALA`), `grammar.py`
+  (`COMPLEMENT_VERBS`), `editorial/context.py`.
+- **Mudança:** um módulo com os verbos de fala (lemas, formas e irregulares).
+  `COMPLEMENT_VERBS` (verbos que pedem “que”) é outro conceito: fica no mesmo módulo, como lista
+  separada.
+- **O que deve permanecer:** diálogo contextual com 91%.
+- **Testes:** cada regra usuária, antes e depois.
+- **Risco:** médio. Unir listas amplia ou reduz o que cada regra reconhece; medir por regra.
+
+#### Fase 6 — Deduplicação central e LanguageTool (P3, P4)
+- **Arquivos:** `pipeline.py`, `contracts.py`, `languagetool.py`, `temporal.py` e testes.
+- **Mudança:**
+  1. Um passo único de deduplicação depois de todas as etapas, com uma tabela de **famílias de
+     fenômeno** (tempo, crase, concordância, ortografia, pontuação, diálogo, repetição…). Ele
+     substitui o filtro do LT na etapa linguística, o pulo de trechos do LT na gramática e a
+     remoção de duplicatas de tempo verbal da pipeline. O `PRECEDENCE` interno de `temporal` fica:
+     é o mesmo detector.
+  2. **Mesmo trecho e mesma família:** a regra específica vence a genérica; a precedência entre
+     FONTE e LT segue a decisão D3. Fenômenos diferentes no mesmo trecho continuam separados.
+  3. **O alerta descartado não some sem rastro:** ele fica registrado no vencedor (`absorvidos`:
+     IDs). O app herda para o vencedor a decisão já tomada sobre um absorvido.
+  4. **LanguageTool como fonte de ocorrências:** sem severidade nem confiança forçadas (D4). A
+     política decide o peso pelos dados das classes do LT.
+  5. **Geração antiga de relações temporais**
+     (`simultaneous_present`, `ambiguous_simultaneity`, `coordinated_past_present`,
+     `conditional_future`): retirada se a Fase 0 confirmar zero contribuição única e zero decisões.
+     `conditional_tense_mismatch` fica.
+  6. **Palavra dobrada:** sai o ramo morto de `analysis.py`; `repetition` fica, e o LT entra na
+     deduplicação.
+  7. **Diálogo:** as classes de aspas e de travessão ficam separadas (estatística e IDs), com
+     segmentação e léxico comuns (Fases 4 e 5).
+- **O que deve permanecer:**
+  - o FONTE funciona igual sem o LT;
+  - nenhuma capacidade própria confiável é removida por existir no LT.
+- **Testes:**
+  - deduplicação por família;
+  - absorção com herança de decisão (Swift);
+  - análise com e sem LT;
+  - Política v2 sobre o resultado.
+- **Risco:** médio. Os IDs mudam nos trechos em que o vencedor muda; a absorção preserva as
+  decisões.
+
+#### Fase 7 — Reavaliação das regras (P2): veredictos individuais
+Tipos usados na tabela:
+- (a) objetiva e confiável, mesmo rara;
+- (b) específica demais;
+- (c) redundante;
+- (d) estilística ou de registro;
+- (e) sem evidência suficiente;
+- (f) estruturalmente equivocada.
+
+| Regra ou parte | Tipo | Veredicto proposto | Justificativa |
+|---|---|---|---|
+| `construcao_invalida` (“além de disso”) | a | **manter** | erro objetivo, nunca correto, custo zero; rara não é motivo de retirada |
+| `referente_proximidade` | b + f | **retirar** | ausência de plural em 3 parágrafos não prova ambiguidade; correferência está fora do escopo do FONTE (é da IA) |
+| `referente_contextual` (“o objeto”) | b + f | **retirar** | depende de uma palavra literal; ambiguidade exige semântica |
+| `duracao_suspensao`, `adiamento_amanha` | b | **retirar** | vocabulário de uma cena; continuidade de prazos é da Coerência com IA |
+| `frase_cortada`: termina em preposição ou contração | a | **manter** | classe fechada, objetiva |
+| `frase_cortada`: “cada” depois de verbo | a, mas estreita | **reformular**: entra na mesma lista fechada de palavras que pedem continuação, sem caso especial | mesma classe da preposição final |
+| `frase_cortada`: “Que” maiúsculo depois de reticências | a (norma: a frase continua → minúscula) | **manter** | 1 caso real, correto; custo baixo |
+| `frase_cortada`: pontuação final ausente | a, frágil | **reformular** depois da D6 | títulos, versos e epígrafes; 19 casos em A sem decisão |
+| `locucoes`: “embora” + nome | a | **manter** | conjunção sem oração é erro objetivo; a guarda exige ausência de verbo |
+| `locucoes`: “ao invés de” | d | **retirar** | distinção prescritiva; no PB contemporâneo é amplamente aceito como “em vez de” |
+| `virgula_que_nao` | a, frágil | **reformular**: não alertar quando outra vírgula fecha um inciso logo adiante (“que, não sei como, …”) | erro real (vírgula solta), com uma falha estrutural identificável |
+| `regencia`: “chegar em” | d (registro) | **retirar** | PB contemporâneo, prosa e diálogo; a própria mensagem admite o uso |
+| `regencia`: “pedir para que” | d | **retirar** | idem |
+| `regencia`: pronome reto como objeto (“ajudou ela”) | desvio da norma-padrão, comum no PB falado | **manter só na narração**, como atenção editorial, com mensagem de norma-padrão e não de erro (D5) | o narrador costuma seguir a norma; falas já estão fora |
+| `gerundismo` | d | **retirar** | a mensagem já diz “não é erro” |
+| `palavra_proxima` | d (23% em 43) | **retirar** (D5) | repetição é estilo; o Lume não sugere limpeza de repetição |
+| `capitalizacao_contextual` | a, sem dados | **manter** | o FONTE precisa funcionar sem o LT; regra objetiva e barata |
+| `vocativo` | a, frágil, sem dados | **manter**; revisar os 3 padrões só na Fase 2 | 0 decisões; sem base para retirar ou manter como saudável |
+| `espacamento`, `pontuacao_duplicada`, `que_tonico` | a | **manter** | objetivas; necessárias sem o LT |
+| `homofonos` (há/a, mas/mais) | a, com exceções acumuladas | **refatorar** guardas pelo núcleo (`forma_verbal`), sem novas listas | as listas são guardas de “há verbo”, função que o núcleo cobre |
+| `crase` dativa | a, heurística | **manter** e moderar a mensagem (“parece”) | depende da árvore |
+| `concordancia` | a | **manter** e moderar a mensagem | o sujeito vem do analisador |
+| `estrutura` (fragmento) | e (39% / 10%) | **reavaliar depois da Fase 2**; se continuar abaixo de 50% com n ≥ 20, a Política já a mantém como observação (sem mudar a Política) | a causa principal é o verbo finito |
+| `pontuacao_dialogo`, `dialogo_contextual` | a / e | **manter**, com componentes comuns | 91% e 78% |
+| `pronome_apos_corte` | e | **manter** como está (exige `--original`; observação) | sem custo; sem dados |
+| `correlacao_tempos`, `acentuacao_contextual`, `frase_duplicada`, `variacao_nome`, resíduo de edição, `tempo_verbal`, `coerencia_temporal` | a / e | **manter** | medidas ou objetivas |
+
+Mensagens a moderar (sem mudar a detecção):
+- concordância e crase dativa: “parece”;
+- pontuação final ausente;
+- confiança declarada sem dados.
+
+A severidade do LT é tratada na Fase 6.
+
+As retiradas vão para `RETIRED_RULES` e `retiredIDs`, ou viram subpartes retiradas. Os alertas
+antigos dessas regras continuam legíveis.
+
+#### Fase 8 — Auditoria cruzada e baseline final (Etapas 6–7 do pedido)
+- **Revisar:** exceções introduzidas, lógica duplicada, testes de exemplo único e mensagens versus
+  confiança.
+- **Comparar:** antes e depois em todos os quatro tipos de evidência.
+- **Proposta de versão:** FONTE 1.5.0 — baseline estável de detecção linguística.
+
+### Limitações aceitas deliberadamente (não serão cobertas)
+- Correferência e ambiguidade de referentes; continuidade e prazos entre cenas (Coerência com IA,
+  opcional).
+- Atribuição de falante, e com ela a mistura de “tu” e “você” entre falas.
+- 1ª pessoa no início de frase sem sujeito que o modelo lê como nome (“Olho…”, “Corri…”). Depende
+  do modelo; o núcleo só garante que nenhuma regra afirme o contrário.
+- Palavra estrangeira sem itálico (o LT só baixa a confiança).
+- Palavras válidas trocadas (“só”/“sobre”, “inferno”/“interno”).
+- Registro, estilo, ritmo e repetição expressiva.
+- Ortografia geral sem o LanguageTool.
+- Vírgulas em geral (só as classes já existentes).
+
+### Decisões que precisam da autorização do autor
+- **D1.** Classe estatística: campo `classe` emitido pelo motor, com as chaves de hoje, em vez de
+  renomear e migrar as medições. *Recomendado.*
+- **D2.** Resíduo de edição com configuração própria (`residuo_edicao`). Em configurações antigas,
+  herda o valor de `estrutura`.
+- **D3.** Precedência no mesmo trecho e na mesma família:
+  - **(a)** a regra específica do FONTE vence o LT, e o alerta do LT fica como absorvido, com a
+    decisão herdada (*recomendado*: mensagem mais clara, classe medida, e o FONTE igual sem o LT);
+  - **(b)** o LT vence o FONTE.
+
+  Hoje as duas coisas acontecem, dependendo da etapa.
+- **D4.** Severidade do LT pela categoria do próprio LT:
+  - ortografia e gramática → provável erro;
+  - pontuação, maiúsculas e tipografia → atenção editorial.
+
+  A confiança do LT fica no máximo “média”, e os filtros continuam podendo baixá-la. Com isso, a
+  ortografia do LT só poderia ser impeditiva se a Política medir 90% ou mais.
+- **D5.** Confirmar estes veredictos: retirar `palavra_proxima` (hoje observação) e manter o
+  pronome reto como objeto só na narração.
+- **D6.** Pontuação final ausente: você decide no app os 19 casos de A, para dar dados antes da
+  reformulação.
+- **D7.** Evidência independente, à escolha:
+  - **(a)** baixar textos literários brasileiros em domínio público, com grafia atualizada, como
+    corpus de alarmes falsos (prosa editada profissionalmente: quase todo alerta é suspeito). Usa
+    a internet e não envolve a API. Os textos ficariam fora do Git.
+  - **(b)** textos que você fornecer;
+  - **(c)** os dois.
+- **D8.** Ordem e marcos de parada: proponho parar para sua revisão depois das Fases 1, 2b, 6 e 7.
+
+### Decisões do autor sobre a Etapa 3 (07/10/2026)
+- **D1 — aprovada.** Os nomes atuais das classes estatísticas ficam. Três coisas distintas:
+  - **identidade persistente:** o ID, que não muda;
+  - **identificação da regra:** `rule`;
+  - **classe estatística:** `classe`.
+
+  `rule` não pode alterar IDs nem impedir a herança de decisões.
+- **D2 — aprovada.** `residuo_edicao` com configuração própria. Configurações antigas herdam o
+  valor de `estrutura`, sem nenhuma mudança silenciosa nas preferências salvas (Python e Swift).
+- **D3 — aprovada com ressalva.**
+  - Opção A como estratégia inicial, **sem precedência absoluta**: classe por classe, a escolha é
+    reavaliada se a regra própria tiver desempenho inferior ao do LT.
+  - A deduplicação preserva a origem das duas detecções.
+  - **Coincidência de trecho não prova equivalência.** Só se deduplica quando o fenômeno é
+    comprovadamente o mesmo.
+  - Nunca transferir decisão para um fenômeno apenas parecido.
+- **D4 — reformular.** Separar quatro coisas:
+  - a categoria informada pelo LT;
+  - a severidade atribuída pelo FONTE;
+  - a confiança;
+  - o destino (Política v2, intacta).
+
+  A correspondência entre categoria e severidade tem de ser conservadora, sem tratar a categoria
+  do LT como prova de erro, e o impacto deve ser medido antes de aprovar. Fica para a Fase 6, com
+  uma nova proposta.
+- **D5 — aprovada com correção.**
+  - Retirar `palavra_proxima`; `palavra_consecutiva` (palavra dobrada) **fica**.
+  - Pronome reto como objeto: só na narração, mas **narração não é registro formal**. Respeitar
+    narradores coloquiais, sobretudo em 1ª pessoa. O alerta é uma possível questão de norma-padrão,
+    sem afirmar erro nem recomendar correção incompatível com a voz. Avaliar se há contexto para
+    emitir com segurança.
+- **D6 — aprovada.** O autor decide no app os 19 casos de pontuação final ausente em A. Até lá, a
+  regra não muda.
+- **D7 — opção C.**
+  - Textos de domínio público, quando adequados, e textos do autor.
+  - Variedade: 1ª e 3ª pessoa, passado e presente, diálogos, registros.
+  - Textos antigos não servem de referência automática para a norma contemporânea.
+  - Tudo fora do Git, respeitando direitos autorais.
+  - Conjuntos de **desenvolvimento** e de **validação** separados; regras nunca são ajustadas
+    pelo de validação.
+- **D8 — aprovada.** Paradas depois das Fases 1, 2b, 6 e 7. Uma fase por commit, **com registro das
+  dependências entre fases**: um `git revert` isolado não é seguro depois que fases seguintes
+  dependem do código revertido.
+- **Condições adicionais:**
+  - o núcleo verbal preserva as **três perguntas** (certamente verbo, pode ser verbo, há forma
+    verbal) e nunca vira uma função binária única;
+  - regras raras (“embora” + nome, “Que” depois de reticências) ficam só se detectarem um fenômeno
+    delimitado, e não um padrão superficial; serão reavaliadas na Fase 7 com contraexemplos
+    corretos;
+  - os percentuais (91% etc.) vêm sempre com o tamanho da amostra; não são garantia estatística.
+
+### Dependências entre fases
+- Fase 1 ← nenhuma.
+- Fase 2a ← Fase 1 (`rule` e `classe`). Fase 2b ← 2a.
+- Fase 3 ← Fase 2 (núcleo verbal).
+- Fase 4 ← nenhuma de código, mas a comparação usa a Fase 0.
+- Fase 5 ← Fase 4 (pontuação de diálogo).
+- Fase 6 ← Fases 1, 4 e 5 (famílias, `rule` e `classe`).
+- Fase 7 ← Fases 2–6.
+- Reverter a Fase N exige reverter antes as fases que dependem dela, ou adaptá-las.
+
+
+## Execução
+
+### Fase 0 — linha de base (07/10/2026)
+- **Motor:** os fontes em `9f0f6d8`, sem mudança de código.
+- **Saída:** `build/baseline-9f0f6d8/` (fora do Git).
+- **Textos** (cópias no scratchpad; início do SHA-256):
+
+  | Texto | SHA-256 | Tempo |
+  |---|---|---|
+  | A | `16eb0bc91c878ff2` | passado |
+  | B | `c2dd6f65b969344b` | passado |
+  | C | `b8118757c5eb5af2` | presente |
+  | texto de terceiros | `be79dc79ace25db9` | passado |
+
+  Cada um foi analisado com e sem LanguageTool.
+- **Alertas:**
+
+  | Texto | Sem LT | Com LT | Pendências | Observações |
+  |---|---:|---:|---:|---:|
+  | A | 63 | 63 | 37 | 26 |
+  | B | 15 | 18 | 2 | 13 |
+  | C | 29 | 31 | 18 | 11 |
+  | texto de terceiros | 39 | 50 | 13 | 26 |
+
+  Pendências e observações contadas sem LT. Nenhum impeditivo.
+- **Corpus `todos`** (relatórios guardados): precisão das pendências 97%, linguística 65/84.
+- **Decisões reais:** 650 únicas, precisão total 79%.
+- **Ferramentas:** `scripts/comparar_relatorios.py` (+4 testes, que importam a classe de
+  `fonte.politica`) e `avaliar_deteccao.py --guardar-relatorios`.
+- **Pendente:** os textos independentes (D7) ainda não foram reunidos. Vão ser montados antes da
+  Fase 2b, com os textos do autor e textos de domínio público, separados em desenvolvimento e
+  validação. A Fase 1 exige identidade, e não precisão, então não depende deles.
+
+### Fase 1 — identidade, regra e classe (07/10/2026)
+- **Código:**
+  - `analysis.REGRA_POR_CATEGORIA` grava `rule` e o `category_code` de antes;
+  - o LanguageTool grava `rule="languagetool"` e `category_code="grammar"`;
+  - `politica.classe` lê o campo `classe` primeiro; para `REGRAS_SEM_CLASSE_PROPRIA`, usa o
+    `category_code` de antes; `aplicar` grava `classe`;
+  - `contracts.check_destination` exige `rule` e `classe`;
+  - `medir_precisao.py` e `comparar_relatorios.py` usam `fonte.politica.classe`.
+- **`residuo_edicao`:**
+  - em `settings.RULES`;
+  - sem a chave, herda `estrutura`;
+  - pipeline e `search` passam a regra adiante;
+  - `analysis` usa a chave própria;
+  - no Swift: `SearchRule.all` e `newIDs`; `SearchSettings.decode` herda `estrutura`.
+- **Memória do livro:** `Finding.legacyContentKey` dá a chave sem regra só para
+  `rulesAddedLater`; `BookMemory.inherited` usa essa chave para os alertas que a nova não casou.
+- **Evidência de regressão** (`build/fase1/comparacao/`):
+  - 29 conjuntos (8 relatórios dos textos reais e 21 do corpus) **idênticos** em IDs, destino,
+    impedimento, classe, severidade e confiança;
+  - a única diferença é descritiva (`rule`);
+  - o `category_code` também ficou igual.
+- **Evidência de herança** com as memórias reais dos livros (verificação avulsa fora do Git):
+
+  | Relatório | Decisões herdadas antes | Depois | Sem a chave antiga |
+  |---|---:|---:|---:|
+  | A | 28 | 28 (iguais) | 21 |
+  | A com LT | 28 | 28 (iguais) | — |
+  | C | 15 | 15 (iguais) | 7 |
+  | C com LT | 17 | 17 (iguais) | — |
+
+- **Testes:**
+  - FONTE 421 (novos: `test_identidade_e_classes.py`, com 4 testes);
+  - pacotes 41, contrato Python, Coerencia 25;
+  - Swift: contrato (relatório novo e antigo), decisões por livro (chave antiga, regra que já
+    existia não herda, herança de `residuo_edicao`), mesa, falsos positivos, encerramento,
+    correção;
+  - build Debug.
+  - Mudança de expectativa: `test_politica` monta alertas com `rule` e `classe`, porque o contrato
+    passou a exigi-los, e ganhou dois casos inválidos.
+- **Limitação conhecida:** um motor externo anterior a esta versão recusa uma configuração que traga
+  `residuo_edicao`. É o mesmo comportamento de quando entraram as regras gramaticais; o app usa o
+  motor embutido da mesma versão.
