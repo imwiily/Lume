@@ -14,17 +14,26 @@ def classify(blocks, settings):
             result.append(['titulo']*len(text))
             continue
         # Hífen seguido de espaço abre fala como o travessão (“- Vamos.”); no meio da linha, só o
-        # hífen isolado por espaços separa, nunca o de palavra composta (“bem-vindo”).
-        hyphen=text.lstrip().startswith('- ')
-        if settings['dialogue_dashes'] and (text.lstrip().startswith(('—','–')) or hyphen):
-            spoken=False
-            for i,char in enumerate(text):
-                if char in '—–' or (hyphen and char=='-' and (i==0 or text[i-1].isspace())
-                                    and (i+1==len(text) or text[i+1].isspace())):
-                    spoken=not spoken
-                    roles[i]='separador'
-                elif spoken:
-                    roles[i]='dialogo'
+        # hífen isolado por espaços separa, nunca o de palavra composta (“bem-vindo”). Cada linha
+        # do parágrafo (quebra de linha manual) vale como início possível de fala; a fala que fica
+        # aberta continua na linha seguinte só se ela a fechar (“… — disse ela.”).
+        base,spoken,hyphen=0,False,False
+        def separator(line,j):
+            return line[j] in '—–' or (hyphen and line[j]=='-' and (j==0 or line[j-1].isspace())
+                                        and (j+1==len(line) or line[j+1].isspace()))
+        for line in text.split('\n') if settings['dialogue_dashes'] else ():
+            if line.strip():
+                if line.lstrip().startswith(('—','–','- ')):
+                    spoken,hyphen=False,line.lstrip().startswith('- ')
+                elif not any(separator(line,j) for j in range(len(line))):
+                    spoken=False
+                for j,char in enumerate(line):
+                    if separator(line,j) and (spoken or line.lstrip().startswith(('—','–','- '))):
+                        spoken=not spoken
+                        roles[base+j]='separador'
+                    elif spoken:
+                        roles[base+j]='dialogo'
+            base+=len(line)+1
         if settings['quotes_role'] != 'narracao':
             stripped=text.lstrip()
             opener={'”':'“','»':'«','"':'"','’':'‘'}.get(closer)

@@ -1,6 +1,7 @@
 """Heurísticas deliberadamente estreitas; não resolvem correferência."""
 from difflib import SequenceMatcher
 import re
+from ..analysis import explicar
 from .common import WORDS, alert, evidence, normalized
 
 PRONOUN = re.compile(r"(?:^|[.!?…]\s+)(Eles|Elas|Isso|Aquilo)\b")
@@ -26,7 +27,9 @@ def analyze(blocks, original=None):
             context = " ".join(b.text for b in previous) + " " + block.text[:match.start(1)]
             if not PLURAL.search(context):
                 out.append(alert(block, "referente_proximidade", "Possível referência pouco clara", match.start(1), match.end(),
-                    "O pronome plural descreve algo muito próximo, mas não foi encontrada uma indicação simples de antecedente plural nos três parágrafos anteriores. Pode haver um referente mais distante ou implícito. Identifique a quem o pronome se refere.",
+                    explicar("Este pronome no plural se refere a várias pessoas ou coisas, mas nos três parágrafos "
+                             "anteriores não aparece nada no plural a que ele possa se referir. Pode estar mais longe ou "
+                             "ficar implícito. Confira a quem ele se refere.", "referência do pronome"),
                     "baixa", [evidence(b) for b in previous]))
     if original:
         out.extend(edit_scars(blocks, original))
@@ -63,7 +66,9 @@ def edit_scars(blocks, original):
                 if not removed or removed[-1].number != prior.number:
                     removed.append(prior)
             out.append(alert(block, "pronome_apos_corte", "Possível cicatriz de edição", start, end,
-                f"Houve redução de pelo menos {(b-a)-(d-c)} palavras pouco antes deste pronome, em comparação com o original. Confira se o corte retirou seu referente. Proximidade não prova dependência; a comparação pode alinhar passagens repetidas incorretamente.",
+                explicar(f"Em relação ao original, saíram pelo menos {(b-a)-(d-c)} palavras pouco antes deste pronome. "
+                         "Confira se o corte tirou aquilo a que ele se refere. A comparação pode se confundir com "
+                         "trechos repetidos.", "referência após corte"),
                 "baixa", [evidence(p, document="original") for p in removed[:3]]))
             emitted.add((block.number, start))
             break

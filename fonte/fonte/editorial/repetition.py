@@ -1,5 +1,6 @@
 import re
 from difflib import SequenceMatcher
+from ..analysis import explicar
 from .common import WORDS, alert, evidence, normalized
 from ..settings import validate
 from ..segments import classify, spans
@@ -47,9 +48,10 @@ def analyze(blocks, settings=None):
                     if previous:
                         old,start,end,ratio=previous
                         rule='frase_duplicada'
-                        reason=('Esta frase repete uma frase próxima.' if ratio==1 else 'Esta frase tem palavras em sequência semelhantes às de uma frase próxima.')
+                        reason=('Esta frase é igual a uma frase próxima.' if ratio==1 else 'Esta frase é muito parecida com uma frase próxima.')
                         out.append(alert(block,rule,'Possível repetição de frase',sentence.start(),sentence.end(),
-                            reason+' Confira se é refrão, retomada deliberada ou duplicação de edição.',
+                            explicar(reason+' Confira se é de propósito (refrão, retomada) ou se ficou duplicada numa edição.',
+                                     'frase repetida'),
                             'alta' if ratio==1 else 'baixa',[evidence(old,start,end)]))
                     recent.append((key,block,sentence.start(),sentence.end(),scope));recent=recent[-8:]
             if not options['rules']['palavra_proxima'] and not options['rules']['palavra_consecutiva']:
@@ -64,13 +66,15 @@ def analyze(blocks, settings=None):
                         if (distance==1 and options['rules']['palavra_consecutiva']
                                 and block.text[first.end():token.start()].isspace() and flags(key)):
                             out.append(alert(block,'palavra_consecutiva','Palavra repetida',first.start(),token.end(),
-                                'Palavra repetida consecutivamente na área selecionada. Confira se é expressão deliberada ou digitação.','média'))
+                                explicar('A mesma palavra aparece duas vezes seguidas. Confira se é de propósito ou digitação.',
+                                         'palavra repetida'),'média'))
                         elif (options['rules']['palavra_proxima'] and key not in STOP and len(key)>=4
                               and not token[0][0].isupper() and 1<distance<=options['word_distance'] and key not in emitted):
                             between=block.text[first.end():token.start()].strip().casefold()
                             if between not in {'a','por'} and not expressive(block.text,lower,upper,first,token):
                                 out.append(alert(block,'palavra_proxima','Possível repetição próxima',first.start(),token.end(),
-                                    f'“{token[0]}” aparece duas vezes em uma janela curta. A repetição pode ser necessária ou expressiva; confira se há redundância.','baixa'))
+                                    explicar(f'“{token[0]}” aparece duas vezes em pouco espaço. Pode ser necessário ou de '
+                                             'propósito; o alerta só mostra a repetição.', 'repetição próxima'),'baixa'))
                                 emitted.add(key)
                     seen[key]=i
     return out

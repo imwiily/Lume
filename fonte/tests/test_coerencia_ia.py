@@ -68,6 +68,8 @@ class CoerenciaIATests(unittest.TestCase):
         self.assertEqual((achado["module"], achado["severity"]), ("global_coherence", "possible_inconsistency"))
         self.assertEqual(achado["excerpt"], "olhos castanhos")
         self.assertEqual(achado["related"][0]["excerpt"], "olhos verdes")
+        # Explicação do modelo em linguagem simples; o nome do problema, na linha final.
+        self.assertTrue(achado["reason"].endswith("\n\nNa gramática: contradição de continuidade."), achado["reason"])
         self.assertEqual(meta["coerencia_ia"]["enviados"], 2)
         self.assertTrue(any("enviados à Anthropic" in a for a in avisos))
 

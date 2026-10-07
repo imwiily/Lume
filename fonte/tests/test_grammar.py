@@ -203,7 +203,7 @@ class RegencyAndCommaTests(unittest.TestCase):
                 self.assertEqual(found["severity"], "editorial_attention")
                 self.assertEqual(found["priority"], "Explorar")
                 self.assertIsNone(found["suggestion"])
-                self.assertIn("amplamente usadas", found["reason"])
+                self.assertIn("amplamente usado", found["reason"])
                 self.assertIn("registro normativo mais formal", found["reason"])
                 self.assertNotIn("Na norma culta", found["reason"])
 

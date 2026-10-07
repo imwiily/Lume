@@ -2,6 +2,102 @@
 
 As seções antigas descrevem a cobertura e os resultados de cada entrega, não o estado atual. Nas seções anteriores à 1.0, caminhos citados são da antiga pasta `LumeMac/`; a correspondência com a estrutura atual está em [README.md](README.md#estrutura).
 
+## Em desenvolvimento
+
+Ferramentas da mesa de leitura (só interface; o motor e os contratos não mudam).
+
+- **Copiar contexto:** copia o título do capítulo e todos os parágrafos mostrados na página.
+- **Copiar parágrafo marcado:** copia o parágrafo com o trecho destacado entre asteriscos e,
+  abaixo, “Por que acendemos esta luz”.
+- **Reanalisar:** na barra da mesa, analisa a obra de novo com as mesmas opções e mantém as
+  decisões já marcadas: pelo ID do alerta e, nos demais, pelo conteúdo idêntico. A confirmação
+  de envio à API continua valendo.
+- **Limpar resíduos** (em Motor): apaga relatórios, registros e configurações de leituras
+  antigas, depois de mostrar o espaço a liberar. Mantém o relatório aberto, o mais recente de cada
+  livro, os falsos positivos extraídos, as decisões, as cópias de segurança, os projetos com IA e
+  os motores.
+- Verificação nova: `tests/DeskToolsCheck.swift`.
+
+Falsos positivos morfossintáticos (FONTE), a partir de um livro narrado no presente:
+
+- **Verbo finito:** antes de dizer que um segmento não tem verbo finito, uma segunda validação
+  aceita a forma que o modelo e o léxico dão como finita, a que o léxico só conhece como verbo
+  (“havia”) e o homógrafo na posição do verbo (depois do grupo nominal sujeito ou de um relativo).
+  Na discordância entre as fontes, não há alerta.
+- **Fragmentos:** a mensagem ficou neutra; oposição (“por outro lado”), enumeração e paralelismo
+  contam como fragmento deliberado, sem alerta.
+- **Subordinada isolada** (“Quando as luzes se apagam.”): categoria própria
+  `incomplete_subordinate_clause`, confiança baixa, a partir de três palavras.
+- **Fronteira de oração:** o verbo que fecha uma relativa (“o porão em que dormem é…”) não forma
+  resíduo de edição com o verbo seguinte.
+- **Narração no presente:** passado em oração dependente (relativa, completiva, adverbial),
+  mais-que-perfeito composto e “devia/podia” + infinitivo não geram “Tempo verbal”; a relação
+  coordenada não usa como âncora um verbo de relativa ou um imperfeito modal; o mesmo desvio não
+  recebe dois alertas.
+- **Aspas de destaque** (até três palavras no meio da oração, sem verbo nem pontuação interna)
+  não ativam a regra de pontuação de diálogo.
+- **Nomes da obra:** plural e singular de um nome reconhecido, linhas de créditos e “Nomes
+  aceitos” valem para a grafia; termo desconhecido recorrente fica com confiança baixa.
+
+Classes de erro que escapavam às regras locais (FONTE), com três verificações novas, ligadas por
+padrão e desligáveis nos ajustes:
+
+- **Correlação de tempos** (`correlacao_tempos`): “antes que”, “embora”, “se”, “ainda que” etc. com
+  o imperfeito do subjuntivo e a oração principal no presente do indicativo. “Como se” fica de fora
+  (pede sempre o imperfeito); nas concessivas, só atenção editorial.
+- **Frase cortada** (`frase_cortada`): frase que termina em preposição, contração ou “cada” depois
+  de verbo; parágrafo sem pontuação final; “Que” maiúsculo depois de reticências quando a oração
+  continua (“Eu prometi… que voltaria”).
+- **Locuções** (`locucoes`): “ao invés de” onde a norma pede “em vez de”; “embora” seguido só de
+  um nome.
+- **Concordância:** verbo de ligação no singular, sem sujeito expresso, com predicativo no plural.
+- **Vírgula entre sujeito e verbo:** sujeito com oração relativa restritiva fechada por vírgula
+  sem abertura; incisos de fala (“…, disse ele, …”) deixaram de ser apontados.
+- **Variação de nomes:** o mesmo termo da obra com e sem maiúscula no meio da frase.
+- **Tempo verbal e estrutura:** forma só verbal ligada como complemento (“de uma havia”) mantém o
+  tempo; forma depois de “todo o” ou de preposição + artigo não conta como verbo.
+
+Explicações dos alertas em linguagem simples: cada uma diz o que acontece com palavras do dia a dia
+e, quando ajuda, um exemplo; o nome gramatical fica numa linha final (“Na gramática: …”), para quem
+quiser pesquisar. Vale para todas as regras do FONTE (as mensagens do LanguageTool e da IA têm texto
+próprio). Um teste garante o formato nos dois corpora; a detecção não mudou.
+Os relatórios de `examples/` (Mestre, Editorial, Temporal) foram regenerados: mesmos alertas,
+explicações novas.
+
+LanguageTool, a partir das marcações de falso positivo: sugestão de grafia a duas letras ou mais da
+palavra (“taser” → “fazer”) fica com confiança baixa e lembra que palavra estrangeira vai em itálico;
+gerúndio que descreve um nome (“os passos do lobo correndo cessam”) não é tratado como auxiliar.
+
+Narração no passado com dois planos e marcas que não são narração (FONTE), a partir de um texto de
+terceiros (61 → 39 alertas, sem perder nenhum erro do corpus):
+
+- **Fala no meio do parágrafo:** cada linha (quebra de linha manual) pode abrir fala com travessão
+  ou hífen; a fala aberta continua na linha seguinte quando essa linha a fecha (“… - disse ela.”).
+- **Narrador que fala de si no presente:** “me chamo”, “sou” + nome ou adjetivo, “acho/sinto/confesso
+  que…”, “vou contar” e “quem eu sou” não geram tempo verbal. Ação da cena (“Abro a janela”, “Sinto
+  o frio”), passiva (“Sou empurrado”) e comentário depois de um passado na mesma frase continuam.
+- **Listas e rótulos** (“Equipe 2 Ana Rui”, “Parte 3”): sem tempo verbal nem pontuação final.
+- **‘era’ nome** depois de determinante e adjetivo, antes de verbo ou ‘de’ (“Uma nova era começa”).
+- **Tratamento** (`tratamento`, regra nova, ligada por padrão): ‘você’ com verbo na forma de ‘tu’
+  no mesmo trecho (“Você tinhas razão”), como atenção editorial. A mistura entre falas diferentes
+  do mesmo personagem continua fora do alcance local.
+
+Mensagens do LanguageTool em linguagem simples: as regras mais frequentes nos relatórios reais
+(ortografia, conectores, travessão, por que/porque, concordância, crase nos dois sentidos, hífen,
+palavras parecidas etc.) têm explicação própria; as demais mantêm a mensagem do corretor. Todas
+terminam com a linha “Na gramática:”. A identidade dos alertas não muda, e as decisões continuam.
+
+Coerência com IA: a instrução pede explicações curtas, com palavras do dia a dia, e o alerta ganha
+a linha “Na gramática: contradição de continuidade.” Mudar a instrução não reenvia capítulos: o
+reenvio depende só do texto, e o cache dos julgamentos não inclui a instrução; o estilo novo vale
+para capítulos novos ou alterados.
+
+Auditoria final com IA (instrução versão 4): nunca sugere mudança de estilo (sinônimo, frase
+reorganizada, repetição expressiva cortada, ritmo); a sugestão corrige só o erro, com a menor mudança.
+“Repetição” vale só para palavra dobrada por acidente (“o o”) — e o código descarta, contando como
+estilo, qualquer outra repetição que o modelo devolva. Explicações em linguagem simples, com o termo
+gramatical na linha final. A mudança de versão faz os capítulos serem auditados de novo.
+
 ## Lume 1.6 · FONTE 1.4.0 · Coerencia 1.2.0 — 05/10/2026
 
 Interface refeita a partir da referência do Stitch (“O manuscrito é papel. O Lume é instrumento.

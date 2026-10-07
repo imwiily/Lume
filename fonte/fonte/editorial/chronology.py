@@ -1,4 +1,5 @@
 import re
+from ..analysis import explicar
 from .common import alert, evidence, nearby
 
 NUMBERS = {"um": 1, "uma": 1, "dois": 2, "duas": 2, "três": 3, "tres": 3,
@@ -24,7 +25,9 @@ def analyze(blocks):
                 term = TERM.search(other.text)
                 if term and number(term[1]) != duration:
                     out.append(alert(block, "duracao_suspensao", "Possível inconsistência temporal", match.start(), match.end(),
-                        f"A expressão inclui amanhã e mais {duration-1} dias, totalizando {duration}. O trecho relacionado informa {number(term[1])} dias. Confira se ambos tratam da mesma pessoa, punição e contagem (dias corridos ou letivos).",
+                        explicar(f"Aqui são amanhã e mais {duration-1} dias, {duration} no total. O trecho relacionado fala em "
+                                 f"{number(term[1])} dias. Confira se os dois falam da mesma pessoa, do mesmo castigo e da "
+                                 "mesma contagem (dias corridos ou de aula).", "continuidade de prazos"),
                         "alta", [evidence(other, term.start(), term.end())]))
                     break
         for match in DELAY.finditer(block.text):
@@ -32,7 +35,9 @@ def analyze(blocks):
                 extra = EXTRA.search(other.text)
                 if extra and number(extra[1]) > 1:
                     out.append(alert(block, "adiamento_amanha", "Possível inconsistência temporal", match.start(), match.end(),
-                        f"O adiamento é para amanhã, mas há menção a mais {number(extra[1])} dias no contexto próximo. Se a atividade seria hoje, o ganho seria de um dia. Verifique a data original e se os trechos se referem ao mesmo evento.",
+                        explicar(f"O adiamento é para amanhã, mas logo perto se fala em mais {number(extra[1])} dias. Se a "
+                                 "atividade seria hoje, o ganho é de um dia só. Confira a data original e se os trechos "
+                                 "falam do mesmo evento.", "continuidade de prazos"),
                         "média", [evidence(other, extra.start(), extra.end())]))
                     break
     return out

@@ -3,6 +3,32 @@
 Os registros abaixo pertencem às versões indicadas. Caminhos citados nos registros anteriores à 1.0 são da antiga pasta `LumeMac/` (correspondência em [README.md](../README.md#estrutura)); os comandos abaixo usam a raiz do repositório. As verificações do hotfix aparecem primeiro; os registros anteriores são mantidos para rastreabilidade.
 
 
+## Dois planos na narração, tratamento tu/você e explicações simples (07/10/2026)
+
+Plano: [`.agent/plans/dois-planos-e-tratamento.md`](../.agent/plans/dois-planos-e-tratamento.md).
+Nada foi enviado à API.
+
+- **Linha de base:** o motor do mesmo dia com as cinco mudanças de detecção desligadas por patch;
+  sem LanguageTool; cópias dos textos no scratchpad.
+- **Corpus `todos`:** linguística 65/84 → 66/85 (tratamento 1/1, nenhum erro perdido);
+  ocorrências 88 → 82; alarmes falsos 12 → 9; sobre trechos aceitáveis 10 → 6.
+- **Manuscritos:**
+  - A: 64 → 63; sai “sou” + predicado na voz do narrador, que é ambíguo.
+  - B: 15 → 15, sem diferença.
+  - C (outro livro do autor, narrado no presente): 29 → 29, sem diferença.
+  - Texto de terceiros (passado): 61 → 39; 22 saíram, nenhum entrou.
+- **Exemplos** (`examples/`): mesmos alertas, explicações novas.
+- **Testes:** 408 do analisador, 29 dos pacotes, contrato Python, 25 do Coerencia, contratos Swift
+  (exemplo Mestre e um relatório novo), mesa, edição, falsos positivos, decisões por livro, build
+  Debug do app.
+- **Limpar resíduos:** simulação do plano na pasta de dados real, sem apagar nada. Seriam
+  apagados 48 relatórios antigos, 466 registros e 99 configurações (108 MB); nada fora dessas
+  pastas.
+- **Limites:**
+  - interface não inspecionada em uso real (Reanalisar, Limpar resíduos, botões da mesa);
+  - “Olho”/“Corri… entro” no início da frase sem sujeito seguem sem alerta (limite do modelo);
+  - o corpus é sintético e escrito junto com as regras.
+
 ## Auditoria final com IA — medição no corpus (05/10/2026)
 
 Etapa 6 do [plano](../.agent/plans/auditor-final.md), autorizada pelo autor com teto de US$ 2,00.

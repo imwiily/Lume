@@ -44,7 +44,8 @@ class ContextualEditorialTests(unittest.TestCase):
         self.assertNotIn('falta pontuação', f['reason'])
         self.assertIn('Ex.: “…viu? — As mãos dela tremeram…”', f['reason'])
         # A ressalva sobre a lista de elocução continua, no fim.
-        self.assertTrue(f['reason'].endswith('a lista de verbos de elocução é limitada.'))
+        self.assertIn('a lista de verbos de fala do Lume é limitada.', f['reason'])
+        self.assertTrue(f['reason'].endswith('Na gramática: pontuação de diálogo com travessão.'))
 
     def test_clitic_action_offsets_and_standalone_verb(self):
         # Regressão: is_alpha pulava o verbo e gerava início > fim.

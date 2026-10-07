@@ -9,7 +9,12 @@ struct ManuscriptView: View {
     let finding: Finding
     /// Com o inspetor recolhido (janela estreita), ele aparece abaixo da página.
     var inspectorBelow = false
-    @State private var copiedID: String?
+    /// Qual cópia acabou de ser feita, para o aviso “Copiado” no botão certo.
+    @State private var copied: Copy?
+
+    private enum Copy: Equatable {
+        case paragraph(String), context(String), marked(String)
+    }
 
     private var textSize: CGFloat { CGFloat(min(28, max(15, readingSize))) }
     /// Cerca de 65–75 caracteres por linha na serifada, mais as margens da página.
@@ -17,16 +22,7 @@ struct ManuscriptView: View {
     private let margin: CGFloat = 56
 
     /// Parágrafos do mesmo capítulo, em ordem, sem repetir o parágrafo do alerta.
-    private var paragraphs: [(number: Int, text: String)] {
-        var items: [(number: Int, text: String)] = (finding.context ?? [])
-            // O título do capítulo já está no cabeçalho da página.
-            .filter { $0.document == "atual" && $0.chapter == finding.chapter && $0.paragraph != finding.paragraph
-                      && $0.text != finding.chapter }
-            .map { ($0.paragraph, $0.text) }
-        items.append((finding.paragraph, finding.text))
-        var seen = Set<Int>()
-        return items.filter { seen.insert($0.number).inserted }.sorted { $0.number < $1.number }
-    }
+    private var paragraphs: [(number: Int, text: String)] { finding.pageParagraphs }
 
     var body: some View {
         ScrollView {
@@ -49,23 +45,16 @@ struct ManuscriptView: View {
                     .font(LumeFont.ui(11)).foregroundStyle(LumeTheme.secondary).lineLimit(1)
             }
             Spacer()
-            Button {
+            copyButton(.context(finding.id), symbol: "doc.plaintext", help: "Copiar o contexto: o título e todos os parágrafos desta página") {
+                store.copyContext(finding)
+            }
+            copyButton(.marked(finding.id), symbol: "asterisk",
+                       help: "Copiar o parágrafo com o trecho destacado entre asteriscos e o motivo do alerta") {
+                store.copyMarkedParagraph(finding)
+            }
+            copyButton(.paragraph(finding.id), symbol: "doc.on.doc", help: "Copiar parágrafo para localizar no original") {
                 store.copyParagraph(finding)
-                let id = finding.id
-                withAnimation(.easeOut(duration: 0.15)) { copiedID = id }
-                Task {
-                    try? await Task.sleep(nanoseconds: 1_500_000_000)
-                    if copiedID == id { withAnimation(.easeIn(duration: 0.3)) { copiedID = nil } }
-                }
-            } label: {
-                if copiedID == finding.id {
-                    Label("Copiado", systemImage: "checkmark").foregroundStyle(LumeTheme.sage)
-                        .font(LumeFont.ui(11, weight: .semibold))
-                } else {
-                    Image(systemName: "doc.on.doc")
-                }
-            }.help("Copiar parágrafo para localizar no original")
-                .accessibilityLabel("Copiar parágrafo para localizar no original")
+            }
             Button { readingSize = max(15, readingSize - 1) } label: { Text("A").font(.system(size: 11)) }
                 .accessibilityLabel("Diminuir tamanho do texto").disabled(readingSize <= 15)
                 .help("Diminuir o texto")
@@ -73,6 +62,24 @@ struct ManuscriptView: View {
                 .accessibilityLabel("Aumentar tamanho do texto").disabled(readingSize >= 28)
                 .help("Aumentar o texto")
         }.buttonStyle(.borderless).foregroundStyle(LumeTheme.secondary)
+    }
+
+    private func copyButton(_ kind: Copy, symbol: String, help: String, action: @escaping () -> Void) -> some View {
+        Button {
+            action()
+            withAnimation(.easeOut(duration: 0.15)) { copied = kind }
+            Task {
+                try? await Task.sleep(nanoseconds: 1_500_000_000)
+                if copied == kind { withAnimation(.easeIn(duration: 0.3)) { copied = nil } }
+            }
+        } label: {
+            if copied == kind {
+                Label("Copiado", systemImage: "checkmark").foregroundStyle(LumeTheme.sage)
+                    .font(LumeFont.ui(11, weight: .semibold))
+            } else {
+                Image(systemName: symbol)
+            }
+        }.help(help).accessibilityLabel(help)
     }
 
     private var page: some View {

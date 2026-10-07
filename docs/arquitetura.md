@@ -9,7 +9,7 @@ Os manuscritos são somente lidos. A sequência Linguístico → Morfossintátic
 | `Lume/` | Interface SwiftUI, relatórios, decisões e seleção do motor |
 | `fonte/fonte/reader.py`, `pages.py`, `contracts.py`, `pipeline.py` | Leitura de DOCX e Pages, índices Unicode, contratos e execução sequencial |
 | `linguistic.py`, `analysis.py`, `temporal.py`, `editorial/` | Regras linguísticas, temporais e editoriais |
-| `grammar.py` | Crase, homófonos, concordância, regência e vírgula entre sujeito e verbo (etapa Morfossintática) |
+| `grammar.py` | Crase, homófonos, concordância, regência, vírgula entre sujeito e verbo, correlação de tempos, frase cortada, locuções e tratamento tu/você (etapa Morfossintática) |
 | `languagetool.py` | Corretor gramatical LanguageTool local: filtros, falas e servidor embutido |
 | `coerencia_ia.py` | Coerência com IA: projeto incremental do Coerencia (`coerencia/`) na etapa Coerência global |
 | `packaging/` | Entrada portátil, inventário, instalação atômica e reversão |
@@ -104,7 +104,8 @@ As contagens correspondem aos alertas efetivamente emitidos por cada etapa. A re
 Linguístico cobre padrões determinísticos, pontuação, repetições e o LanguageTool embutido
 (ortografia e gramática, também em falas). Morfossintático cobre o tempo verbal da narração
 informado, relações entre orações, acentuação contextual e as regras de `grammar.py` (crase,
-homófonos, concordância, regência, vírgula entre sujeito e verbo). Editorial usa contexto
+homófonos, concordância, regência, vírgula entre sujeito e verbo, correlação de tempos, frase
+cortada, locuções e tratamento tu/você). Editorial usa contexto
 local: diálogos, repetições, gerundismo e referentes próximos, com abstenção quando há
 candidatos concorrentes. Coerência Global cobre variações de nomes e prazos e, com a
 Coerência com IA ligada, contradições narrativas. Suspeitas não viram erros confirmados nem
@@ -123,9 +124,9 @@ fonte/.venv/bin/python -m fonte revisar manuscrito.docx --modo ambas --tempo pas
 
 `--languagetool` ativa o corretor gramatical local. Se o motor tiver o corretor embutido (`languagetool/` ao lado de `runtime/` no pacote, `fonte/.languagetool` nos fontes ou `FONTE_LANGUAGETOOL`), a CLI inicia o servidor numa porta livre de 127.0.0.1, com o Java do pacote, e o encerra ao terminar. Sem corretor embutido, ou com `--porta-lt`, usa um servidor já ativo (padrão 8081). `metadata.languagetool_origem` registra `embutido` ou `externo`. Sem a flag, a CLI não usa o corretor; o app a envia quando **Corretor gramatical local** está ligado, o que agora é o padrão.
 
-O texto das falas é enviado ao corretor. Regras de estilo e registro ficam fora para não formalizar a voz. Maiúscula após travessão de inciso e grafia de nomes próprios (palavras com inicial maiúscula fora do início de frase, mais `ignored_names`) são descartadas; itálicos marcados como pensamento não recebem alertas de grafia. Um alerta do corretor sobre o mesmo trecho de uma regra FONTE é omitido. As regras de `grammar.py` revisam crase e homófonos também em falas; concordância, regência e vírgula entre sujeito e verbo só na narração. Regência é `editorial_attention`, porque a forma com ‘em’ é corrente no português brasileiro.
+O texto das falas é enviado ao corretor. Regras de estilo e registro ficam fora para não formalizar a voz. Maiúscula após travessão de inciso e grafia de nomes próprios (palavras com inicial maiúscula fora do início de frase, mais `ignored_names`) são descartadas; itálicos marcados como pensamento não recebem alertas de grafia. Um alerta do corretor sobre o mesmo trecho de uma regra FONTE é omitido. As regras de `grammar.py` revisam crase, homófonos, correlação de tempos, frase cortada e tratamento tu/você também em falas; concordância, regência, vírgula entre sujeito e verbo e locuções só na narração. Regência é `editorial_attention`, porque a forma com ‘em’ é corrente no português brasileiro.
 
-Consulte o [histórico](../CHANGELOG.md) para evolução dos contratos, a [validação](VALIDACAO.md) para evidências e a [visão](VISAO.md) para objetivos ainda não integralmente implementados.
+Consulte o [histórico](../CHANGELOG.md) para evolução dos contratos, a [validação](validacao.md) para evidências e a [visão](visao.md) para objetivos ainda não integralmente implementados.
 
 ## Coerência com IA
 

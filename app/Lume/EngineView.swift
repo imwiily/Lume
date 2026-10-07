@@ -81,6 +81,19 @@ struct EngineView: View {
                             .font(LumeFont.ui(11.5)).foregroundStyle(LumeTheme.secondary)
                     }
                 }
+                Panel(padding: 20) {
+                    HStack(alignment: .center, spacing: 14) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Armazenamento").font(LumeFont.ui(13, weight: .semibold))
+                            Text("Cada análise guarda um relatório, um registro e uma configuração, com texto do manuscrito. A limpeza apaga os de leituras antigas e mantém o relatório aberto, o mais recente de cada livro, suas decisões e as cópias de segurança.")
+                                .font(LumeFont.ui(11.5)).foregroundStyle(LumeTheme.secondary).fixedSize(horizontal: false, vertical: true)
+                        }
+                        Spacer(minLength: 8)
+                        Button { store.cleanStorage() } label: { Label("Limpar resíduos…", systemImage: "trash") }
+                            .buttonStyle(LumeButtonStyle()).disabled(store.isBusy)
+                            .help("Mostra o espaço a liberar e pede confirmação antes de apagar")
+                    }
+                }
                 HStack {
                     Label("A análise do FONTE roda neste Mac.", systemImage: "lock").font(LumeFont.ui(11.5))
                         .foregroundStyle(LumeTheme.secondary)

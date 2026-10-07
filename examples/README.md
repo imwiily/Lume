@@ -6,7 +6,7 @@ Os relatórios incluídos são registros das versões indicadas; contagens hist�
 
 `Manuscrito-modular.docx` é uma amostra sintética pequena. Não é uma análise do manuscrito A completo.
 
-Abra o documento, escolha Ambas, Passado e configuração padrão. O relatório incluído foi regenerado pelo FONTE 1.3.1 (spaCy 3.8.16 / pt_core_news_sm 3.8.0), com textos sintéticos, sem o LanguageTool.
+Abra o documento, escolha Ambas, Passado e configuração padrão. O relatório incluído foi regenerado em 07/10/2026 pelo FONTE em desenvolvimento depois da 1.4.0, com as explicações em linguagem simples (spaCy 3.8.16 / pt_core_news_sm 3.8.0), com textos sintéticos, sem o LanguageTool.
 
 Resultado observado: 11 alertas — 3 linguísticos, 3 morfossintáticos, 3 de contexto curto e 2 de coerência global limitada. O auditor está indisponível. Uma ocorrência pode ser uma escolha legítima: “São” e “Está”, por exemplo, continuam como atenção editorial, não erro confirmado.
 
@@ -16,7 +16,7 @@ Nesta versão, “observa” recebe a explicação temporal específica, ligada 
 
 ## Temporal
 
-Amostra sintética; relatório regenerado pelo FONTE 1.0.0, com spaCy 3.8.16 e pt_core_news_sm 3.8.0. Não contém personagens nem depende do enredo do manuscrito A.
+Amostra sintética; relatório regenerado em 07/10/2026 pelo FONTE em desenvolvimento depois da 1.4.0 (mesmos alertas, explicações em linguagem simples), com spaCy 3.8.16 e pt_core_news_sm 3.8.0. Não contém personagens nem depende do enredo do manuscrito A.
 
 Abra `Manuscrito-temporal.docx`, importe `Busca-temporal.json` e selecione **Ambas / Passado**. A configuração isola coerência temporal, acentuação contextual, quê final e pontuação duplicada; as demais regras ficam desligadas. Restaure o padrão antes de uma revisão geral.
 

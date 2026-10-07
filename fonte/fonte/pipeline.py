@@ -101,6 +101,14 @@ def run(blocks, model_loader, *, settings=None, tense="auto", mode="ambas",
                 # verificação antiga de tempo predominante está desligada.
                 meta["tempo"] = reference
             more = temporal(blocks, language_model, options, reference)
+            # Mesma mudança de tempo vista pelos dois lados: quando o verbo apontado pela relação está
+            # no tempo da narração e o outro já tem o alerta de tempo verbal, o desvio é o outro verbo;
+            # a relação repetiria o mesmo fenômeno sobre o verbo correto.
+            narrative_form = {"presente": "present", "passado": "past"}.get(reference)
+            flagged = {(f["paragraph"], f["start"], f["end"]) for f in out if f["category"] == "Tempo verbal"}
+            more = [f for f in more if not (
+                narrative_form and f.get("temporal_evidence", {}).get("target_form") == narrative_form
+                and any((r.get("paragraph"), r.get("start"), r.get("end")) in flagged for r in f.get("related", [])))]
             covered = [(f["paragraph"], f["start"], f["end"]) for f in more]
             # A explicação específica substitui o alerta genérico sobre o mesmo verbo.
             out = [f for f in out if not (f["category"] == "Tempo verbal" and
@@ -170,7 +178,7 @@ def run(blocks, model_loader, *, settings=None, tense="auto", mode="ambas",
         (linguistic_mode and (rules["estrutura"] or rules["acentuacao_contextual"] or
             any(rules[r] for r in GRAMMAR_RULES) or
             ((rules["tempo_verbal"] or rules["coerencia_temporal"]) and options["tense_scopes"])), morphosyntactic,
-         "Tempo predominante, estrutura, quatro relações temporais locais, acentuação verbal contextual, crase, homófonos, concordância, regência e vírgula entre sujeito e verbo. Cobertura parcial; homógrafos permanecem dúvidas."),
+         "Tempo predominante, estrutura, quatro relações temporais locais, acentuação verbal contextual, crase, homófonos, concordância, regência, vírgula entre sujeito e verbo, correlação de tempos, frase cortada, locuções e tratamento tu/você. Cobertura parcial; homógrafos permanecem dúvidas."),
         ((linguistic_mode and rules["pontuacao_dialogo"]) or (editorial_mode and (
             any(rules[r] for r in ("palavra_proxima", "frase_duplicada", "referente_proximidade",
                                   "dialogo_contextual", "referente_contextual", "gerundismo")) or

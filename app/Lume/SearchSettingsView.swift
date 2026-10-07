@@ -142,7 +142,7 @@ struct SearchSettingsView: View {
                 editor($titlesText, height: 85).onChange(of: titlesText) { store.searchSettings.chapterTitles = lines($0) }
                 Text("Estilos de parágrafo adicionais · um por linha")
                 editor($stylesText, height: 65).onChange(of: stylesText) { store.searchSettings.chapterStyles = lines($0) }
-                Text("Nomes aceitos que não devem gerar alerta de variação · um por linha")
+                Text("Nomes aceitos · nomes e termos da obra (espécies, lugares, poderes) que não geram alerta de grafia nem de variação; o plural vale junto · um por linha")
                 editor($namesText, height: 65).onChange(of: namesText) { store.searchSettings.ignoredNames = lines($0) }
             }
         }.font(LumeFont.ui(13))

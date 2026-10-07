@@ -64,6 +64,8 @@ presente da história, idade incompatível, alguém sem um objeto que acabou de 
 Não é conflito: mudança explicada pelo texto (trocou de roupa, o tempo passou, pintou), lembrança,
 sonho, mentira evidente de personagem, ou estranheza que o próprio narrador aponta como mistério.
 Para cada conflito, copie o trecho desta cena e o trecho anterior, com os números de parágrafo.
+Em "explicacao", diga em uma ou duas frases curtas, com palavras do dia a dia, o que não combina
+entre os dois trechos; sem termos técnicos e sem sugerir outra redação.
 Se não houver nada, devolva listas vazias."""
 
 SISTEMA_JUIZ = """Você é um revisor de continuidade de romances em português.
@@ -72,6 +74,8 @@ Diga se B contradiz A: os dois não podem ser verdade ao mesmo tempo na históri
 explica a mudança. Mudanças explicadas (tempo passou, troca, conserto, pintura), lembranças, sonhos,
 hipóteses, mentira de personagem e mistérios apontados pelo próprio narrador NÃO são contradição.
 Duas descrições compatíveis (ex.: "cinzentos" e "cinza") também não.
+Em "explicacao", diga em uma ou duas frases curtas, com palavras do dia a dia, o que não combina
+entre A e B (ou por que combina); sem termos técnicos e sem sugerir outra redação.
 Responda em JSON. Na dúvida, contradicao=false ou confianca="baixa"."""
 
 

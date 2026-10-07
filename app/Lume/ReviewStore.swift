@@ -78,6 +78,8 @@ final class ReviewStore: ObservableObject {
     @Published var hasUnsavedDecisions = false
     /// Correções gravadas no manuscrito a partir do relatório aberto.
     @Published private(set) var editLog: EditLog?
+    /// Decisões da leitura anterior, aplicadas quando a reanálise da mesma obra terminar.
+    private var carriedDecisions: CarriedDecisions?
 
     private enum Job: Equatable { case analyze, install, diagnose }
     private let runner = PythonRunner.shared
@@ -177,6 +179,7 @@ final class ReviewStore: ObservableObject {
         restoreSearchSettings()
         screen = .preparation; analysisFailed = false
         report = nil; reportURL = nil; falsePositivesURL = nil; selectedID = nil; decisions = [:]; editLog = nil
+        carriedDecisions = nil
         category = "Todas"; decisionFilter = "Todas"; search = ""; layerFilter = "Todas"; moduleFilter = "Todas"; severityFilter = "Todas"
         status = "Manuscrito selecionado. O arquivo original será preservado."
     }
@@ -246,6 +249,7 @@ final class ReviewStore: ObservableObject {
         guard panel.runModal() == .OK, let url = panel.url, mayReplaceReport() else { return }
         do {
             saveSearchSettings()
+            carriedDecisions = nil
             try loadReport(url)
             documentURL = nil; originalURL = nil
         } catch { errorText = error.localizedDescription }
@@ -260,11 +264,15 @@ final class ReviewStore: ObservableObject {
         return true
     }
 
-    private func supportDirectory(_ component: String) throws -> URL {
+    private func supportRoot() throws -> URL {
         guard let base = manager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
             throw FonteError.message("A pasta de dados do aplicativo não está disponível.")
         }
-        let url = base.appendingPathComponent("FONTE", isDirectory: true).appendingPathComponent(component, isDirectory: true)
+        return base.appendingPathComponent("FONTE", isDirectory: true)
+    }
+
+    private func supportDirectory(_ component: String) throws -> URL {
+        let url = try supportRoot().appendingPathComponent(component, isDirectory: true)
         try manager.createDirectory(at: url, withIntermediateDirectories: true)
         return url
     }
@@ -308,18 +316,32 @@ final class ReviewStore: ObservableObject {
             }
             inherited = restored.count
         }
+        // Reanálise: as decisões da leitura anterior completam as que o cache não trouxe.
+        var carried = 0
+        let carry = carriedDecisions.flatMap { $0.belongs(to: loaded) ? $0 : nil }
+        carriedDecisions = nil
+        if let carry {
+            let before = restored.values.filter { $0 != .pending }.count
+            restored = carry.merged(into: restored, for: loaded)
+            carried = restored.values.filter { $0 != .pending }.count - before
+        }
         report = loaded; reportURL = url; decisions = restored
         falsePositivesURL = falsePositivesFile(next: url).flatMap { manager.fileExists(atPath: $0.path) ? $0 : nil }
         editLog = readEditLog(loaded.sha256)
         analysisStages = loaded.metadata.stages ?? []
         screen = .review; analysisFailed = false
-        selectedID = loaded.findings.first?.id
+        selectedID = carry?.selectedID.flatMap { id in loaded.findings.contains { $0.id == id } ? id : nil }
+            ?? loaded.findings.first?.id
         category = "Todas"; decisionFilter = "Todas"; search = ""; layerFilter = "Todas"; moduleFilter = "Todas"; severityFilter = "Todas"
         hasUnsavedDecisions = false
         status = "\(loaded.findings.count) candidatos. Avalie cada trecho no contexto."
-        if inherited > 0 {
+        if inherited > 0 || carried > 0 {
             try autosave()
-            status = "\(loaded.findings.count) candidatos. \(inherited) decisões mantidas nos alertas que não mudaram desde a análise anterior."
+            status = "\(loaded.findings.count) candidatos. \(inherited + carried) decisões mantidas nos alertas que não mudaram desde a análise anterior."
+        }
+        if let carry {
+            let kept = restored.values.filter { $0 != .pending }.count
+            status = "Reanálise concluída: \(loaded.findings.count) candidatos; \(kept) de \(carry.byID.count) marcações anteriores mantidas nos alertas que continuam no texto."
         }
     }
 
@@ -510,6 +532,15 @@ final class ReviewStore: ObservableObject {
         } catch { errorText = error.localizedDescription }
     }
 
+    /// Reanalisar a obra: mesma leitura, mesmas opções, com as decisões já marcadas mantidas.
+    var canReanalyze: Bool { report != nil && canAnalyze && !hasUnsavedDecisions }
+
+    func reanalyze() {
+        guard canReanalyze, let report else { return }
+        carriedDecisions = CarriedDecisions(report: report, decisions: decisions, selectedID: selectedID)
+        analyze()
+    }
+
     func analyze() {
         guard coherenceActive || auditActive, !aiConfirmed else { return start(.analyze) }
         guard hasAPIKey else {
@@ -527,6 +558,7 @@ final class ReviewStore: ObservableObject {
 
     func cancelAI() {
         aiEstimate = nil
+        carriedDecisions = nil
         status = "Análise cancelada antes de enviar qualquer texto."
     }
 
@@ -708,6 +740,7 @@ final class ReviewStore: ObservableObject {
                                                       logURL: log, extraEnvironment: environment)
                     if job == .analyze { updateProgress(from: log) }
                     if result.cancelled {
+                        carriedDecisions = nil
                         analysisFailed = true
                         status = "Análise interrompida. O manuscrito foi preservado."
                         return
@@ -722,7 +755,7 @@ final class ReviewStore: ObservableObject {
                     case .diagnose: status = "Instalação verificada. O analisador está disponível."
                     }
                 } catch {
-                    if job == .analyze { analysisFailed = true }
+                    if job == .analyze { analysisFailed = true; carriedDecisions = nil }
                     errorText = error.localizedDescription
                     status = "A operação não foi concluída. Confira o registro para mais detalhes."
                 }
@@ -895,9 +928,62 @@ final class ReviewStore: ObservableObject {
     }
 
     func copyParagraph(_ finding: Finding) {
+        copy(finding.text, status: "Parágrafo copiado. Use ⌘F no Pages ou Word.")
+    }
+
+    func copyContext(_ finding: Finding) {
+        copy(finding.contextText, status: "Contexto copiado: o título e os parágrafos mostrados na página.")
+    }
+
+    func copyMarkedParagraph(_ finding: Finding) {
+        copy(finding.markedParagraphText, status: "Parágrafo copiado com o trecho entre asteriscos e o motivo do alerta.")
+    }
+
+    private func copy(_ text: String, status message: String) {
         NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(finding.text, forType: .string)
-        status = "Parágrafo copiado. Use ⌘F no Pages ou Word."
+        NSPasteboard.general.setString(text, forType: .string)
+        status = message
+    }
+
+    // MARK: Armazenamento
+
+    /// Apaga, depois de confirmar, relatórios, registros e configurações de leituras antigas.
+    func cleanStorage() {
+        guard !isBusy else { return }
+        let support: URL
+        do { support = try supportRoot() } catch { errorText = error.localizedDescription; return }
+        let temporary = manager.temporaryDirectory
+        let keepReport = reportURL?.deletingLastPathComponent()
+        let keepLog = logURL
+        isBusy = true; jobLabel = "Calculando o espaço ocupado…"; errorText = nil
+        Task {
+            let plan = await Task.detached(priority: .userInitiated) {
+                StorageCleanup.plan(support: support, temporary: temporary, keepReport: keepReport, keepLog: keepLog)
+            }.value
+            guard !plan.isEmpty else {
+                isBusy = false; jobLabel = ""
+                status = "Nenhum resíduo de leituras antigas para limpar."
+                return
+            }
+            let size = ByteCountFormatter.string(fromByteCount: plan.bytes, countStyle: .file)
+            let alert = NSAlert()
+            alert.messageText = "Liberar \(size)?"
+            alert.informativeText = "Serão apagados \(plan.summary). Eles guardam texto de leituras passadas.\n\nFicam o relatório aberto, o mais recente de cada livro, os falsos positivos extraídos, suas decisões, o histórico e as cópias de segurança das correções, os projetos com IA e os motores."
+            alert.alertStyle = .warning
+            alert.addButton(withTitle: "Apagar")
+            alert.addButton(withTitle: "Cancelar")
+            guard alert.runModal() == .alertFirstButtonReturn else {
+                isBusy = false; jobLabel = ""
+                status = "Limpeza cancelada; nada foi apagado."
+                return
+            }
+            jobLabel = "Limpando resíduos…"
+            let result = await Task.detached(priority: .userInitiated) { plan.apply() }.value
+            isBusy = false; jobLabel = ""
+            let freed = ByteCountFormatter.string(fromByteCount: result.freed, countStyle: .file)
+            status = result.failures == 0 ? "\(freed) liberados. Decisões e cópias de segurança preservadas."
+                : "\(freed) liberados; \(result.failures) itens não puderam ser apagados."
+        }
     }
 
     func revealReport() {

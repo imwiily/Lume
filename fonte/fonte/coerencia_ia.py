@@ -11,7 +11,7 @@ import json
 from pathlib import Path
 import re
 
-from .analysis import finding
+from .analysis import explicar, finding
 
 REGRA = "coerencia_ia"
 CATEGORIA = "Contradição narrativa"
@@ -81,7 +81,8 @@ def analisar(blocks, pasta, documento="manuscrito", modelo="claude-sonnet-5-5", 
         explicacao = pendencia["explicacao"]
         if pendencia.get("relacionadas"):
             explicacao += f" (Também apontado em {len(pendencia['relacionadas'])} outro(s) trecho(s) próximo(s).)"
-        item = asdict(finding(bloco_b, CATEGORIA, "Verificar", ib, fb, explicacao, FONTE))
+        item = asdict(finding(bloco_b, CATEGORIA, "Verificar", ib, fb,
+                              explicar(explicacao, "contradição de continuidade"), FONTE))
         alta = pendencia.get("confianca") == "alta"
         item.update(rule=REGRA, category_code="narrative_contradiction_ai", layer="editorial",
                     severity="possible_inconsistency", confidence="alta" if alta else "média",

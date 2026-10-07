@@ -5,7 +5,7 @@ import hashlib
 import re
 
 from .reader import Block
-from .lexicon import finite, flags, indicative_tense
+from .lexicon import FINITE, FUTURE, NONFINITE, NONVERB, PAST, PRESENT, after_article, finite, flags, indicative_tense, model_finite
 
 SPEECH = set("dizer informar perguntar responder murmurar gritar sussurrar comentar retrucar afirmar falar exclamar replicar declarar indagar confessar explicar acrescentar argumentar insistir ordenar pedir protestar avisar pensar refletir ponderar admitir lembrar concluir continuar completar interromper balbuciar resmungar cochichar implorar vociferar anunciar observar sugerir repetir garantir negar confirmar questionar reclamar ironizar brincar saudar chamar ler recitar citar ditar cantar declamar terminar".split())
 
@@ -66,6 +66,85 @@ def fragmento_suspenso(sent, limite=5):
     return 0 < len(words) <= limite
 
 
+def verbo_finito_possivel(token):
+    """Validação independente antes de afirmar que um segmento não tem verbo finito.
+
+    `finite` decide pela análise sintática, que erra em homógrafos e em verbos ligados como
+    complemento. Aqui basta uma fonte com apoio: o modelo e o léxico concordarem na forma finita
+    (“por onde pousa”); o léxico só conhecer a forma como verbo finito (“havia”, “estão”); ou a
+    forma, finita no léxico, ocupar a posição do verbo logo depois do grupo nominal que abre a
+    frase (“A garra segura o menino”). Com discordância entre as fontes, a frase não é dada como
+    sem verbo.
+    """
+    if finite(token):
+        return True
+    lex = flags(token.text)
+    if not token.is_alpha or not lex & FINITE or after_article(token):
+        return False
+    if model_finite(token) or not lex & (NONVERB | NONFINITE):
+        return True
+    from .temporal import sole_verb
+    return sole_verb(token) or posicao_de_verbo(token)
+
+
+# Entre o relativo e o verbo da relativa cabem negação, clíticos e pronome sujeito.
+ANTES_DO_VERBO = {"não", "nunca", "já", "se", "me", "te", "lhe", "lhes", "nos", "vos", "ele", "ela", "eles", "elas"}
+GRAMATICAIS = {"DET", "PRON", "ADP", "ADV", "CCONJ", "SCONJ", "NUM", "PUNCT"}
+
+
+def posicao_de_verbo(token):
+    """Homógrafo nome/verbo, só no presente pelo léxico, num lugar que pede verbo: logo depois de
+    um relativo (a relativa “por onde pousa” precisa de verbo) ou entre um nome e o início do
+    complemento, concordando em número com esse nome (“… seu braço causa coceira”)."""
+    lex = flags(token.text)
+    if not lex & PRESENT or lex & (PAST | FUTURE | NONFINITE) or token.pos_ in GRAMATICAIS:
+        return False
+    doc = token.doc
+    walk = token.i - 1
+    while walk >= token.sent.start and doc[walk].lower_ in ANTES_DO_VERBO:
+        walk -= 1
+    if walk >= token.sent.start and doc[walk].lower_ in RELATIVOS | {"quem"}:
+        return True
+    if token.i == token.sent.start or token.i + 1 >= token.sent.end:
+        return False
+    previous, following = doc[token.i - 1], doc[token.i + 1]
+    if previous.pos_ not in {"NOUN", "PROPN"} or following.pos_ not in {"DET", "NOUN", "PRON"}:
+        return False
+    plural = "Plur" in previous.morph.get("Number")
+    return token.lower_.endswith("m") if plural else not token.lower_.endswith(("m", "s"))
+
+
+# Abertura que contrapõe ou retoma o que veio antes (“Por outro lado, uma saída lenta.”): frase
+# nominal deliberada, como as de uma enumeração (“Pedras soltas, galhos secos, lama.”).
+OPOSICAO = re.compile(r"(?:(?:por|de)\s+(?:um|outro)\s+lado|em\s+compensação|ao\s+contrário|em\s+contrapartida)\b", re.I)
+
+
+def fragmento_deliberado(sent, previous=None):
+    """Oposição, enumeração ou paralelismo com a frase anterior: sinais de fragmento de estilo."""
+    text = sent.text.strip()
+    if OPOSICAO.match(text):
+        return True
+    # Enumeração: três itens nominais ou mais, separados por vírgula ou pelo ‘e’ final. Advérbio ou
+    # conectivo isolado entre vírgulas (“Hoje, porém, …”) não é item.
+    itens, atual = [], []
+    for t in sent:
+        if t.text == "," or t.lower_ == "e":
+            itens.append(atual); atual = []
+        elif not t.is_punct:
+            atual.append(t)
+    itens.append(atual)
+    if sum(1 for item in itens if any(t.pos_ in {"NOUN", "PROPN", "ADJ"} for t in item)) >= 3:
+        return True
+    # Paralelismo: abre com as mesmas duas palavras da frase anterior (“Um corredor… Um silêncio…”
+    # não basta; “Por um lado… Por um momento…” sim).
+    if previous is not None:
+        mine = [t.lower_ for t in sent if t.is_alpha][:2]
+        theirs = [t.lower_ for t in previous if t.is_alpha][:2]
+        if len(mine) == 2 and mine == theirs:
+            return True
+    return False
+
+
 # Conjunções que abrem oração subordinada: sem verbo finito, falta a oração.
 SUBORDINANTES = {"quando", "enquanto", "porque", "embora", "conquanto", "caso", "porquanto"}
 # “Enquanto isso, …”, “quando muito”: locuções adverbiais, não subordinação.
@@ -74,6 +153,56 @@ RELATIVOS = {"que", "onde", "cujo", "cuja", "cujos", "cujas"}
 ARTIGOS = {"o", "a", "os", "as", "um", "uma", "uns", "umas"}
 # Palavras que pedem continuação: fragmento terminado nelas foi cortado.
 PEDEM_CONTINUACAO = set(PREPOSICOES) | ARTIGOS | {"e", "ou", "mas", "que", "se", "nem"}
+# Aberturas de oração subordinada adverbial, das mais longas às mais curtas.
+ABERTURAS_SUBORDINADAS = ("apesar de que", "assim que", "antes que", "depois que", "desde que", "logo que",
+                          "sempre que", "a menos que", "quando", "enquanto", "embora", "porque", "conquanto",
+                          "porquanto", "caso", "conforme", "se")
+# Palavras que abrem orações dependentes: relativos e subordinantes.
+ABREM_ORACAO = RELATIVOS | SUBORDINANTES | {"quem", "qual", "quais", "se", "como", "conforme"}
+
+
+def abertura_subordinada(sent):
+    """Subordinante que abre a frase (“Quando”, “Assim que”), com a grafia do texto; senão None."""
+    words = [t for t in sent if t.is_alpha]
+    lowered = [t.lower_ for t in words]
+    for phrase in ABERTURAS_SUBORDINADAS:
+        parts = phrase.split()
+        if lowered[:len(parts)] == parts and len(words) > len(parts):
+            first, last = words[0], words[len(parts) - 1]
+            if len(parts) == 1 and lowered[1] in LOCUCAO_ADVERBIAL:
+                return None
+            return sent.doc.text[first.idx:last.idx + len(last.text)]
+    return None
+
+
+def fecha_oracao_dependente(verb):
+    """O verbo é o primeiro da oração aberta por um relativo ou subordinante anterior (“o porão em
+    que dormem”, “a casa onde moram”): pertence a essa oração, não ao predicado que vem depois."""
+    for token in reversed(list(verb.sent[:verb.i - verb.sent.start])):
+        if verbo_finito_possivel(token):
+            return False
+        if token.lower_ in ABREM_ORACAO or "Rel" in token.morph.get("PronType") or token.dep_ == "mark":
+            return True
+    return False
+
+
+ABRE_ASPAS = {"”": "“", "»": "«", '"': '"', "’": "‘"}
+
+
+def aspas_de_destaque(text, closing, nlp):
+    """Aspas de destaque, ironia ou termo especial, não fala: até três palavras sem verbo finito nem
+    pontuação interna, abertas no meio da oração (depois de uma palavra, não de pontuação final,
+    dois-pontos ou travessão). Aspas que vêm de outro parágrafo continuam tratadas como fala."""
+    opening = text.rfind(ABRE_ASPAS.get(text[closing], ""), 0, closing)
+    if opening < 0:
+        return False
+    content = text[opening + 1:closing].strip()
+    before = text[:opening].rstrip()
+    words = re.findall(r"[^\W\d_]+", content)
+    if (not before or before[-1] in ".!?…:—–\"“”«»" or not 0 < len(words) <= 3
+            or re.search(r"[,.;:!?…]", content)):
+        return False
+    return not any(verbo_finito_possivel(t) for t in nlp(content))
 
 
 def _concorda(palavra, token):
@@ -131,6 +260,8 @@ def classificar_fragmento(sent, previous=None, following=None):
                    for i, w in enumerate(words) if i > 0)
             or (words[-1].lower_ in PEDEM_CONTINUACAO and not ultima.endswith(("…", "...")))):
         return "likely_incomplete_clause"
+    if fragmento_deliberado(sent, previous):
+        return "likely_literary_fragment"
     nucleo = _nucleo_nominal(words)
     abre_adverbio = (words[0].pos_ == "ADV" or first.endswith("mente")
                      or (first in PREPOSICOES and words[1:2] and words[1].pos_ in {"PRON", "ADV", "VERB"}))
@@ -182,6 +313,20 @@ class Finding:
     end: int
     reason: str
     source: str = "Regras FONTE + spaCy + PortiLexicon-UD"
+
+
+def lista_ou_rotulo(texto):
+    """Linha sem pontuação final só com palavras de inicial maiúscula e números (“Equipe 2 Ana Rui”,
+    “Parte 3”): lista ou rótulo, não frase da narração."""
+    partes = texto.split()
+    return (len(partes) >= 2 and texto.rstrip()[-1:].isalnum()
+            and all(p[0].isupper() or p[0].isdigit() for p in partes))
+
+
+def explicar(texto, termo):
+    """Explicação em linguagem do dia a dia e, numa linha final, o nome gramatical para quem quiser
+    pesquisar. Termos técnicos ficam só nessa linha."""
+    return f"{texto}\n\nNa gramática: {termo}."
 
 
 def finding(block, category, priority, start, end, reason, source="Regras FONTE + spaCy + PortiLexicon-UD"):
@@ -283,25 +428,42 @@ def analyze(blocks: list[Block], nlp, tense="auto", protect_italics=True, min_wo
     else:
         expected = tense
     results = []
-    fragment_classes, low_confidence = Counter(), set()
+    fragment_classes, low_confidence, extras = Counter(), set(), {}
     for block, doc, closed, mask in zip(blocks, docs, closings, masks):
-        if block.heading:
+        if block.heading or lista_ou_rotulo(block.text):
             continue
         for token in doc:
             observed = indicative_tense(token)
+            # Forma que o léxico só conhece como pretérito finito (“havia”), com morfologia finita do
+            # modelo, mesmo quando a árvore a liga como complemento (“de uma havia um bilhete”).
+            lex = flags(token.text)
+            if (observed is None and expected == "presente" and model_finite(token) and lex & FINITE and lex & PAST
+                    and not lex & (PRESENT | FUTURE | NONVERB | NONFINITE)):
+                observed = "passado"
             if "tempo_verbal" in active and expected and observed and observed != expected:
-                from .temporal import legitimate_present, present_function
+                from .temporal import legitimate_present, past_plane, present_function
                 if expected == "passado" and legitimate_present(token):
                     continue
-                reason = (f"O modelo e o léxico sustentam uma leitura no {observed}, em texto configurado/inferido como {expected}. "
-                          "Isso não confirma erro: pensamento, comentário do narrador, presente geral e mudanças deliberadas "
-                          "de plano temporal precisam ser avaliados no contexto.")
+                # Narração no presente: anterioridade (mais-que-perfeito, perfeito em oração dependente,
+                # ‘devia’ + infinitivo) é outro plano temporal, não mudança da cena.
+                plane = past_plane(token) if expected == "presente" else None
+                if plane == "anterior":
+                    continue
+                reason = explicar(f"A história está sendo contada no {expected}, mas ‘{token.text}’ está no {observed}. "
+                                  "Pode ser um erro ou uma mudança proposital: pensamento, fala, comentário do narrador ou "
+                                  "algo que vale sempre (‘a água ferve a cem graus’) podem usar outro tempo. Confira.",
+                                  "tempo verbal da narração")
+                if plane == "incerto":
+                    reason = explicar(f"‘{token.text}’ está no passado (forma ‘…ava’, ‘…ia’), numa história contada no "
+                                      "presente. Pode ser algo que já era assim antes da cena, o que está certo, ou algo "
+                                      "acontecendo agora, que pediria o presente. Confira.",
+                                      "pretérito imperfeito em oração dependente ou com valor modal")
                 elapsed = re.match(r"há\s+(?:\d+|[^\W\d_]+)\s+(?:segundos?|minutos?|horas?|dias?|semanas?|meses|anos?)\b",
                                    block.text[token.idx:], re.I)
                 if expected == "passado" and elapsed:
-                    reason = (f"‘{elapsed[0]}’ mede o tempo a partir do presente. Numa narração no passado, ‘havia’ ou "
-                              "uma referência como ‘… antes’ situa o intervalo no plano da história; a leitura atual "
-                              "pode ser intencional (voz do narrador).")
+                    reason = explicar(f"‘{elapsed[0]}’ conta o tempo a partir de hoje. Numa história contada no passado, "
+                                      "costuma-se usar ‘havia’ (‘havia dois anos’) ou ‘… antes’. Pode ser intencional, como "
+                                      "a voz de quem narra.", "há / havia em expressões de tempo")
                 function = present_function(token) if expected == "passado" and observed == "presente" else None
                 # Marcador discursivo (“Tá.”, “Tá bom.”): resposta curta, não verbo da narração.
                 if function == "discourse_marker":
@@ -309,7 +471,7 @@ def analyze(blocks: list[Block], nlp, tense="auto", protect_italics=True, min_wo
                 item = finding(block, "Tempo verbal", "Verificar", token.idx, token.idx+len(token.text), reason)
                 # Presente que não é evento narrativo (estado, verdade geral, pensamento, comentário)
                 # continua visível, com confiança baixa; a sequência temporal trata os eventos.
-                if function is not None and function not in {"narrative_event", "transient_state"}:
+                if (function is not None and function not in {"narrative_event", "transient_state"}) or plane == "incerto":
                     low_confidence.add(item.id)
                 results.append(item)
         previous = None
@@ -317,7 +479,7 @@ def analyze(blocks: list[Block], nlp, tense="auto", protect_italics=True, min_wo
         for index, sent in enumerate(sents):
             words = [t for t in sent if t.is_alpha]
             before, previous = previous, sent
-            if ("estrutura" in active and len(words) >= min_words and not any(finite(t) for t in sent)
+            if ("estrutura" in active and len(words) >= min_words and not any(verbo_finito_possivel(t) for t in sent)
                     and not para_verbal(sent) and not elipse_de_complemento(sent, before)
                     and not fragmento_suspenso(sent)):
                 # Segunda leitura só dos candidatos, sem espaços da máscara e
@@ -325,7 +487,7 @@ def analyze(blocks: list[Block], nlp, tense="auto", protect_italics=True, min_wo
                 clean = sent.text.strip()
                 if clean:
                     second = nlp(clean[0].lower() + clean[1:])
-                    if any(finite(t) for t in second):
+                    if any(verbo_finito_possivel(t) for t in second):
                         continue
                 following = sents[index + 1] if index + 1 < len(sents) else None
                 classe = classificar_fragmento(sent, before, following)
@@ -334,12 +496,13 @@ def analyze(blocks: list[Block], nlp, tense="auto", protect_italics=True, min_wo
                     continue
                 start, end = words[0].idx, words[-1].idx + len(words[-1].text)
                 if classe == "likely_incomplete_clause":
-                    reason = (f"O segmento ‘{block.text[start:end]}’ parece uma oração incompleta: não tem verbo finito e "
-                              "começa com subordinante ou relativo, ou termina em palavra que pede continuação. "
-                              "Confira se falta a oração principal ou parte do texto.")
+                    reason = explicar(f"O trecho ‘{block.text[start:end]}’ parece incompleto: não tem verbo, e começa com "
+                                      "uma palavra que pede continuação (como ‘quando’ ou ‘que’) ou termina em uma. Confira "
+                                      "se faltou parte do texto.", "oração incompleta")
                 else:
-                    reason = (f"O segmento ‘{block.text[start:end]}’ não tem verbo finito expresso. Frases nominais e fragmentos "
-                              "são comuns em prosa literária e podem ser deliberados; revise apenas se uma oração completa era pretendida.")
+                    reason = explicar(f"O trecho ‘{block.text[start:end]}’ não tem verbo. Em literatura, frases assim podem "
+                                      "ser de propósito. Verifique apenas se uma oração completa era pretendida.",
+                                      "frase nominal (sem verbo conjugado)")
                 item = finding(block, "Estrutura da frase", "Explorar", start, end, reason)
                 if classe == "uncertain":
                     low_confidence.add(item.id)
@@ -349,16 +512,19 @@ def analyze(blocks: list[Block], nlp, tense="auto", protect_italics=True, min_wo
             # mas todos estão em orações dependentes. Confiança baixa: o fragmento pode ser estilo.
             # Nome seguido só de relativa (“Uma ave que nunca tinha visto.”) fica de fora: é
             # fragmento nominal comum na prosa, e o modelo costuma engolir a principal na relativa.
-            if "estrutura" in active and len(words) >= 6 and sent.text.rstrip().endswith("."):
+            abertura = abertura_subordinada(sent)
+            if ("estrutura" in active and len(words) >= (3 if abertura else 6)
+                    and sent.text.rstrip().endswith(".")):
                 root = sent.root
                 opener = words[0].lower_
                 verbs = [t for t in sent if finite(t)]
                 # O modelo erra a árvore nessas frases; a forma confirma. Abertura por subordinante:
                 # sem vírgula e com um só verbo finito (“Quando o trem chegou, a menina…” tem a
-                # principal depois da vírgula).
-                subordinate_root = (opener in SUBORDINANTES and finite(root) and len(verbs) == 1
+                # principal depois da vírgula). O subordinante precisa estar ligado à raiz.
+                marks = {c.lower_ for c in root.children if c.dep_ in {"mark", "advmod"}}
+                subordinate_root = (abertura is not None and finite(root) and len(verbs) == 1
                                     and "," not in sent.text
-                                    and any(c.dep_ == "mark" and c.lower_ == opener for c in root.children))
+                                    and bool(set(abertura.casefold().split()) & marks))
                 # O modelo às vezes pendura no verbo da subordinada o nome que a antecede (“O homem
                 # que … enquanto todos conversavam”): dois sujeitos, o primeiro antes da conjunção.
                 conj = next((c for c in root.children if c.dep_ in {"mark", "advmod"} and c.lower_ in SUBORDINANTES
@@ -367,17 +533,24 @@ def analyze(blocks: list[Block], nlp, tense="auto", protect_italics=True, min_wo
                     c.dep_ == "nsubj" and c.pos_ in {"NOUN", "PROPN"} and c.i < conj.i for c in root.children)
                 if verbs and (subordinate_root or hanging):
                     start, end = words[0].idx, words[-1].idx + len(words[-1].text)
-                    item = finding(block, "Estrutura da frase", "Explorar", start, end,
-                        f"O segmento ‘{block.text[start:end]}’ tem verbo, mas só em oração dependente "
-                        "(subordinada ou relativa); falta a oração principal. Pode ser fragmento deliberado; "
-                        "confira se a frase foi cortada ou deveria se ligar à anterior.")
+                    if subordinate_root:
+                        reason = explicar(f"O trecho iniciado por ‘{abertura}’ prepara outra parte da frase, que não aparece "
+                                          "(como em ‘Quando as luzes se apagam, todos se calam’). Em literatura isso pode ser "
+                                          "de propósito; confira se essa parte faltou.", "oração subordinada sem a principal")
+                    else:
+                        reason = explicar(f"O trecho ‘{block.text[start:end]}’ tem verbo, mas só nas partes que dependem de "
+                                          "outra (‘que…’, ‘enquanto…’); falta a parte principal. Pode ser de propósito; confira "
+                                          "se a frase foi cortada ou deveria se ligar à anterior.",
+                                          "oração subordinada sem a principal")
+                    item = finding(block, "Estrutura da frase", "Explorar", start, end, reason)
                     low_confidence.add(item.id)
+                    extras[item.id] = {"category_code": "incomplete_subordinate_clause"}
                     fragment_classes["subordinate_without_main"] += 1
                     results.append(item)
         for position in (closed if "pontuacao_dialogo" in active else []):
             tail = block.text[position+1:]
             match = re.match(r"\s*,\s*", tail)
-            if not match:
+            if not match or aspas_de_destaque(block.text, position, nlp):
                 continue
             start = position+1+match.end()
             remaining = [t for t in doc if t.idx >= start and not t.is_space]
@@ -385,24 +558,29 @@ def analyze(blocks: list[Block], nlp, tense="auto", protect_italics=True, min_wo
             if first_verb is not None and not verbo_de_fala(first_verb):
                 results.append(finding(block, "Pontuação de diálogo", "Verificar",
                     position, first_verb.idx+len(first_verb.text),
-                    "Após as aspas há uma vírgula, mas o primeiro verbo finito identificado não está na lista de elocução/pensamento. Confira se o trecho é uma ação independente ou uma construção válida no contexto."))
+                    explicar("Depois das aspas e da vírgula, esperava-se um verbo de fala ou pensamento (‘disse’, "
+                             "‘pensou’), mas vem outra ação. Se a fala terminou ali, a ação costuma começar uma frase "
+                             "nova. Confira.", "pontuação de diálogo")))
         for match in re.finditer(r"\b([^\W\d_]+)(\s+)\1\b", mask if "palavra_consecutiva" in active else "", re.I):
             # Onomatopeia reduplicada (“au au”, “blá blá”): forma fora do léxico.
             if not flags(match[1]):
                 continue
             results.append(finding(block, "Palavra repetida", "Verificar", match.start(), match.end(),
-                "Palavra repetida consecutivamente na narração. Confira se é repetição expressiva ou digitação.", "Regras FONTE"))
+                explicar("A mesma palavra aparece duas vezes seguidas. Confira se é de propósito ou digitação.",
+                         "palavra repetida"), "Regras FONTE"))
         # Resíduo de edição: dois auxiliares conjugados seguidos no mesmo predicado (“tinha havia
         # percebido”). Na locução verbal só o primeiro é finito; os outros ficam no infinitivo,
         # gerúndio ou particípio (“tinha sido”, “vai ter”, “estava sendo”).
         for head in (doc if "estrutura" in active else []):
             auxiliaries = [c for c in head.children if c.dep_ in {"aux", "aux:pass", "cop"} and finite(c)]
             for first, second in zip(auxiliaries, auxiliaries[1:]):
-                if second.i == first.i + 1 and first.lower_ != second.lower_:
+                # Verbos de orações diferentes (“o porão em que dormem é…”) não formam locução.
+                if second.i == first.i + 1 and first.lower_ != second.lower_ and not fecha_oracao_dependente(first):
                     excerpt = block.text[first.idx:second.idx + len(second.text)]
                     results.append(finding(block, "Resíduo de edição", "Verificar", first.idx, second.idx + len(second.text),
-                        f"‘{excerpt}’: dois verbos auxiliares conjugados seguidos no mesmo predicado. Numa locução "
-                        "verbal só um deles fica conjugado; pode ser resto de uma edição. Confira qual forma deve ficar.",
+                        explicar(f"‘{excerpt}’: dois verbos seguidos fazendo o mesmo papel. Normalmente só um fica "
+                                 "(‘tinha percebido’ ou ‘havia percebido’). Pode ser sobra de uma edição; confira qual "
+                                 "deve ficar.", "resíduo de edição (dois auxiliares conjugados)"),
                         "Regras FONTE"))
     results.sort(key=lambda f: (f.paragraph, f.start, f.category))
     metadata = {"tempo": expected or "inconclusivo", "contagem_verbos": dict(counts),
@@ -413,4 +591,4 @@ def analyze(blocks: list[Block], nlp, tense="auto", protect_italics=True, min_wo
         # Só a rodada da estrutura informa: as outras não apagam a contagem no relatório.
         metadata["fragmentos_sem_verbo"] = dict(fragment_classes)
     low = {"confidence": "baixa", "confidence_score": .4}
-    return [asdict(f) | (low if f.id in low_confidence else {}) for f in results], warnings, metadata
+    return [asdict(f) | (low if f.id in low_confidence else {}) | extras.get(f.id, {}) for f in results], warnings, metadata

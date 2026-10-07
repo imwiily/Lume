@@ -742,6 +742,180 @@
         }
       ],
       "aceitaveis": []
+    },
+    {
+      "id": "dev-presente-planos",
+      "tempo": "presente",
+      "nota": "Narração no presente com anterioridade legítima (relativas, completivas, mais-que-perfeito), imperfeito modal, aspas de destaque, fronteira de relativa, fragmento de oposição e subordinada isolada; mudanças reais de tempo na linha principal. Escrito do zero em 06/10/2026.",
+      "paragrafos": [
+        "Capítulo 1",
+        "Lívia entra na oficina e procura a chave que tinha deixado na bancada. Ela abre a gaveta onde o pai guardava as ferramentas.",
+        "O motor velho devia funcionar, mas ninguém consegue ligá-lo. Lívia descobre que foi o irmão que levou a bateria.",
+        "Ela empurra a porta dos fundos e saiu para o pátio.",
+        "O depósito em que estamos é uma estufa no verão. A tal ‘solução rápida’, porém, nunca chega.",
+        "Por outro lado, uma noite inteira de silêncio.",
+        "Quando o sol se põe.",
+        "Ela fecha a janela e olhou para a rua deserta."
+      ],
+      "erros": [
+        {
+          "p": 4,
+          "trecho": "saiu",
+          "categoria": "tempo_verbal",
+          "camada": "linguistica"
+        },
+        {
+          "p": 8,
+          "trecho": "olhou",
+          "categoria": "tempo_verbal",
+          "camada": "linguistica"
+        }
+      ],
+      "aceitaveis": [
+        {
+          "p": 7,
+          "trecho": "Quando o sol se põe",
+          "nota": "Subordinada isolada: pode ser fragmento deliberado; alerta de baixa confiança aceitável."
+        }
+      ]
+    },
+    {
+      "id": "dev-frases-cortadas",
+      "tempo": "presente",
+      "nota": "Correlação de tempos com o subjuntivo, frase cortada, parágrafo sem pontuação final, ‘Que’ após reticências, ‘ao invés de’, ‘embora’ + nome, concordância com sujeito elíptico, vírgula depois de sujeito com relativa e grafia oscilante; escrito do zero em 06/10/2026.",
+      "paragrafos": [
+        "Capítulo 1",
+        "Antes que Nádia alcançasse o portão, o cachorro late duas vezes. Ela segura a sacola e conta cada.",
+        "Os dois primos chegam à varanda. Parece tão cansados e sujos.",
+        "Com toda a calma, o carteiro que entregou a encomenda ontem, bate de novo na porta.",
+        "Embora o barulho, ninguém abre a janela. Ao invés de esperar, Nádia volta para a cozinha",
+        "— Eu jurei… Que não voltaria mais aqui.",
+        "Na vila, todos temem o Corvanho. Dizem que um corvanho ronda o celeiro à noite.",
+        "Ela pega o caderno que tinha esquecido na mesa, embora já fosse noite quando saiu."
+      ],
+      "erros": [
+        {
+          "p": 2,
+          "trecho": "alcançasse",
+          "categoria": "tempo_verbal",
+          "camada": "linguistica"
+        },
+        {
+          "p": 2,
+          "trecho": "cada",
+          "categoria": "estrutura_frase",
+          "camada": "linguistica"
+        },
+        {
+          "p": 3,
+          "trecho": "Parece",
+          "categoria": "concordancia_verbal",
+          "camada": "linguistica"
+        },
+        {
+          "p": 4,
+          "trecho": ",",
+          "n": 2,
+          "categoria": "pontuacao",
+          "camada": "linguistica"
+        },
+        {
+          "p": 5,
+          "trecho": "Embora",
+          "categoria": "regencia",
+          "camada": "linguistica"
+        },
+        {
+          "p": 5,
+          "trecho": "Ao invés",
+          "categoria": "regencia",
+          "camada": "linguistica"
+        },
+        {
+          "p": 5,
+          "trecho": "cozinha",
+          "categoria": "pontuacao_mecanica",
+          "camada": "linguistica"
+        },
+        {
+          "p": 6,
+          "trecho": "Que",
+          "categoria": "pontuacao_mecanica",
+          "camada": "linguistica"
+        },
+        {
+          "p": 7,
+          "trecho": "corvanho",
+          "categoria": "ortografia",
+          "camada": "linguistica"
+        }
+      ],
+      "aceitaveis": [
+        {
+          "p": 8,
+          "trecho": "fosse",
+          "nota": "Concessiva com fato anterior: imperfeito legítimo; alerta de atenção aceitável."
+        }
+      ]
+    },
+    {
+      "id": "dev-narrador-e-listas",
+      "tempo": "passado",
+      "nota": "Narrador em primeira pessoa que fala de si no presente, fala que começa numa linha do meio do parágrafo (travessão e hífen), lista de equipes sem pontuação ações da cena no presente por engano e ‘você’ com verbo na forma de ‘tu’; escrito do zero em 07/10/2026.",
+      "paragrafos": [
+        "Capítulo 1",
+        "Eu me chamo Valquíria e vou contar o verão em que a represa secou. Sou a mais nova de cinco irmãs, e aquele verão mudou quem eu sou.",
+        "Naquela manhã, a vizinha bateu no portão antes das seis. Abro a porta e encontrei o quintal coberto de lama.",
+        "Minha mãe largou o balde na escada.\n— Ninguém sai de casa hoje — avisou, olhando para a estrada.",
+        "O tio Anselmo entrou logo depois, com as botas sujas.\n- Precisamos chegar à represa antes do almoço - disse ele.",
+        "Na cozinha, ele dividiu os vizinhos em grupos.",
+        "Grupo 1 Valquíria Hermes Odete",
+        "Grupo 2 Silvano Neusa Teobaldo",
+        "Por isso, acho que devo esta história a eles. Naquele dia, ninguém reclamou do calor e todos caminham juntos até a margem.",
+        "— Você tinhas prometido voltar cedo — reclamou a avó, sem tirar os olhos do fogão."
+      ],
+      "erros": [
+        {
+          "p": 3,
+          "trecho": "Abro",
+          "categoria": "tempo_verbal",
+          "camada": "linguistica"
+        },
+        {
+          "p": 9,
+          "trecho": "caminham",
+          "categoria": "tempo_verbal",
+          "camada": "linguistica"
+        },
+        {
+          "p": 10,
+          "trecho": "tinhas",
+          "categoria": "tratamento",
+          "camada": "linguistica"
+        }
+      ],
+      "aceitaveis": [
+        {
+          "p": 2,
+          "trecho": "chamo",
+          "nota": "narrador fala de si no presente"
+        },
+        {
+          "p": 2,
+          "trecho": "vou contar",
+          "nota": "narrador anuncia a história"
+        },
+        {
+          "p": 2,
+          "trecho": "Sou",
+          "nota": "identidade do narrador"
+        },
+        {
+          "p": 9,
+          "trecho": "acho",
+          "nota": "comentário do narrador"
+        }
+      ]
     }
   ]
 }

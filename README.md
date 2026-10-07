@@ -3,7 +3,7 @@
 **Revisão editorial para manuscritos em português, no Mac.** Uma luz acesa ao lado de quem escreve.
 
 O Lume lê manuscritos do Word (.docx) e do Pages (.pages) e aponta:
-- ortografia e gramática: LanguageTool embutido e regras próprias de crase, homófonos, concordância, regência e vírgula;
+- ortografia e gramática: LanguageTool embutido e regras próprias de crase, homófonos, concordância, regência, vírgula, correlação de tempos, frase cortada, locuções e tratamento (tu/você);
 - tempo verbal da narração (passado ou presente);
 - repetições, diálogos, variações de nomes e prazos.
 

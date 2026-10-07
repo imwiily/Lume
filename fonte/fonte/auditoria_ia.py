@@ -14,13 +14,15 @@ import json
 from pathlib import Path
 import unicodedata
 
-from .analysis import finding
+import re
+
+from .analysis import explicar, finding
 from .segments import classify
 from .settings import validate
 
 REGRA = "auditoria_ia"
 FONTE = "Auditoria · IA (Claude)"
-VERSAO_PROMPT = 3
+VERSAO_PROMPT = 4
 MODELO_PADRAO = "claude-opus-5-5"
 LIMITE = 40000      # caracteres revisados por pedido; capítulos maiores viram janelas
 CONTEXTO = 2        # parágrafos anteriores enviados só para leitura
@@ -48,6 +50,8 @@ CATEGORIAS = {
     "referencia": ("Referência ambígua", "referente_contextual", "editorial", "editorial_attention"),
     "continuidade_local": ("Continuidade na cena", None, "editorial", "possible_inconsistency"),
 }
+# Palavra dobrada por acidente (“o o”, “que que”): a única repetição que o auditor pode apontar.
+DOBRADA = re.compile(r"\b([^\W\d_]+)\s+\1\b", re.IGNORECASE)
 # A confiança nunca é alta: o que o modelo marcar como alta vale como média.
 CONFIANCA = {"alta": ("média", .6), "media": ("média", .6), "média": ("média", .6), "baixa": ("baixa", .4)}
 
@@ -66,8 +70,8 @@ Categorias permitidas:
 - pontuacao: pontuação que muda ou embaralha o sentido.
 - tempo_verbal: verbo fora do tempo da narração sem motivo no contexto, só na narração.
 - estrutura_frase: frase sem verbo principal, truncada, ou com palavra faltando ou sobrando.
-- repeticao: palavra ou expressão repetida na mesma frase ou na frase seguinte, sem efeito aparente. \
-Conectivos e palavras gramaticais não contam.
+- repeticao: só repetição acidental, de digitação ou de edição: a mesma palavra duas vezes seguidas \
+(“o o”, “que que”). Repetição usada como estilo, ritmo, ênfase ou retomada nunca conta.
 - dialogo: pontuação da fala ou do verbo de elocução.
 - referencia: pronome ou sujeito com mais de um referente possível no trecho, sem pista para escolher. \
 Não aponte quando o referente só não aparece: ele pode estar antes do trecho enviado.
@@ -78,6 +82,10 @@ Regras:
 - Na dúvida, não aponte. Prefira deixar passar a apontar o que pode estar certo.
 - Preserve a voz do autor: falas coloquiais, gírias, grafias intencionais, fragmentos \
 expressivos e escolhas de estilo não são erros.
+- Nunca sugira mudança de estilo: trocar palavra por sinônimo, reorganizar ou encurtar frase, cortar \
+repetição expressiva, melhorar ritmo, clareza ou elegância. Aponte só erro de língua (norma) ou \
+inconsistência.
+- A sugestão corrige só o erro, com a menor mudança possível no trecho, sem reescrever o resto.
 - Não aponte o que já está na lista de alertas, nem outro recorte do mesmo trecho.
 - Não comente enredo, personagens, ritmo, gosto ou qualidade literária.
 - Não procure contradições entre capítulos.
@@ -91,7 +99,9 @@ Para cada problema, devolva:
 - paragrafo: o número que vem depois de §;
 - trecho: cópia exata e curta do texto do parágrafo (de uma a poucas palavras), sem corrigir nada;
 - categoria: uma da lista;
-- explicacao: uma ou duas frases dizendo qual é o problema;
+- explicacao: uma ou duas frases em linguagem simples, para quem não domina gramática, sem termos \
+técnicos; quando ajudar, um exemplo curto;
+- termo: o nome gramatical do problema, curto (por exemplo, “concordância verbal”);
 - sugestao: a forma corrigida do trecho, ou "" quando não houver uma correção única;
 - confianca: "media" ou "baixa".
 Se não houver problemas, devolva a lista vazia."""
@@ -105,10 +115,11 @@ ESQUEMA = {
             "trecho": {"type": "string"},
             "categoria": {"type": "string", "enum": list(CATEGORIAS)},
             "explicacao": {"type": "string"},
+            "termo": {"type": "string"},
             "sugestao": {"type": "string"},
             "confianca": {"type": "string", "enum": ["media", "baixa"]},
         },
-        "required": ["paragrafo", "trecho", "categoria", "explicacao", "sugestao", "confianca"],
+        "required": ["paragrafo", "trecho", "categoria", "explicacao", "termo", "sugestao", "confianca"],
     }}},
     "required": ["ocorrencias"],
 }
@@ -292,10 +303,14 @@ def auditar(blocks, anteriores, avancar=None, *, tempo="passado", configuracao=N
                 descartes["alerta_existente"] += 1; continue
             if any(p == block.number and s < fim and inicio < e for p, s, e in aceitos):
                 descartes["repetido"] += 1; continue
+            # Trava contra estilo: repetição só vale se o trecho tiver a mesma palavra duas vezes seguidas.
+            if categoria == "repeticao" and not DOBRADA.search(block.text[inicio:fim]):
+                descartes["estilo"] += 1; continue
             explicacao = str(bruto.get("explicacao", "")).strip()
             if repetido_no_paragrafo:
                 explicacao += f" (Trecho “{block.text[inicio:fim]}”: vale a primeira ocorrência no parágrafo.)"
-            item = asdict(finding(block, titulo, "Verificar", inicio, fim, explicacao, FONTE))
+            termo = str(bruto.get("termo", "")).strip().rstrip(".") or titulo.casefold()
+            item = asdict(finding(block, titulo, "Verificar", inicio, fim, explicar(explicacao, termo), FONTE))
             confianca, nota = CONFIANCA.get(bruto.get("confianca"), ("baixa", .4))
             sugestao = str(bruto.get("sugestao", "")).strip()
             item.update(rule=REGRA, category_code=f"audit_{categoria}", layer=camada, severity=severidade,

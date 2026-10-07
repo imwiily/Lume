@@ -2,7 +2,7 @@
   "schema_version": 1,
   "document": "Manuscrito-modular.docx",
   "sha256": "f9b848540f8a6d6e480bcffa79c257379126680f79a5b71375129b553b5180c3",
-  "created": "2026-10-05T12:47:58.853185+00:00",
+  "created": "2026-10-07T15:26:57.200071+00:00",
   "metadata": {
     "tempo": "passado",
     "paragrafos": 10,
@@ -36,7 +36,7 @@
         "finding_count": 3,
         "coverage": "partial",
         "detail": "Padrões determinísticos; pontuação e interrogação também em falas/pensamentos. LanguageTool opcional.",
-        "duration_ms": 3
+        "duration_ms": 5
       },
       {
         "module": "morphosyntactic",
@@ -45,7 +45,7 @@
         "finding_count": 3,
         "coverage": "partial",
         "detail": "Tempo predominante, estrutura, quatro relações temporais locais, acentuação verbal contextual, crase, homófonos, concordância, regência e vírgula entre sujeito e verbo. Cobertura parcial; homógrafos permanecem dúvidas.",
-        "duration_ms": 717
+        "duration_ms": 900
       },
       {
         "module": "editorial",
@@ -54,7 +54,7 @@
         "finding_count": 3,
         "coverage": "partial",
         "detail": "Diálogo, repetições, gerundismo e referências em janelas curtas.",
-        "duration_ms": 14
+        "duration_ms": 15
       },
       {
         "module": "global_coherence",
@@ -68,10 +68,10 @@
       {
         "module": "audit",
         "title": "Auditoria final",
-        "state": "not_implemented",
+        "state": "skipped",
         "finding_count": 0,
-        "coverage": "not_implemented",
-        "detail": "Auditor editorial independente ainda não implementado; nenhuma busca adicional foi realizada."
+        "coverage": "partial",
+        "detail": "Problemas que as etapas anteriores deixaram passar, com a API do Claude; só quando ligada e confirmada. Cobertura parcial."
       }
     ],
     "pipeline_version": 2,
@@ -159,7 +159,7 @@
     ],
     "languagetool": false,
     "languagetool_origem": null,
-    "versao_fonte": "1.3.1"
+    "versao_fonte": "1.4.0"
   },
   "warnings": [
     "Escopo: corpo do documento e tabelas. Cabeçalhos, rodapés, notas, comentários, caixas de texto e imagens não são analisados. A localização usa parágrafos, não páginas.",
@@ -167,7 +167,7 @@
     "Análise editorial experimental: regras locais de duração/adiamento, repetições, grafias próximas de nomes e referências em construções específicas. Não detecta todas as inconsistências nem interpreta o cânone, o registro de personagem ou a causalidade do enredo.",
     "Confiança baixa/média/alta descreve a força do indício da regra, não a probabilidade de existir um erro. Mesmo alertas de confiança alta exigem leitura humana.",
     "As regras de continuidade e referências examinam também falas e itálicos. Repetições seguem as áreas de busca configuradas.",
-    "Auditoria editorial independente ainda não implementada. Etapa concluída significa apenas que as regras disponíveis terminaram."
+    "Etapa concluída significa apenas que as regras disponíveis terminaram; a cobertura continua parcial."
   ],
   "findings": [
     {
@@ -179,7 +179,7 @@
       "text": "🌿 Além de disso, a vitrine tinha uma luz, que, não era comum.",
       "start": 2,
       "end": 15,
-      "reason": "A locução é ‘além disso’. Há uma preposição ‘de’ excedente nesta construção.",
+      "reason": "A expressão é ‘além disso’; o ‘de’ está sobrando.\n\nNa gramática: locução ‘além disso’.",
       "source": "FONTE Linguístico · construcao_invalida",
       "rule": "construcao_invalida",
       "category_code": "construcao_invalida",
@@ -194,7 +194,7 @@
         "end": 26
       },
       "excerpt": "Além de disso",
-      "message": "A locução é ‘além disso’. Há uma preposição ‘de’ excedente nesta construção.",
+      "message": "A expressão é ‘além disso’; o ‘de’ está sobrando.\n\nNa gramática: locução ‘além disso’.",
       "layer": "linguistica",
       "evidence": [
         {
@@ -256,7 +256,7 @@
       "text": "🌿 Além de disso, a vitrine tinha uma luz, que, não era comum.",
       "start": 42,
       "end": 50,
-      "reason": "A vírgula parece separar ‘que’ da oração iniciada por ‘não’. Confira se há um inciso ou uma interrupção intencional antes de removê-la.",
+      "reason": "A vírgula separa o ‘que’ do ‘não’ que vem logo depois (‘que, não’). Só cabe se houver uma pausa ou um comentário no meio; confira.\n\nNa gramática: vírgula após ‘que’.",
       "source": "FONTE Linguístico · virgula_que_nao",
       "rule": "virgula_que_nao",
       "category_code": "virgula_que_nao",
@@ -271,7 +271,7 @@
         "end": 61
       },
       "excerpt": "que, não",
-      "message": "A vírgula parece separar ‘que’ da oração iniciada por ‘não’. Confira se há um inciso ou uma interrupção intencional antes de removê-la.",
+      "message": "A vírgula separa o ‘que’ do ‘não’ que vem logo depois (‘que, não’). Só cabe se houver uma pausa ou um comentário no meio; confira.\n\nNa gramática: vírgula após ‘que’.",
       "layer": "linguistica",
       "evidence": [
         {
@@ -333,7 +333,7 @@
       "text": "Essas máquinas.. São tão barulhentas.",
       "start": 14,
       "end": 16,
-      "reason": "Foram encontrados dois pontos finais seguidos. Confira se a intenção é um ponto final ou reticências (três pontos).",
+      "reason": "Há dois pontos seguidos. Confira se era um ponto só ou reticências (três pontos).\n\nNa gramática: pontuação duplicada.",
       "source": "FONTE Linguístico · pontuacao_duplicada",
       "rule": "pontuacao_duplicada",
       "category_code": "pontuacao_duplicada",
@@ -348,7 +348,7 @@
         "end": 89
       },
       "excerpt": "..",
-      "message": "Foram encontrados dois pontos finais seguidos. Confira se a intenção é um ponto final ou reticências (três pontos).",
+      "message": "Há dois pontos seguidos. Confira se era um ponto só ou reticências (três pontos).\n\nNa gramática: pontuação duplicada.",
       "layer": "linguistica",
       "evidence": [
         {
@@ -418,7 +418,7 @@
       "text": "Essas máquinas.. São tão barulhentas.",
       "start": 17,
       "end": 20,
-      "reason": "O modelo e o léxico sustentam uma leitura no presente, em texto configurado/inferido como passado. Isso não confirma erro: pensamento, comentário do narrador, presente geral e mudanças deliberadas de plano temporal precisam ser avaliados no contexto.",
+      "reason": "A história está sendo contada no passado, mas ‘São’ está no presente. Pode ser um erro ou uma mudança proposital: pensamento, fala, comentário do narrador ou algo que vale sempre (‘a água ferve a cem graus’) podem usar outro tempo. Confira.\n\nNa gramática: tempo verbal da narração.",
       "source": "Regras FONTE + spaCy + PortiLexicon-UD",
       "confidence": "baixa",
       "confidence_score": 0.4,
@@ -430,7 +430,7 @@
         "end": 93
       },
       "excerpt": "São",
-      "message": "O modelo e o léxico sustentam uma leitura no presente, em texto configurado/inferido como passado. Isso não confirma erro: pensamento, comentário do narrador, presente geral e mudanças deliberadas de plano temporal precisam ser avaliados no contexto.",
+      "message": "A história está sendo contada no passado, mas ‘São’ está no presente. Pode ser um erro ou uma mudança proposital: pensamento, fala, comentário do narrador ou algo que vale sempre (‘a água ferve a cem graus’) podem usar outro tempo. Confira.\n\nNa gramática: tempo verbal da narração.",
       "layer": "linguistica",
       "suggestion": null,
       "evidence": [
@@ -501,7 +501,7 @@
       "text": "Clara abriu a janela e observa a rua.",
       "start": 23,
       "end": 30,
-      "reason": "‘observa’ (presente) e ‘abriu’ (passado) são ações coordenadas do mesmo sujeito, na mesma sequência. Provável inconsistência de tempo verbal: confira se as duas ações deveriam estar no mesmo tempo.",
+      "reason": "‘observa’ está no presente e ‘abriu’ está no passado, mas são duas ações seguidas da mesma pessoa. Provavelmente deveriam estar no mesmo tempo.\n\nNa gramática: tempo verbal em ações coordenadas.",
       "source": "FONTE Morfossintático · coordinated_tense_mismatch",
       "rule": "coerencia_temporal",
       "category_code": "temporal_consistency",
@@ -552,7 +552,7 @@
         "end": 141
       },
       "excerpt": "observa",
-      "message": "‘observa’ (presente) e ‘abriu’ (passado) são ações coordenadas do mesmo sujeito, na mesma sequência. Provável inconsistência de tempo verbal: confira se as duas ações deveriam estar no mesmo tempo.",
+      "message": "‘observa’ está no presente e ‘abriu’ está no passado, mas são duas ações seguidas da mesma pessoa. Provavelmente deveriam estar no mesmo tempo.\n\nNa gramática: tempo verbal em ações coordenadas.",
       "layer": "linguistica",
       "evidence": [
         {
@@ -636,7 +636,7 @@
       "text": "Era melhor eu me preparar melhor.",
       "start": 4,
       "end": 32,
-      "reason": "“melhor” aparece duas vezes em uma janela curta. A repetição pode ser necessária ou expressiva; confira se há redundância.",
+      "reason": "“melhor” aparece duas vezes em pouco espaço. Pode ser necessário ou de propósito; o alerta só mostra a repetição.\n\nNa gramática: repetição próxima.",
       "source": "FONTE Editorial · palavra_proxima",
       "layer": "editorial",
       "rule": "palavra_proxima",
@@ -709,7 +709,7 @@
         "end": 181
       },
       "excerpt": "melhor eu me preparar melhor",
-      "message": "“melhor” aparece duas vezes em uma janela curta. A repetição pode ser necessária ou expressiva; confira se há redundância.",
+      "message": "“melhor” aparece duas vezes em pouco espaço. Pode ser necessário ou de propósito; o alerta só mostra a repetição.\n\nNa gramática: repetição próxima.",
       "suggestion": null,
       "evidence": [
         {
@@ -737,7 +737,7 @@
       "text": "Lívia chegou à loja. Lívia abriu a porta. Lívya saiu.",
       "start": 0,
       "end": 5,
-      "reason": "“Lívia” (2 ocorrências) e “Lívya” (1) têm grafias próximas. Podem ser nomes distintos. Confirme a grafia com o autor; nenhuma variante foi escolhida automaticamente.",
+      "reason": "“Lívia” (2 vezes) e “Lívya” (1 vezes) se escrevem quase igual. Podem ser nomes diferentes; confira se é o mesmo nome escrito de dois jeitos.\n\nNa gramática: variação de grafia de nome.",
       "source": "FONTE Editorial · variacao_nome",
       "layer": "editorial",
       "rule": "variacao_nome",
@@ -825,7 +825,7 @@
         "end": 236
       },
       "excerpt": "Lívia",
-      "message": "“Lívia” (2 ocorrências) e “Lívya” (1) têm grafias próximas. Podem ser nomes distintos. Confirme a grafia com o autor; nenhuma variante foi escolhida automaticamente.",
+      "message": "“Lívia” (2 vezes) e “Lívya” (1 vezes) se escrevem quase igual. Podem ser nomes diferentes; confira se é o mesmo nome escrito de dois jeitos.\n\nNa gramática: variação de grafia de nome.",
       "suggestion": null,
       "evidence": [
         {
@@ -867,7 +867,7 @@
       "text": "Não trabalha amanhã nem nos três dias seguintes. Está afastado por três dias.",
       "start": 13,
       "end": 47,
-      "reason": "A expressão inclui amanhã e mais 3 dias, totalizando 4. O trecho relacionado informa 3 dias. Confira se ambos tratam da mesma pessoa, punição e contagem (dias corridos ou letivos).",
+      "reason": "Aqui são amanhã e mais 3 dias, 4 no total. O trecho relacionado fala em 3 dias. Confira se os dois falam da mesma pessoa, do mesmo castigo e da mesma contagem (dias corridos ou de aula).\n\nNa gramática: continuidade de prazos.",
       "source": "FONTE Editorial · duracao_suspensao",
       "layer": "editorial",
       "rule": "duracao_suspensao",
@@ -955,7 +955,7 @@
         "end": 332
       },
       "excerpt": "amanhã nem nos três dias seguintes",
-      "message": "A expressão inclui amanhã e mais 3 dias, totalizando 4. O trecho relacionado informa 3 dias. Confira se ambos tratam da mesma pessoa, punição e contagem (dias corridos ou letivos).",
+      "message": "Aqui são amanhã e mais 3 dias, 4 no total. O trecho relacionado fala em 3 dias. Confira se os dois falam da mesma pessoa, do mesmo castigo e da mesma contagem (dias corridos ou de aula).\n\nNa gramática: continuidade de prazos.",
       "suggestion": null,
       "evidence": [
         {
@@ -997,7 +997,7 @@
       "text": "Não trabalha amanhã nem nos três dias seguintes. Está afastado por três dias.",
       "start": 28,
       "end": 71,
-      "reason": "“três” aparece duas vezes em uma janela curta. A repetição pode ser necessária ou expressiva; confira se há redundância.",
+      "reason": "“três” aparece duas vezes em pouco espaço. Pode ser necessário ou de propósito; o alerta só mostra a repetição.\n\nNa gramática: repetição próxima.",
       "source": "FONTE Editorial · palavra_proxima",
       "layer": "editorial",
       "rule": "palavra_proxima",
@@ -1070,7 +1070,7 @@
         "end": 356
       },
       "excerpt": "três dias seguintes. Está afastado por três",
-      "message": "“três” aparece duas vezes em uma janela curta. A repetição pode ser necessária ou expressiva; confira se há redundância.",
+      "message": "“três” aparece duas vezes em pouco espaço. Pode ser necessário ou de propósito; o alerta só mostra a repetição.\n\nNa gramática: repetição próxima.",
       "suggestion": null,
       "evidence": [
         {
@@ -1098,7 +1098,7 @@
       "text": "Não trabalha amanhã nem nos três dias seguintes. Está afastado por três dias.",
       "start": 33,
       "end": 76,
-      "reason": "“dias” aparece duas vezes em uma janela curta. A repetição pode ser necessária ou expressiva; confira se há redundância.",
+      "reason": "“dias” aparece duas vezes em pouco espaço. Pode ser necessário ou de propósito; o alerta só mostra a repetição.\n\nNa gramática: repetição próxima.",
       "source": "FONTE Editorial · palavra_proxima",
       "layer": "editorial",
       "rule": "palavra_proxima",
@@ -1171,7 +1171,7 @@
         "end": 361
       },
       "excerpt": "dias seguintes. Está afastado por três dias",
-      "message": "“dias” aparece duas vezes em uma janela curta. A repetição pode ser necessária ou expressiva; confira se há redundância.",
+      "message": "“dias” aparece duas vezes em pouco espaço. Pode ser necessário ou de propósito; o alerta só mostra a repetição.\n\nNa gramática: repetição próxima.",
       "suggestion": null,
       "evidence": [
         {
@@ -1199,7 +1199,7 @@
       "text": "Não trabalha amanhã nem nos três dias seguintes. Está afastado por três dias.",
       "start": 49,
       "end": 53,
-      "reason": "O modelo e o léxico sustentam uma leitura no presente, em texto configurado/inferido como passado. Isso não confirma erro: pensamento, comentário do narrador, presente geral e mudanças deliberadas de plano temporal precisam ser avaliados no contexto.",
+      "reason": "A história está sendo contada no passado, mas ‘Está’ está no presente. Pode ser um erro ou uma mudança proposital: pensamento, fala, comentário do narrador ou algo que vale sempre (‘a água ferve a cem graus’) podem usar outro tempo. Confira.\n\nNa gramática: tempo verbal da narração.",
       "source": "Regras FONTE + spaCy + PortiLexicon-UD",
       "module": "morphosyntactic",
       "severity": "editorial_attention",
@@ -1211,7 +1211,7 @@
         "end": 338
       },
       "excerpt": "Está",
-      "message": "O modelo e o léxico sustentam uma leitura no presente, em texto configurado/inferido como passado. Isso não confirma erro: pensamento, comentário do narrador, presente geral e mudanças deliberadas de plano temporal precisam ser avaliados no contexto.",
+      "message": "A história está sendo contada no passado, mas ‘Está’ está no presente. Pode ser um erro ou uma mudança proposital: pensamento, fala, comentário do narrador ou algo que vale sempre (‘a água ferve a cem graus’) podem usar outro tempo. Confira.\n\nNa gramática: tempo verbal da narração.",
       "layer": "linguistica",
       "suggestion": null,
       "evidence": [

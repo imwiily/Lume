@@ -300,6 +300,160 @@ extension Finding {
         let data = (try? encoder.encode(key)) ?? Data()
         return SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
     }
+
+    /// Parágrafos da página na mesa de leitura: os vizinhos do mesmo capítulo que o relatório traz
+    /// (`context`) e o do alerta, em ordem, sem repetir. O título do capítulo fica no cabeçalho.
+    var pageParagraphs: [(number: Int, text: String)] {
+        var items: [(number: Int, text: String)] = (context ?? [])
+            .filter { $0.document == "atual" && $0.chapter == chapter && $0.paragraph != paragraph && $0.text != chapter }
+            .map { ($0.paragraph, $0.text) }
+        items.append((paragraph, text))
+        var seen = Set<Int>()
+        return items.filter { seen.insert($0.number).inserted }.sorted { $0.number < $1.number }
+    }
+
+    /// Tudo o que a página mostra, como texto: título do capítulo e parágrafos, sem marcação.
+    var contextText: String {
+        ([chapter] + pageParagraphs.map(\.text)).joined(separator: "\n\n")
+    }
+
+    /// O parágrafo com o trecho destacado entre asteriscos e, abaixo, o motivo do alerta.
+    var markedParagraphText: String {
+        let parts = segments
+        return parts.before + "*" + parts.marked + "*" + parts.after
+            + "\n\nPor que acendemos esta luz:\n" + reason
+    }
+}
+
+/// Decisões levadas de uma leitura para a reanálise da mesma obra. Valem primeiro pelo ID (o FONTE o
+/// deriva do parágrafo, do texto e da posição: mesmo ID, mesmo alerta) e, para os demais, pelo
+/// conteúdo idêntico (`BookMemory`). Decisões já restauradas não são sobrescritas.
+struct CarriedDecisions {
+    let book: BookMemory
+    let byID: [String: ReviewDecision]
+    let selectedID: String?
+
+    init(report: EditorialReport, decisions: [String: ReviewDecision], selectedID: String?) {
+        book = BookMemory(report: report, decisions: decisions)
+        byID = decisions.filter { $0.value != .pending }
+        self.selectedID = selectedID
+    }
+
+    func belongs(to report: EditorialReport) -> Bool { book.belongs(to: report) }
+
+    func merged(into restored: [String: ReviewDecision], for report: EditorialReport) -> [String: ReviewDecision] {
+        var result = restored
+        let byContent = book.inherited(for: report)
+        for finding in report.findings where (result[finding.id] ?? .pending) == .pending {
+            if let value = byID[finding.id] ?? byContent[finding.id] { result[finding.id] = value }
+        }
+        return result
+    }
+}
+
+/// Resíduos de leituras antigas na pasta de dados do Lume (Application Support/FONTE): relatórios,
+/// registros e configurações por análise guardam texto do manuscrito e não servem mais à leitura.
+/// Ficam decisões, livros, histórico de edições, cópias de segurança, projetos com IA e motores.
+struct StorageCleanup: Sendable {
+    static let falsePositivesName = "falsos-positivos.json"
+    static let temporaryPrefix = "lume-edicao-"
+
+    var removals: [URL] = []
+    var bytes: Int64 = 0
+    var reports = 0
+    var logs = 0
+    var configurations = 0
+    var temporaries = 0
+    var isEmpty: Bool { removals.isEmpty }
+
+    private struct ReportHeader: Decodable { let document: String }
+
+    /// Mantém `keepReport` (a pasta do relatório aberto), o relatório mais recente de cada livro e
+    /// os `falsos-positivos.json` extraídos; `keepLog` é o registro da sessão.
+    static func plan(support: URL, temporary: URL, keepReport: URL?, keepLog: URL?) -> StorageCleanup {
+        let manager = FileManager.default
+        var plan = StorageCleanup()
+        func contents(_ folder: URL) -> [URL] {
+            (try? manager.contentsOfDirectory(at: folder, includingPropertiesForKeys: [.isDirectoryKey])) ?? []
+        }
+        func path(_ url: URL) -> String { url.standardizedFileURL.resolvingSymlinksInPath().path }
+        func same(_ a: URL, _ b: URL?) -> Bool { b.map { path(a) == path($0) } ?? false }
+
+        let jobs = contents(support.appendingPathComponent("Relatorios", isDirectory: true)).filter(isDirectory)
+        var newest: [String: (folder: URL, date: Date)] = [:]
+        var readable = Set<URL>()
+        for job in jobs {
+            let report = job.appendingPathComponent("relatorio.json")
+            guard let data = try? Data(contentsOf: report, options: .mappedIfSafe),
+                  let header = try? JSONDecoder().decode(ReportHeader.self, from: data) else { continue }
+            readable.insert(job)
+            let date = (try? report.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate ?? .distantPast
+            let book = BookMemory.bookName(header.document)
+            if newest[book].map({ date > $0.date }) ?? true { newest[book] = (job, date) }
+        }
+        let kept = Set(newest.values.map(\.folder))
+        for job in jobs where !kept.contains(job) && !same(job, keepReport) {
+            let items = contents(job)
+            let extra = items.filter { $0.lastPathComponent != falsePositivesName }
+            if extra.count == items.count {
+                plan.add(job)
+            } else {
+                extra.forEach { plan.add($0) }
+            }
+            if !extra.isEmpty || readable.contains(job) { plan.reports += 1 }
+        }
+
+        for log in contents(support.appendingPathComponent("Registros", isDirectory: true)) where !same(log, keepLog) {
+            plan.add(log); plan.logs += 1
+        }
+        for file in contents(support.appendingPathComponent("Configuracoes", isDirectory: true)) where file.pathExtension == "json" {
+            plan.add(file); plan.configurations += 1
+        }
+        for item in contents(temporary) where item.lastPathComponent.hasPrefix(temporaryPrefix) {
+            plan.add(item); plan.temporaries += 1
+        }
+        return plan
+    }
+
+    private mutating func add(_ url: URL) {
+        removals.append(url)
+        bytes += Self.size(of: url)
+    }
+
+    static func isDirectory(_ url: URL) -> Bool {
+        (try? url.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true
+    }
+
+    static func size(of url: URL) -> Int64 {
+        let keys: Set<URLResourceKey> = [.totalFileAllocatedSizeKey, .fileAllocatedSizeKey, .isRegularFileKey]
+        func fileSize(_ url: URL) -> Int64 {
+            guard let values = try? url.resourceValues(forKeys: keys), values.isRegularFile == true else { return 0 }
+            return Int64(values.totalFileAllocatedSize ?? values.fileAllocatedSize ?? 0)
+        }
+        guard isDirectory(url) else { return fileSize(url) }
+        guard let items = FileManager.default.enumerator(at: url, includingPropertiesForKeys: Array(keys)) else { return 0 }
+        return items.compactMap { $0 as? URL }.reduce(0) { $0 + fileSize($1) }
+    }
+
+    /// Apaga o que o plano listou; o que não puder ser apagado fica e é contado.
+    func apply() -> (freed: Int64, failures: Int) {
+        var freed: Int64 = 0
+        var failures = 0
+        for url in removals {
+            let size = Self.size(of: url)
+            do { try FileManager.default.removeItem(at: url); freed += size } catch { failures += 1 }
+        }
+        return (freed, failures)
+    }
+
+    var summary: String {
+        var parts: [String] = []
+        if reports > 0 { parts.append("\(reports) \(reports == 1 ? "relatório antigo" : "relatórios antigos")") }
+        if logs > 0 { parts.append("\(logs) \(logs == 1 ? "registro" : "registros") de operações") }
+        if configurations > 0 { parts.append("\(configurations) \(configurations == 1 ? "configuração" : "configurações") de análises passadas") }
+        if temporaries > 0 { parts.append("\(temporaries) \(temporaries == 1 ? "arquivo temporário" : "arquivos temporários") de correção") }
+        return parts.joined(separator: ", ")
+    }
 }
 
 /// Decisões do último relatório salvo de um livro, identificado pelo nome do arquivo.
@@ -380,7 +534,8 @@ struct SearchRule: Identifiable {
     let id: String
     let title: String
     static let newIDs: Set<String> = ["construcao_invalida", "pontuacao_duplicada", "espacamento", "virgula_que_nao", "que_tonico_interrogativo", "coerencia_temporal", "acentuacao_contextual", "vocativo", "capitalizacao_contextual", "dialogo_contextual", "referente_contextual", "gerundismo",
-                                          "crase", "homofonos", "concordancia", "regencia", "virgula_sujeito_verbo"]
+                                          "crase", "homofonos", "concordancia", "regencia", "virgula_sujeito_verbo",
+                                          "correlacao_tempos", "frase_cortada", "locucoes", "tratamento"]
     /// Regras da memória narrativa heurística, removida do motor: configurações antigas que as
     /// mencionam continuam abrindo, e essas chaves são descartadas.
     static let retiredIDs: Set<String> = ["memoria_narrativa", "conflito_habilidade", "conflito_objeto",
@@ -400,6 +555,10 @@ struct SearchRule: Identifiable {
         .init(id: "concordancia", title: "Concordância verbal e nominal · narração"),
         .init(id: "regencia", title: "Regência na norma culta · atenção editorial"),
         .init(id: "virgula_sujeito_verbo", title: "Vírgula entre sujeito e verbo · narração"),
+        .init(id: "correlacao_tempos", title: "Correlação de tempos: antes que, embora, se + subjuntivo"),
+        .init(id: "frase_cortada", title: "Frase cortada, sem pontuação final ou ‘Que’ após reticências"),
+        .init(id: "locucoes", title: "Ao invés de / em vez de; ‘embora’ sem verbo · narração"),
+        .init(id: "tratamento", title: "Você com verbo na forma de tu no mesmo trecho"),
         .init(id: "tempo_verbal", title: "Mudanças de tempo verbal"),
         .init(id: "estrutura", title: "Estrutura da frase · narração"),
         .init(id: "pontuacao_dialogo", title: "Ligação entre fala e narração"),

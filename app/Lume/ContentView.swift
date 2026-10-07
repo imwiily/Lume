@@ -128,6 +128,9 @@ struct ContentView: View {
                     } label: { Label("Capítulos", systemImage: "book.closed") }
                         .help("Capítulos identificados (\(chapters.count)): leva ao primeiro alerta do capítulo")
                 }
+                Button { store.reanalyze() } label: { Label("Reanalisar", systemImage: "arrow.clockwise") }
+                    .help("Analisar a obra de novo com as mesmas opções, mantendo as decisões já marcadas")
+                    .disabled(!store.canReanalyze)
                 Button { showCoverage = true } label: { Label("Etapas e alcance", systemImage: "slider.horizontal.3") }
                     .help("Etapas e alcance da leitura")
                 Button { inspectorVisible.toggle() } label: { Label("Inspetor", systemImage: "sidebar.right") }

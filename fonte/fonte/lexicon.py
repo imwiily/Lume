@@ -79,12 +79,35 @@ NOMINAL_DETERMINERS = {'um', 'uma', 'uns', 'umas', 'num', 'numa', 'nuns', 'numas
                        'da', 'do', 'na', 'no', 'pela', 'pelo'}
 
 
+# Depois de “todo o” ou de preposição + artigo (“de o”, “com a”) só cabe nome ou infinitivo.
+TOTALIZERS = {'todo', 'toda', 'todos', 'todas'}
+
+
+def after_article(token):
+    """Precedido de artigo que vem depois de “todo” ou de preposição (“todo o barulho”, “com a mão”)."""
+    if token.i < 2:
+        return False
+    article, before = token.doc[token.i - 1], token.doc[token.i - 2]
+    return (article.text.casefold() in {'o', 'a', 'os', 'as'}
+            and (before.text.casefold() in TOTALIZERS or before.pos_ == 'ADP'))
+
+
 def finite(token):
     value = flags(token.text)
     if value and not value & FINITE:
         return False
+    if after_article(token):
+        return False
     if token.i > 0 and token.doc[token.i - 1].text.casefold() in NOMINAL_DETERMINERS and value & NONVERB:
         return False
+    # “Uma nova era começa”, “uma longa era de paz”: determinante + adjetivo + nome, seguido de
+    # verbo ou de ‘de’. Em “A velha era bonita” a forma continua verbo.
+    if value & NONVERB and token.i > 1 and token.i + 1 < len(token.doc):
+        before, adjective, after = token.doc[token.i - 2], token.doc[token.i - 1], token.doc[token.i + 1]
+        if (before.text.casefold() in NOMINAL_DETERMINERS and adjective.pos_ == 'ADJ'
+                and (re.fullmatch(r'd[oae]s?', after.text.casefold())
+                     or (after.pos_ in {'VERB', 'AUX'} and flags(after.text) & FINITE))):
+            return False
     if value & FINITE:
         if model_finite(token):
             # Cópulas/auxiliares herdam o sujeito do predicado; não são adjetivos. Vale

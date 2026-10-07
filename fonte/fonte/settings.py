@@ -18,7 +18,8 @@ RETIRED_RULES = ['memoria_narrativa', 'conflito_habilidade', 'conflito_objeto', 
                  'coerencia_generica']
 # Classes gramaticais com apoio sintático (fonte/grammar.py). Ligadas por padrão,
 # como as anteriores; ‘desativar todas’ de configurações antigas continua valendo.
-GRAMMAR_RULES = ['crase', 'homofonos', 'concordancia', 'regencia', 'virgula_sujeito_verbo']
+GRAMMAR_RULES = ['crase', 'homofonos', 'concordancia', 'regencia', 'virgula_sujeito_verbo',
+                 'correlacao_tempos', 'frase_cortada', 'locucoes', 'tratamento']
 RULES += GRAMMAR_RULES
 SCOPES = ['narracao', 'dialogo', 'pensamento']
 DEFAULT = {
