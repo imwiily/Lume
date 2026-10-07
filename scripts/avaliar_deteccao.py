@@ -229,6 +229,8 @@ def main(argv=None):
     parser.add_argument('--engine', type=Path, help='Executável do motor; sem ele, usa os fontes de fonte/')
     parser.add_argument('--languagetool', action='store_true', help='Repassa --languagetool ao motor')
     parser.add_argument('--porta-lt', type=int, help='Repassa --porta-lt ao motor')
+    parser.add_argument('--guardar-relatorios', action='store_true',
+                        help='Guarda o relatório de cada texto em SAIDA/relatorios/<id>/, para comparação alerta a alerta')
     parser.add_argument('--auditoria', action='store_true',
                         help='Roda a Auditoria final com IA em cada texto (chama a API da Anthropic e custa dinheiro)')
     parser.add_argument('--auditoria-modelo', default='claude-opus-5-5')
@@ -252,6 +254,10 @@ def main(argv=None):
                       f"textos restantes não foram avaliados.", flush=True)
                 break
             report = analyze(text, Path(temporary), args.engine, extra)
+            if args.guardar_relatorios:
+                kept = output / 'relatorios' / text['id']
+                kept.mkdir(parents=True)
+                (kept / 'relatorio.json').write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding='utf-8')
             engine_version = report['metadata'].get('versao_fonte')
             languagetool = report['metadata'].get('languagetool_origem') or report['metadata'].get('languagetool')
             results.append(score(text, report['findings'], report.get('metadata', {}).get('diagnostico', [])))
