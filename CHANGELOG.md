@@ -68,6 +68,47 @@ LanguageTool, a partir das marcações de falso positivo: sugestão de grafia a 
 palavra (“taser” → “fazer”) fica com confiança baixa e lembra que palavra estrangeira vai em itálico;
 gerúndio que descreve um nome (“os passos do lobo correndo cessam”) não é tratado como auxiliar.
 
+Encerramento editorial, primeira parte ([plano](.agent/plans/encerramento-editorial.md)): o objetivo
+do Lume passa a ser interromper o editor só com boa razão e deixar o manuscrito chegar ao fim.
+
+- **Documentação:** visão, `AGENTS.md`, arquitetura, validação e README com a nova definição de
+  sucesso (precisão antes de cobertura irrestrita, “Revisão concluída”, Auditoria como controle de
+  qualidade, nenhuma regra a partir de caso isolado).
+- **Medição:** `scripts/medir_precisao.py` calcula a precisão real de cada classe a partir das
+  decisões guardadas, sem gravar trechos. A avaliação do corpus mostra primeiro a precisão das
+  pendências (97% no corpus atual) e os alarmes falsos por 10 mil palavras.
+- **Política de destino v1** (`fonte/fonte/data/politica.json`): cada ocorrência leva `destino`
+  (`pendencia`, `informacao` ou `diagnostico`) e `impeditivo`. Repetição próxima e classes de
+  confiança baixa sem medição viram observações. Nenhuma classe é impeditiva nesta versão. IDs,
+  trechos e severidades não mudam, e as decisões continuam valendo. Manuscritos: A 63 → 37
+  pendências e 26 observações; B 15 → 2 e 13.
+- **Regra `tratamento` retirada** por decisão do autor (nasceu de um caso isolado). A chave
+  continua aceita nas configurações salvas, sem efeito.
+
+Encerramento editorial, segunda parte:
+
+- **Auditoria final como controle de qualidade** (política v2):
+  - confiança baixa vai sempre para o diagnóstico;
+  - as categorias experimentais começam no diagnóstico;
+  - ortografia, concordância, crase e regência começam como observação;
+  - a promoção depende só de dados, e nada da Auditoria é impeditivo.
+  - O prompt não mudou: nada é reenviado nem custa.
+- **Mesa em duas partes:**
+  - **Pendências** (padrão) e **Observações**, com a contagem de cada uma;
+  - **Impeditivos** em destaque no topo das pendências, sempre visíveis, mesmo zerados;
+  - observações mais discretas, com a etiqueta “Observação” em vez de “Pendente de decisão”;
+  - o diagnóstico do motor em Etapas e alcance, fora do fluxo editorial.
+- **Revisão concluída:** **Encerrar revisão** fica disponível quando nenhum impeditivo está sem
+  decisão. O registro guarda as pendências e observações abertas, a data e as versões do motor e
+  da política, e vale para o mesmo texto e a mesma política.
+- **Decisão “Corrigido”:** gravada pela correção no Pages. É o atalho ⌘7; os atalhos antigos não
+  mudam.
+- **Título da janela:** pendências sem decisão, no lugar de “X de Y avaliados”.
+- **Compatibilidade:** relatórios antigos abrem com tudo em Pendências, sem impeditivos, e as
+  decisões antigas continuam valendo.
+- **Verificação nova:** `tests/ClosureCheck.swift`. A montagem passa a rodar também a verificação
+  da mesa.
+
 Narração no passado com dois planos e marcas que não são narração (FONTE), a partir de um texto de
 terceiros (61 → 39 alertas, sem perder nenhum erro do corpus):
 

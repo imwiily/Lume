@@ -1,0 +1,158 @@
+{
+  "versao": 2,
+  "data": "2026-10-07",
+  "principios": [
+    "A política decide o destino editorial de cada classe (regra × confiança): diagnostico, informacao ou pendencia, e se a pendência é impeditiva.",
+    "confidence é evidência auxiliar. O destino editorial é determinado por esta política, calibrada com as decisões reais; quando há medição suficiente, os dados prevalecem sobre o rótulo de confiança.",
+    "Pendência significa apenas que a classe ainda merece atenção editorial segundo a política atual; não é afirmação de que a regra é confiável.",
+    "O limiar de observação é um critério de não-interrupção, não de qualidade: uma classe com 49% de erro real não é boa; só não é confiável o bastante para interromper o editor. A qualidade dela continua acompanhada pelas métricas.",
+    "Impeditiva exige as três condições: precisão real >= 90% em >= 20 decisões, natureza objetiva e severidade confirmed_error ou probable_error. Natureza objetiva é propriedade da classe, não sinônimo de impeditivo.",
+    "A Auditoria final é controle de qualidade do Lume, não uma segunda camada de revisão editorial: confiança baixa vai sempre para diagnostico; as categorias experimentais começam em diagnostico; só as de norma (ortografia, concordância, crase, regência) começam como informacao. Promoção a pendência depende só de dados medidos (mesma regra das demais classes), e nenhum achado da Auditoria é impeditivo por conta própria."
+  ],
+  "limiares": {
+    "minimo_decisoes": 20,
+    "impeditivo_precisao": 0.9,
+    "observacao_precisao": 0.5
+  },
+  "natureza_objetiva": [
+    "crase",
+    "homofonos",
+    "concordancia",
+    "pontuacao_duplicada",
+    "espacamento",
+    "construcao_invalida",
+    "que_tonico_interrogativo",
+    "acentuacao_contextual",
+    "virgula_que_nao",
+    "languagetool:ortografia",
+    "languagetool:gramatica"
+  ],
+  "medicoes": {
+    "narrative_tense|média": {
+      "decisoes": 408,
+      "precisao": 0.914
+    },
+    "palavra_proxima|baixa": {
+      "decisoes": 43,
+      "precisao": 0.233
+    },
+    "dialogo_contextual|baixa": {
+      "decisoes": 32,
+      "precisao": 0.906
+    },
+    "languagetool:gramatica|média": {
+      "decisoes": 30,
+      "precisao": 0.6
+    },
+    "sentence_structure|média": {
+      "decisoes": 18,
+      "precisao": 0.389
+    },
+    "coerencia_temporal|média": {
+      "decisoes": 14,
+      "precisao": 0.571
+    },
+    "languagetool:ortografia|alta": {
+      "decisoes": 13,
+      "precisao": 0.308
+    },
+    "pontuacao_duplicada|alta": {
+      "decisoes": 12,
+      "precisao": 0.917
+    },
+    "coerencia_temporal|alta": {
+      "decisoes": 12,
+      "precisao": 1.0
+    },
+    "sentence_structure|baixa": {
+      "decisoes": 10,
+      "precisao": 0.1
+    },
+    "dialogue_punctuation|média": {
+      "decisoes": 9,
+      "precisao": 0.778
+    },
+    "narrative_tense|baixa": {
+      "decisoes": 8,
+      "precisao": 0.0
+    },
+    "correlacao_tempos|média": {
+      "decisoes": 7,
+      "precisao": 0.857
+    },
+    "concordancia|média": {
+      "decisoes": 5,
+      "precisao": 1.0
+    },
+    "que_tonico_interrogativo|alta": {
+      "decisoes": 4,
+      "precisao": 1.0
+    },
+    "regencia|média": {
+      "decisoes": 4,
+      "precisao": 0.75
+    },
+    "frase_cortada|média": {
+      "decisoes": 3,
+      "precisao": 1.0
+    },
+    "acentuacao_contextual|média": {
+      "decisoes": 2,
+      "precisao": 0.5
+    },
+    "coerencia_temporal|baixa": {
+      "decisoes": 2,
+      "precisao": 1.0
+    },
+    "virgula_sujeito_verbo|média": {
+      "decisoes": 2,
+      "precisao": 0.5
+    },
+    "editorial_review|média": {
+      "decisoes": 2,
+      "precisao": 0.5
+    },
+    "locucoes|média": {
+      "decisoes": 2,
+      "precisao": 1.0
+    },
+    "variacao_nome|média": {
+      "decisoes": 2,
+      "precisao": 0.0
+    },
+    "virgula_que_nao|média": {
+      "decisoes": 1,
+      "precisao": 1.0
+    },
+    "construcao_invalida|alta": {
+      "decisoes": 1,
+      "precisao": 1.0
+    },
+    "palavra_consecutiva|média": {
+      "decisoes": 1,
+      "precisao": 0.0
+    },
+    "gerundismo|baixa": {
+      "decisoes": 1,
+      "precisao": 0.0
+    },
+    "espacamento|alta": {
+      "decisoes": 1,
+      "precisao": 1.0
+    },
+    "incomplete_subordinate_clause|baixa": {
+      "decisoes": 1,
+      "precisao": 1.0
+    }
+  },
+  "origem_medicoes": "scripts/medir_precisao.py sobre as decisões locais do autor em 07/10/2026: 650 decisões únicas, 6 livros.",
+  "auditoria": {
+    "destino_inicial": {
+      "audit_ortografia": "informacao",
+      "audit_concordancia": "informacao",
+      "audit_crase": "informacao",
+      "audit_regencia": "informacao"
+    },
+    "padrao": "diagnostico"
+  }
+}

@@ -1,9 +1,9 @@
 """Concordância, crase, homófonos, regência, vírgula, correlação de tempos,
-frase cortada, locuções e tratamento tu/você, com apoio sintático.
+frase cortada e locuções, com apoio sintático.
 
 Cada regra cobre uma classe gramatical e se abstém diante de leituras
-alternativas plausíveis. Grafia (crase e homófonos), correlação de tempos, frase
-cortada e tratamento são revistos também em falas; concordância, regência, vírgula entre sujeito
+alternativas plausíveis. Grafia (crase e homófonos), correlação de tempos e frase
+cortada são revistas também em falas; concordância, regência, vírgula entre sujeito
 e verbo e locuções só na narração, para não
 formalizar a voz de personagens. Nenhuma regra usa nomes ou frases de obras.
 """
@@ -11,15 +11,15 @@ from dataclasses import asdict
 import re
 
 from .analysis import TERMINACOES, explicar, finding, forma_de_fala, lista_ou_rotulo, verbo_de_fala
-from .lexicon import FINITE, NONFINITE, NONVERB, finite, flags
-from .segments import classify, spans
+from .lexicon import FINITE, NONVERB, finite, flags
+from .segments import classify
 
 PORQUE_PERGUNTA = explicar("Em pergunta, escreve-se separado: ‘Por que você saiu?’. Junto (‘porque’) é para responder "
                            "ou explicar: ‘Saí porque choveu’.", "por que / porque")
 MAS_MAIS = explicar("Aqui a palavra indica oposição, como ‘porém’, então é ‘mas’. ‘Mais’ é de quantidade: ‘mais café’.",
                     "mas / mais")
 RULES = ("crase", "homofonos", "concordancia", "regencia", "virgula_sujeito_verbo",
-         "correlacao_tempos", "frase_cortada", "locucoes", "tratamento")
+         "correlacao_tempos", "frase_cortada", "locucoes")
 SCOPES = {
     "crase": {"narracao", "dialogo", "pensamento"},
     "homofonos": {"narracao", "dialogo", "pensamento"},
@@ -30,7 +30,6 @@ SCOPES = {
     "correlacao_tempos": {"narracao", "dialogo", "pensamento"},
     "frase_cortada": {"narracao", "dialogo", "pensamento"},
     "locucoes": {"narracao"},
-    "tratamento": {"narracao", "dialogo", "pensamento"},
 }
 NUMBERS = ("uma|um|duas|dois|três|quatro|cinco|seis|sete|oito|nove|dez|onze|doze|treze|catorze|quatorze|"
            "quinze|dezesseis|dezessete|dezoito|dezenove|vinte|trinta|quarenta|cinquenta|sessenta|"
@@ -704,51 +703,9 @@ def locutions(block, doc, emit):
                       "(‘apesar da chuva’).", "conjunção concessiva"))
 
 
-# Segunda pessoa do singular (‘tu’) pela terminação: pretérito (-ste), imperfeito (-avas, -ias), futuro e
-# condicional (-rás, -rias), subjuntivo (-sses, -res) e presente (-as, -es, -ás, -ês, -is). Só vale para a
-# forma que o léxico conhece apenas como verbo finito (“casas”, “dias” e “vezes” ficam de fora).
-SEGUNDA_PESSOA = re.compile(r"(?:ste|avas|ias|rás|rias|es|as|ás|és|ês|ais|óis|ens)$")
-# Formas irregulares de ‘tu’ que o léxico não traz.
-IRREGULARES_TU = {"tinhas", "vinhas", "punhas", "eras", "estavas", "tens", "vens", "és", "estás", "vais", "dás",
-                  "vês", "lês", "crês", "pões", "foste", "fizeste", "disseste", "tiveste", "estiveste", "pudeste",
-                  "quiseste", "soubeste", "vieste", "deste", "viste", "trouxeste", "puseste"}
-VOCE = re.compile(r"\bvocê\b", re.I)
-
-
-# Antes do verbo, estas palavras tiram a dúvida de formas que também são nomes (“você tinhas”, “não amas”).
-ANTES_DE_VERBO = {"você", "tu", "não", "me", "te", "se", "nos", "lhe", "já", "nunca", "também"}
-
-
-def segunda_pessoa(token):
-    value = flags(token.text) | (FINITE if token.lower_ in IRREGULARES_TU else 0)
-    # Contrações e determinantes (“pelas”, “desses”) coincidem com formas raras de verbos.
-    if not (token.text[:1].islower() and SEGUNDA_PESSOA.search(token.lower_) and value & FINITE
-            and not value & NONFINITE and token.pos_ not in {"ADP", "DET", "PRON", "CCONJ", "SCONJ"}):
-        return False
-    anterior = token.doc[token.i - 1].lower_ if token.i > 0 else ""
-    return not value & NONVERB or anterior in ANTES_DE_VERBO
-
-
-def treatment(block, doc, emit):
-    """‘Você’ e verbo na forma de ‘tu’ no mesmo trecho (fala, pensamento ou narração)."""
-    labels = emit.labels
-    for start, end, role in spans(labels, {"narracao", "dialogo", "pensamento"}):
-        pronome = VOCE.search(block.text, start, end)
-        if not pronome:
-            continue
-        for token in doc:
-            if start <= token.idx < end and segunda_pessoa(token):
-                emit("tratamento", "Tratamento", token.idx, token.idx + len(token.text), "editorial_attention", .6,
-                     explicar(f"No mesmo trecho, a pessoa é chamada de ‘você’, mas ‘{token.text}’ está na forma usada "
-                              f"com ‘tu’. Em geral se escolhe um só jeito. Se a mistura for a voz do personagem, "
-                              f"está certo.", "uniformidade de tratamento (tu / você)"))
-                break
-
-
 CHECKS = (("crase", crase), ("homofonos", homophones), ("concordancia", agreement),
           ("regencia", regency), ("virgula_sujeito_verbo", subject_comma),
-          ("correlacao_tempos", correlation), ("frase_cortada", truncated), ("locucoes", locutions),
-          ("tratamento", treatment))
+          ("correlacao_tempos", correlation), ("frase_cortada", truncated), ("locucoes", locutions))
 
 
 def analyze(blocks, nlp, settings, docs=None, skip=()):
@@ -775,7 +732,6 @@ def analyze(blocks, nlp, settings, docs=None, skip=()):
             out.append(item(block, rule, category, start, end, reason, severity, score, suggestion, priority))
 
         seen = set()
-        emit.labels = labels
         for name, check in active:
             check(block, doc, emit)
     return out

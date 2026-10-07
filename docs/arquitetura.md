@@ -1,4 +1,4 @@
-# Arquitetura e limites — Lume 1.1 / FONTE 1.1.0
+# Arquitetura e limites
 
 Os manuscritos são somente lidos. A sequência Linguístico → Morfossintático → Editorial → Coerência Global usa uma captura imutável do documento. Antes de gravar o relatório, a CLI confere novamente o SHA-256 do arquivo (DOCX ou Pages). Falha numa etapa impede as seguintes; a falha da Auditoria final, a última etapa, interrompe só ela. A Auditoria final com IA é opcional e desligada por padrão ([detalhes](#auditoria-final-com-ia)).
 
@@ -9,7 +9,7 @@ Os manuscritos são somente lidos. A sequência Linguístico → Morfossintátic
 | `Lume/` | Interface SwiftUI, relatórios, decisões e seleção do motor |
 | `fonte/fonte/reader.py`, `pages.py`, `contracts.py`, `pipeline.py` | Leitura de DOCX e Pages, índices Unicode, contratos e execução sequencial |
 | `linguistic.py`, `analysis.py`, `temporal.py`, `editorial/` | Regras linguísticas, temporais e editoriais |
-| `grammar.py` | Crase, homófonos, concordância, regência, vírgula entre sujeito e verbo, correlação de tempos, frase cortada, locuções e tratamento tu/você (etapa Morfossintática) |
+| `grammar.py` | Crase, homófonos, concordância, regência, vírgula entre sujeito e verbo, correlação de tempos, frase cortada e locuções (etapa Morfossintática) |
 | `languagetool.py` | Corretor gramatical LanguageTool local: filtros, falas e servidor embutido |
 | `coerencia_ia.py` | Coerência com IA: projeto incremental do Coerencia (`coerencia/`) na etapa Coerência global |
 | `packaging/` | Entrada portátil, inventário, instalação atômica e reversão |
@@ -105,7 +105,7 @@ Linguístico cobre padrões determinísticos, pontuação, repetições e o Lang
 (ortografia e gramática, também em falas). Morfossintático cobre o tempo verbal da narração
 informado, relações entre orações, acentuação contextual e as regras de `grammar.py` (crase,
 homófonos, concordância, regência, vírgula entre sujeito e verbo, correlação de tempos, frase
-cortada, locuções e tratamento tu/você). Editorial usa contexto
+cortada e locuções). Editorial usa contexto
 local: diálogos, repetições, gerundismo e referentes próximos, com abstenção quando há
 candidatos concorrentes. Coerência Global cobre variações de nomes e prazos e, com a
 Coerência com IA ligada, contradições narrativas. Suspeitas não viram erros confirmados nem
@@ -113,6 +113,43 @@ correções automáticas. Nada disso equivale a uma revisão gramatical completa
 
 `done`, `total` e `unit` opcionais nos eventos `running` indicam o andamento dentro da etapa
 (parágrafos do corretor, cenas da Coerência com IA).
+
+## Destino, impedimento e encerramento
+
+Plano: [`.agent/plans/encerramento-editorial.md`](../.agent/plans/encerramento-editorial.md).
+Princípio: o Lume interrompe o editor só com evidência suficiente, e a revisão precisa poder
+terminar ([visão](visao.md#ocorrência-pendência-e-encerramento)).
+
+- **Severidade e destino são coisas diferentes.** A severidade diz que tipo de problema é. O
+  destino, aplicado pela política depois das etapas, diz o que o editor faz com ele:
+  - `diagnostico`: fora de `findings`; numa lista própria do relatório, só para medir o motor;
+  - `informacao`: visível de forma recolhida; não conta nem pede decisão;
+  - `pendencia`: entra na fila e pede decisão.
+- **Impeditivo** (`impeditivo: true`): pendência que precisa de decisão antes de encerrar. Exige
+  precisão real ≥ 90% em ≥ 20 decisões, natureza objetiva e severidade de erro. Classes
+  editoriais, narrativas, de repetição, referência, estilo ou continuidade nunca são impeditivas.
+- **Política:** `fonte/fonte/data/politica.json` (aplicada por `fonte/fonte/politica.py`), por
+  classe (regra × confiança), com as medições de `scripts/medir_precisao.py`. A confiança é
+  evidência auxiliar: com 20 decisões ou mais, os dados decidem. Classe medida com menos de 50% de
+  erro real vai para informação (critério de não-interrupção, não de qualidade); sem medição,
+  confiança baixa vai para informação e as demais para pendência. Pendência não afirma que a regra
+  é confiável. Classe nova entra como informação ou diagnóstico.
+- **Relatório:** cada ocorrência leva `destino` e `impeditivo`; `metadata` leva `politica_versao`,
+  `destinos` (contagem), `impeditivos` e `diagnostico` (lista fora de `findings`).
+- **Política v1 (07/10/2026):** nenhuma classe é impeditiva. As duas que passam de 90% em 20
+  decisões (tempo verbal da narração, diálogo contextual) são editoriais.
+- **Compatibilidade:** os campos se somam ao contrato. Relatório antigo, sem destino, é lido
+  como hoje: tudo pendência, nada impeditivo. Os IDs não mudam, então as decisões continuam.
+- **Encerramento:** o app oferece **Encerrar revisão** quando nenhum impeditivo está sem decisão
+  e registra observações e pendências abertas, data, versão do motor e versão da política. O
+  estado se chama “Revisão concluída”, nunca “sem erros”.
+
+- **Mesa (app):** duas partes, **Pendências** (padrão) e **Observações**. Os impeditivos ficam
+  destacados no topo das pendências, com a contagem sempre visível, mesmo quando é zero. O
+  diagnóstico fica em Etapas e alcance, fora do fluxo editorial. **Encerrar revisão** grava
+  `Encerramentos/<sha256>.json` (`encerrada_em`, `versao_motor`, `versao_politica`,
+  `pendencias_abertas`, `observacoes_abertas`, `impeditivos_abertos`). O registro vale para o mesmo
+  texto e a mesma política. A decisão **Corrigido** é gravada pela correção no Pages.
 
 ## CLI e configuração
 
@@ -124,7 +161,7 @@ fonte/.venv/bin/python -m fonte revisar manuscrito.docx --modo ambas --tempo pas
 
 `--languagetool` ativa o corretor gramatical local. Se o motor tiver o corretor embutido (`languagetool/` ao lado de `runtime/` no pacote, `fonte/.languagetool` nos fontes ou `FONTE_LANGUAGETOOL`), a CLI inicia o servidor numa porta livre de 127.0.0.1, com o Java do pacote, e o encerra ao terminar. Sem corretor embutido, ou com `--porta-lt`, usa um servidor já ativo (padrão 8081). `metadata.languagetool_origem` registra `embutido` ou `externo`. Sem a flag, a CLI não usa o corretor; o app a envia quando **Corretor gramatical local** está ligado, o que agora é o padrão.
 
-O texto das falas é enviado ao corretor. Regras de estilo e registro ficam fora para não formalizar a voz. Maiúscula após travessão de inciso e grafia de nomes próprios (palavras com inicial maiúscula fora do início de frase, mais `ignored_names`) são descartadas; itálicos marcados como pensamento não recebem alertas de grafia. Um alerta do corretor sobre o mesmo trecho de uma regra FONTE é omitido. As regras de `grammar.py` revisam crase, homófonos, correlação de tempos, frase cortada e tratamento tu/você também em falas; concordância, regência, vírgula entre sujeito e verbo e locuções só na narração. Regência é `editorial_attention`, porque a forma com ‘em’ é corrente no português brasileiro.
+O texto das falas é enviado ao corretor. Regras de estilo e registro ficam fora para não formalizar a voz. Maiúscula após travessão de inciso e grafia de nomes próprios (palavras com inicial maiúscula fora do início de frase, mais `ignored_names`) são descartadas; itálicos marcados como pensamento não recebem alertas de grafia. Um alerta do corretor sobre o mesmo trecho de uma regra FONTE é omitido. As regras de `grammar.py` revisam crase, homófonos, correlação de tempos e frase cortada também em falas; concordância, regência, vírgula entre sujeito e verbo e locuções só na narração. Regência é `editorial_attention`, porque a forma com ‘em’ é corrente no português brasileiro.
 
 Consulte o [histórico](../CHANGELOG.md) para evolução dos contratos, a [validação](validacao.md) para evidências e a [visão](visao.md) para objetivos ainda não integralmente implementados.
 
@@ -140,6 +177,18 @@ devolve uma linha `LUME_ESTIMATIVA {json}` com capítulos a enviar e custo estim
 chamar a API. A chave vem de `ANTHROPIC_API_KEY` ou das Chaves do macOS.
 
 ## Auditoria final com IA
+
+Papel: **controle de qualidade do Lume**, não uma segunda camada de revisão editorial. Pela
+política (v2):
+- confiança baixa vai sempre para diagnóstico;
+- as categorias de norma (ortografia, concordância, crase, regência) começam como observação;
+- as categorias experimentais (pontuação, tempo verbal, estrutura, repetição, diálogo, referência,
+  continuidade) começam no diagnóstico;
+- a promoção a pendência depende só de dados medidos;
+- nenhum achado da Auditoria é impeditivo por conta própria.
+
+O prompt não mudou: nada é reenviado. O número de achados novos não mede maturidade; mede-se
+quantos achados promovidos se confirmaram como erro real.
 
 `revisar --auditoria-ia --auditoria-projeto P [--auditoria-modelo M] [--auditoria-teto T]
 [--auditoria-esforco E]` roda a quinta etapa (`audit`). Desligada por padrão, porque custa

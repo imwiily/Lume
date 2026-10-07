@@ -861,7 +861,7 @@
     {
       "id": "dev-narrador-e-listas",
       "tempo": "passado",
-      "nota": "Narrador em primeira pessoa que fala de si no presente, fala que começa numa linha do meio do parágrafo (travessão e hífen), lista de equipes sem pontuação ações da cena no presente por engano e ‘você’ com verbo na forma de ‘tu’; escrito do zero em 07/10/2026.",
+      "nota": "Narrador em primeira pessoa que fala de si no presente, fala que começa numa linha do meio do parágrafo (travessão e hífen), lista de equipes sem pontuação ações da cena no presente por engano; o último parágrafo (‘você’ com verbo na forma de ‘tu’) ficou sem anotação quando a regra de tratamento foi retirada, em 07/10/2026, por decisão do autor; escrito do zero em 07/10/2026.",
       "paragrafos": [
         "Capítulo 1",
         "Eu me chamo Valquíria e vou contar o verão em que a represa secou. Sou a mais nova de cinco irmãs, e aquele verão mudou quem eu sou.",
@@ -885,12 +885,6 @@
           "p": 9,
           "trecho": "caminham",
           "categoria": "tempo_verbal",
-          "camada": "linguistica"
-        },
-        {
-          "p": 10,
-          "trecho": "tinhas",
-          "categoria": "tratamento",
           "camada": "linguistica"
         }
       ],

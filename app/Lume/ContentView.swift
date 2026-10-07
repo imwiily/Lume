@@ -96,9 +96,11 @@ struct ContentView: View {
         }
         if store.isAnalyzing { return "Lendo agora…" }
         if store.analysisFailed { return "Leitura interrompida" }
-        guard let report = store.report else { return "Mesa de leitura" }
-        let total = report.findings.count
-        return "Mesa de leitura · \(total - store.pendingCount) de \(total) avaliados"
+        guard store.report != nil else { return "Mesa de leitura" }
+        if store.closure != nil { return "Mesa de leitura · Revisão concluída" }
+        let counts = store.tally
+        let blocking = counts.blocking > 0 ? " · \(counts.blockingOpen) impeditivo(s) sem decisão" : ""
+        return "Mesa de leitura · \(counts.pendingOpen) de \(counts.pending) pendências sem decisão\(blocking)"
     }
 
     // MARK: Barra
@@ -120,13 +122,13 @@ struct ContentView: View {
                     Menu {
                         if chapters.isEmpty { Text("Nenhum título identificado") }
                         ForEach(Array(chapters.enumerated()), id: \.offset) { _, chapter in
-                            let findings = report.findings.filter { $0.chapter == chapter.title }
-                            Button("§ \(chapter.paragraph) · \(chapter.title) — \(findings.count) alertas") {
-                                if let first = findings.first { store.selectedID = first.id }
+                            let findings = report.findings.filter { $0.chapter == chapter.title && $0.destination == .pendencia }
+                            Button("§ \(chapter.paragraph) · \(chapter.title) — \(findings.count) pendências") {
+                                if let first = findings.first { store.deskSection = .pendencies; store.selectedID = first.id }
                             }.disabled(findings.isEmpty)
                         }
                     } label: { Label("Capítulos", systemImage: "book.closed") }
-                        .help("Capítulos identificados (\(chapters.count)): leva ao primeiro alerta do capítulo")
+                        .help("Capítulos identificados (\(chapters.count)): leva à primeira pendência do capítulo")
                 }
                 Button { store.reanalyze() } label: { Label("Reanalisar", systemImage: "arrow.clockwise") }
                     .help("Analisar a obra de novo com as mesmas opções, mantendo as decisões já marcadas")

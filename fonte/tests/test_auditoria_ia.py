@@ -24,7 +24,7 @@ def achado(block, trecho):
     inicio = block.text.index(trecho)
     item = asdict(finding(block, 'Concordância', 'Verificar', inicio, inicio + len(trecho),
                           'Sujeito no plural com verbo no singular.', 'Auditoria · IA (Claude)'))
-    item.update(rule='auditoria_ia', category_code='audit_agreement', severity='editorial_attention',
+    item.update(rule='auditoria_ia', category_code='audit_concordancia', severity='editorial_attention',
                 confidence='média', confidence_score=.6, suggestion='estavam', suggestion_kind='possible')
     return item
 
@@ -323,8 +323,24 @@ class AuditCoreTests(unittest.TestCase):
                                        mode='editorial', auditoria={'cliente': modelo})
         f, = [f for f in findings if f['module'] == 'audit']
         self.assertEqual((f['excerpt'], f['severity']), ('estava', 'editorial_attention'))
+        # Controle de qualidade: categoria de norma, sem medição, começa como observação.
+        self.assertEqual((f['destino'], f['impeditivo']), ('informacao', False))
         self.assertEqual(meta['stages'][-1]['state'], 'completed')
         self.assertEqual(meta['auditoria_ia']['achados'], {'concordancia': 1})
+
+    def test_audit_is_quality_control_not_a_second_review(self):
+        # Confiança baixa e categorias experimentais vão para o diagnóstico, fora da mesa; nada é impeditivo.
+        modelo = ModeloFalso({'ocorrencias': [item(2, 'estava', confianca='baixa'),
+                                              item(4, 'a rua', 'continuidade_local')]},
+                             {'ocorrencias': [item(6, 'a cliente', 'crase')]})
+        findings, _, meta = run(livro(), Mock(), settings=selected('concordancia', 'crase'),
+                                tense='passado', mode='editorial', auditoria={'cliente': modelo})
+        mesa = {f['excerpt']: f['destino'] for f in findings if f['module'] == 'audit'}
+        diagnostico = {f['excerpt']: f['destino'] for f in meta['diagnostico']}
+        self.assertEqual(mesa, {'a cliente': 'informacao'})
+        self.assertEqual(diagnostico, {'estava': 'diagnostico', 'a rua': 'diagnostico'})
+        self.assertFalse(any(f['impeditivo'] for f in findings + meta['diagnostico']))
+        self.assertEqual(meta['destinos']['diagnostico'], 2)
 
     def test_real_client_request_with_fake_sdk(self):
         # O cliente `Claude` do Coerencia com um SDK falso: pedido válido e custo, sem rede.

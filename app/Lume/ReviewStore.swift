@@ -76,6 +76,10 @@ final class ReviewStore: ObservableObject {
     @Published var errorText: String?
     @Published var logURL: URL?
     @Published var hasUnsavedDecisions = false
+    /// Parte da mesa à vista: as pendências (trabalho editorial) ou as observações (consulta livre).
+    @Published var deskSection: DeskSection = .pendencies
+    /// “Revisão concluída” registrada para este texto e esta política, se houver.
+    @Published private(set) var closure: ReviewClosure?
     /// Correções gravadas no manuscrito a partir do relatório aberto.
     @Published private(set) var editLog: EditLog?
     /// Decisões da leitura anterior, aplicadas quando a reanálise da mesma obra terminar.
@@ -115,18 +119,22 @@ final class ReviewStore: ObservableObject {
     var canAnalyze: Bool { !isBusy && documentURL != nil && pythonExists }
     var categories: [String] { ["Todas"] + Set(report?.findings.map(\.category) ?? []).sorted() }
     var selectedFinding: Finding? { report?.findings.first { $0.id == selectedID } }
-    var pendingCount: Int {
-        report?.findings.filter { decision(for: $0) == .pending }.count ?? 0
-    }
+    /// Pendências, impeditivos e observações; relatórios antigos contam tudo como pendência.
+    var tally: ReviewTally { ReviewTally(findings: report?.findings ?? [], decision: decision(for:)) }
+    var pendingCount: Int { tally.pendingOpen }
     var filteredFindings: [Finding] {
-        (report?.findings ?? []).filter { finding in
-            (layerFilter == "Todas" || (finding.layer ?? "linguistica") == layerFilter)
+        let section: FindingDestination = deskSection == .pendencies ? .pendencia : .informacao
+        let items = (report?.findings ?? []).filter { finding in
+            finding.destination == section
+            && (layerFilter == "Todas" || (finding.layer ?? "linguistica") == layerFilter)
                 && (moduleFilter == "Todas" || finding.module == moduleFilter)
                 && (severityFilter == "Todas" || finding.severity == severityFilter)
                 && (category == "Todas" || finding.category == category)
                 && (decisionFilter == "Todas" || decision(for: finding).rawValue == decisionFilter)
                 && (search.isEmpty || (finding.text + " " + finding.chapter).localizedCaseInsensitiveContains(search))
         }
+        // Impeditivos primeiro; a ordem do texto continua dentro de cada grupo.
+        return items.filter(\.isBlocking) + items.filter { !$0.isBlocking }
     }
 
     func decision(for finding: Finding) -> ReviewDecision { decisions[finding.id] ?? .pending }
@@ -330,18 +338,21 @@ final class ReviewStore: ObservableObject {
         editLog = readEditLog(loaded.sha256)
         analysisStages = loaded.metadata.stages ?? []
         screen = .review; analysisFailed = false
-        selectedID = carry?.selectedID.flatMap { id in loaded.findings.contains { $0.id == id } ? id : nil }
-            ?? loaded.findings.first?.id
+        closure = readClosure(for: loaded)
+        deskSection = .pendencies
+        selectedID = carry?.selectedID.flatMap { id in loaded.findings.contains { $0.id == id && $0.destination == .pendencia } ? id : nil }
+            ?? loaded.findings.first { $0.destination == .pendencia }?.id
         category = "Todas"; decisionFilter = "Todas"; search = ""; layerFilter = "Todas"; moduleFilter = "Todas"; severityFilter = "Todas"
         hasUnsavedDecisions = false
-        status = "\(loaded.findings.count) candidatos. Avalie cada trecho no contexto."
+        let counts = ReviewTally(findings: loaded.findings, decision: { restored[$0.id] ?? .pending })
+        status = "\(counts.pending) pendências e \(counts.observations) observações. Avalie as pendências no contexto."
         if inherited > 0 || carried > 0 {
             try autosave()
-            status = "\(loaded.findings.count) candidatos. \(inherited + carried) decisões mantidas nos alertas que não mudaram desde a análise anterior."
+            status = "\(counts.pending) pendências e \(counts.observations) observações. \(inherited + carried) decisões mantidas nos alertas que não mudaram desde a análise anterior."
         }
         if let carry {
             let kept = restored.values.filter { $0 != .pending }.count
-            status = "Reanálise concluída: \(loaded.findings.count) candidatos; \(kept) de \(carry.byID.count) marcações anteriores mantidas nos alertas que continuam no texto."
+            status = "Reanálise concluída: \(counts.pending) pendências e \(counts.observations) observações; \(kept) de \(carry.byID.count) marcações anteriores mantidas nos alertas que continuam no texto."
         }
     }
 
@@ -511,7 +522,7 @@ final class ReviewStore: ObservableObject {
                     encoder.dateEncodingStrategy = .iso8601
                     try encoder.encode(updated).write(to: editLogURL(report.sha256), options: .atomic)
                     editLog = updated
-                    if decision(for: finding) == .pending { decisions[finding.id] = .error }
+                    if [.pending, .error].contains(decision(for: finding)) { decisions[finding.id] = .corrected }
                     try autosave()
                     status = "Correção gravada no manuscrito. A cópia anterior às correções está guardada."
                 } catch {
@@ -854,6 +865,45 @@ final class ReviewStore: ObservableObject {
         hasUnsavedDecisions = false
     }
 
+    // MARK: Encerramento
+
+    private func closureURL(for report: EditorialReport) throws -> URL {
+        try supportDirectory("Encerramentos").appendingPathComponent(ReviewClosure.fileName(report.sha256))
+    }
+
+    /// O encerramento só vale para o mesmo texto e a mesma política.
+    private func readClosure(for report: EditorialReport) -> ReviewClosure? {
+        guard let url = try? closureURL(for: report), let data = try? Data(contentsOf: url),
+              let record = try? ReviewClosure.decode(data), record.applies(to: report) else { return nil }
+        return record
+    }
+
+    var canCloseReview: Bool { report != nil && closure == nil && !isBusy && !hasUnsavedDecisions && tally.canClose }
+
+    /// “Encerrar revisão”: registra que o processo terminou, com o que ficou aberto. Nenhum
+    /// impeditivo pode estar sem decisão. Não certifica ausência de erros.
+    func closeReview() {
+        guard canCloseReview, let report else { return }
+        let counts = tally
+        guard let record = ReviewClosure(report: report, tally: counts) else { return }
+        let alert = NSAlert()
+        alert.messageText = "Encerrar revisão?"
+        var lines = ["Nenhum impeditivo está sem decisão."]
+        if counts.pendingOpen > 0 || counts.observationsOpen > 0 {
+            lines.append("Ficam sem decisão \(counts.pendingOpen) pendência(s) e \(counts.observationsOpen) observação(ões); isso fica registrado.")
+        }
+        lines.append("O encerramento guarda a data, a versão do motor e a versão da política. Ele indica que o processo de revisão terminou, não que o texto não tem erros.")
+        alert.informativeText = lines.joined(separator: "\n\n")
+        alert.addButton(withTitle: "Encerrar revisão")
+        alert.addButton(withTitle: "Cancelar")
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        do {
+            try record.encoded().write(to: closureURL(for: report), options: .atomic)
+            closure = record
+            status = "Revisão concluída. Você pode continuar consultando e decidindo os alertas."
+        } catch { errorText = "Não foi possível registrar o encerramento: \(error.localizedDescription)" }
+    }
+
     private func parseDecisions(_ data: Data, for report: EditorialReport) throws -> [String: ReviewDecision] {
         let file = try JSONDecoder().decode(DecisionFile.self, from: data)
         guard file.schemaVersion == 1, file.sha256 == report.sha256 else {
@@ -968,7 +1018,7 @@ final class ReviewStore: ObservableObject {
             let size = ByteCountFormatter.string(fromByteCount: plan.bytes, countStyle: .file)
             let alert = NSAlert()
             alert.messageText = "Liberar \(size)?"
-            alert.informativeText = "Serão apagados \(plan.summary). Eles guardam texto de leituras passadas.\n\nFicam o relatório aberto, o mais recente de cada livro, os falsos positivos extraídos, suas decisões, o histórico e as cópias de segurança das correções, os projetos com IA e os motores."
+            alert.informativeText = "Serão apagados \(plan.summary). Eles guardam texto de leituras passadas.\n\nFicam o relatório aberto, o mais recente de cada livro, os falsos positivos extraídos, suas decisões, os encerramentos de revisão, o histórico e as cópias de segurança das correções, os projetos com IA e os motores."
             alert.alertStyle = .warning
             alert.addButton(withTitle: "Apagar")
             alert.addButton(withTitle: "Cancelar")
@@ -1045,3 +1095,11 @@ extension ReviewStore {
     }
 }
 #endif
+
+/// As duas partes da mesa de leitura. Impeditivos aparecem destacados dentro das pendências; o
+/// diagnóstico do motor fica em Etapas e alcance, fora do fluxo editorial.
+enum DeskSection: String, CaseIterable, Identifiable {
+    case pendencies = "Pendências"
+    case observations = "Observações"
+    var id: String { rawValue }
+}

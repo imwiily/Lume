@@ -1,7 +1,7 @@
-"""Tratamento misto: ‘você’ e verbo na forma de ‘tu’ no mesmo trecho.
+"""Regra `tratamento` retirada em 07/10/2026 por decisão do autor.
 
-Casos escritos do zero. A regra só olha um trecho (fala, pensamento ou narração); a mistura entre
-falas diferentes do mesmo personagem exige saber quem fala e fica fora do alcance local.
+Ela nasceu de um caso isolado e não apontou nada em textos reais. A chave continua aceita nas
+configurações salvas, sem efeito, como as demais regras retiradas.
 """
 import unittest
 
@@ -9,48 +9,25 @@ import spacy
 
 from fonte.pipeline import run
 from fonte.reader import Block
-from fonte.settings import validate
+from fonte.settings import RULES, RETIRED_RULES, validate
 
 
-class TreatmentTests(unittest.TestCase):
+class RetiredTreatmentTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.nlp = spacy.load("pt_core_news_sm", disable=["ner"])
 
-    def marked(self, text, settings=None):
-        found, _, _ = run([Block(1, text)], lambda: self.nlp, tense="passado", mode="ambas",
-                          settings=validate(settings or {}))
-        return [(f["text"][f["start"]:f["end"]], f["severity"]) for f in found if f.get("rule") == "tratamento"]
+    def test_saved_settings_with_the_key_still_open(self):
+        for valor in (True, False):
+            with self.subTest(valor=valor):
+                self.assertNotIn("tratamento", validate({"rules": {"tratamento": valor}})["rules"])
+        self.assertIn("tratamento", RETIRED_RULES)
+        self.assertNotIn("tratamento", RULES)
 
-    def test_voce_with_second_person_verb(self):
-        for nome in ("Rui", "Dalva"):
-            for text, verbo in [(f"— Você tinhas razão desde o começo — disse {nome}.", "tinhas"),
-                                ("— Você sabe que estás atrasado?", "estás"),
-                                ("— Se você me chamas, eu venho.", "chamas"),
-                                ("— Você não me ouve, nunca ouves ninguém.", "ouves")]:
-                with self.subTest(text=text):
-                    self.assertEqual(self.marked(text), [(verbo, "editorial_attention")])
-
-    def test_explanation_is_plain(self):
-        found, _, _ = run([Block(1, "— Você fizeste tudo sozinho.")], lambda: self.nlp, tense="passado", mode="ambas")
-        reason = next(f["reason"] for f in found if f.get("rule") == "tratamento")
-        self.assertTrue(reason.endswith("\n\nNa gramática: uniformidade de tratamento (tu / você)."))
-
-    def test_nouns_contractions_and_one_treatment_are_not_marked(self):
-        for text in ["— Você vê as casas e os dias passarem.", "— Você comprou as mesas e as cadeiras?",
-                     "— Você tem um desses?", "— Obrigado pelas explicações. Você ajudou muito.",
-                     "— Tu sabes que tens razão.", "— Você também gosta de batatas fritas?",
-                     "Ela disse que você estava certo e que as coisas iam melhorar."]:
-            with self.subTest(text=text):
-                self.assertEqual(self.marked(text), [])
-
-    def test_mixture_across_separate_speeches_is_not_judged(self):
-        found, _, _ = run([Block(1, "— Você vem amanhã?"), Block(2, "— Tens certeza disso?")],
-                          lambda: self.nlp, tense="passado", mode="ambas")
-        self.assertFalse(any(f.get("rule") == "tratamento" for f in found))
-
-    def test_rule_can_be_turned_off(self):
-        self.assertEqual(self.marked("— Você tinhas razão.", {"rules": {"tratamento": False}}), [])
+    def test_no_alert_even_when_the_saved_settings_turn_it_on(self):
+        found, _, _ = run([Block(1, "— Você tinhas razão desde o começo — disse ela.")], lambda: self.nlp,
+                          settings=validate({"rules": {"tratamento": True}}), tense="passado", mode="ambas")
+        self.assertFalse(any(f.get("rule") == "tratamento" or f["category"] == "Tratamento" for f in found))
 
 
 if __name__ == "__main__":

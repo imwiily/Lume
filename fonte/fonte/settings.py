@@ -15,11 +15,13 @@ RULES += NEW_RULES
 # Regras da memória narrativa heurística, removida em 29/09/2026. Configurações
 # antigas que as mencionam continuam válidas; essas chaves são ignoradas.
 RETIRED_RULES = ['memoria_narrativa', 'conflito_habilidade', 'conflito_objeto', 'conflito_cronologia',
-                 'coerencia_generica']
+                 'coerencia_generica',
+                 # Retirada em 07/10/2026 por decisão do autor: nasceu de um caso isolado.
+                 'tratamento']
 # Classes gramaticais com apoio sintático (fonte/grammar.py). Ligadas por padrão,
 # como as anteriores; ‘desativar todas’ de configurações antigas continua valendo.
 GRAMMAR_RULES = ['crase', 'homofonos', 'concordancia', 'regencia', 'virgula_sujeito_verbo',
-                 'correlacao_tempos', 'frase_cortada', 'locucoes', 'tratamento']
+                 'correlacao_tempos', 'frase_cortada', 'locucoes']
 RULES += GRAMMAR_RULES
 SCOPES = ['narracao', 'dialogo', 'pensamento']
 DEFAULT = {

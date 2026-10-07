@@ -66,17 +66,20 @@ def overlaps(finding, target):
     return any(p == paragraph and s < end and e > start for p, s, e in spans(finding))
 
 
-def score(text, findings):
+def score(text, findings, diagnostico=()):
+    """`diagnostico`: achados fora da mesa (metadata.diagnostico); entram só na medição da Auditoria."""
     errors = [(annotation, locate(text, annotation)) for annotation in text['erros']]
     tolerated = [locate(text, annotation) for annotation in text.get('aceitaveis', [])]
     hits = [any(overlaps(f, target) for f in findings) for _, target in errors]
     rules = [f for f in findings if f.get('module') != 'audit']
     rule_hits = [any(overlaps(f, target) for f in rules) for _, target in errors]
     audit = {'achados': 0, 'sobre_erros_perdidos': 0, 'sobre_erros_ja_apontados': 0, 'neutros': 0, 'alarmes_falsos': []}
-    for finding in findings:
+    for finding in [*findings, *diagnostico]:
         if finding.get('module') != 'audit':
             continue
         audit['achados'] += 1
+        if finding.get('destino') == 'diagnostico':
+            audit['diagnostico'] = audit.get('diagnostico', 0) + 1
         matched = [rule_hit for (_, target), rule_hit in zip(errors, rule_hits) if overlaps(finding, target)]
         if matched:
             audit['sobre_erros_ja_apontados' if all(matched) else 'sobre_erros_perdidos'] += 1
@@ -97,6 +100,10 @@ def score(text, findings):
         'erros': [dict(annotation, encontrado=hit, encontrado_regras=rule_hit)
                   for (annotation, _), hit, rule_hit in zip(errors, hits, rule_hits)],
         'ocorrencias': len(findings), 'verdadeiras': len(true), 'neutras': len(neutral),
+        'palavras': sum(len(re.findall(r'[^\W\d_]+', p)) for p in text['paragrafos']),
+        # Só o que entra na fila (relatórios sem destino contam tudo como pendência).
+        'pendencias_verdadeiras': sum(f.get('destino', 'pendencia') == 'pendencia' for f in true),
+        'pendencias_alarmes_falsos': sum(f.get('destino', 'pendencia') == 'pendencia' for f in false),
         'alarmes_falsos': [brief(f) for f in false],
         'auditoria': audit,
     }
@@ -127,7 +134,18 @@ def summarize(results):
         'ocorrencias_neutras': sum(r['neutras'] for r in results),
         'alarmes_falsos': false,
         'alarmes_falsos_em_controles': sum(len(r['alarmes_falsos']) for r in results if r['controle']),
+        'palavras': sum(r.get('palavras', 0) for r in results),
     }
+    judged = true + false
+    # Métrica principal (protocolo de 07/10/2026): quantas ocorrências julgadas estavam sobre erros.
+    summary['precisao'] = round(true / judged, 3) if judged else None
+    summary['alarmes_falsos_por_10k_palavras'] = (round(false * 10000 / summary['palavras'], 1)
+                                                  if summary['palavras'] else None)
+    queue_true = sum(r.get('pendencias_verdadeiras', r['verdadeiras']) for r in results)
+    queue_false = sum(r.get('pendencias_alarmes_falsos', len(r['alarmes_falsos'])) for r in results)
+    summary['precisao_pendencias'] = round(queue_true / (queue_true + queue_false), 3) if queue_true + queue_false else None
+    summary['pendencias_alarmes_falsos_por_10k_palavras'] = (round(queue_false * 10000 / summary['palavras'], 1)
+                                                             if summary['palavras'] else None)
     if any('custo_auditoria' in r or r.get('auditoria', {}).get('achados') for r in results):
         audits = [r.get('auditoria', {}) for r in results]
         errors = [e for r in results for e in r['erros']]
@@ -138,6 +156,7 @@ def summarize(results):
             'sobre_erros_ja_apontados': sum(a.get('sobre_erros_ja_apontados', 0) for a in audits),
             'neutros': sum(a.get('neutros', 0) for a in audits),
             'alarmes_falsos': sum(len(a.get('alarmes_falsos', [])) for a in audits),
+            'diagnostico': sum(a.get('diagnostico', 0) for a in audits),
             'custo_usd': round(sum(r.get('custo_auditoria', 0) for r in results), 6),
         }
     return summary
@@ -149,7 +168,15 @@ def within_budget(spent, per_text, total):
 
 
 def table(summary):
-    lines = ['| Categoria | Encontrados / esperados |', '| --- | ---: |']
+    lines = []
+    if summary.get('precisao') is not None:
+        if summary.get('precisao_pendencias') is not None:
+            lines.append(f"Precisão das pendências (o que interrompe o editor): {summary['precisao_pendencias']:.0%}. "
+                         f"Alarmes falsos na fila por 10 mil palavras: {summary['pendencias_alarmes_falsos_por_10k_palavras']}.")
+        lines += [f"Precisão de todas as ocorrências (sobre erros anotados ÷ julgadas): {summary['precisao']:.0%}. "
+                  f"Alarmes falsos por 10 mil palavras: {summary['alarmes_falsos_por_10k_palavras']}.",
+                  'A cobertura abaixo é guarda contra regressão, não meta.', '']
+    lines += ['| Categoria | Encontrados / esperados |', '| --- | ---: |']
     for name, count in summary['por_categoria'].items():
         lines.append(f"| {name} | {count['encontrados']} / {count['esperados']} |")
     for name, count in summary['por_camada'].items():
@@ -164,7 +191,8 @@ def table(summary):
         a = summary['auditoria']
         lines += ['', f"Auditoria final: {a['achados']} achados; {a['erros_so_auditoria']} erros encontrados só por ela "
                       f"(de {a['erros_perdidos_pelas_regras']} que as regras perderam); {a['sobre_erros_ja_apontados']} sobre "
-                      f"erros já apontados; {a['neutros']} sobre trechos aceitáveis; {a['alarmes_falsos']} alarmes falsos. "
+                      f"erros já apontados; {a['neutros']} sobre trechos aceitáveis; {a['alarmes_falsos']} alarmes falsos; "
+                      f"{a.get('diagnostico', 0)} ficaram só no diagnóstico. "
                       f"Custo: US$ {a['custo_usd']:.4f}."]
     return '\n'.join(lines)
 
@@ -226,7 +254,7 @@ def main(argv=None):
             report = analyze(text, Path(temporary), args.engine, extra)
             engine_version = report['metadata'].get('versao_fonte')
             languagetool = report['metadata'].get('languagetool_origem') or report['metadata'].get('languagetool')
-            results.append(score(text, report['findings']))
+            results.append(score(text, report['findings'], report.get('metadata', {}).get('diagnostico', [])))
             if args.auditoria:
                 rodada = report['metadata'].get('auditoria_ia') or {}
                 results[-1]['custo_auditoria'] = rodada.get('custo_usd', 0)

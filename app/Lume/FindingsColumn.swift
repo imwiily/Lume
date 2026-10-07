@@ -1,6 +1,7 @@
 import SwiftUI
 
-/// Pontos de atenção: busca, filtros, aviso de tempo contradito e a lista de alertas.
+/// Pontos de atenção: pendências (o trabalho editorial) e observações (consulta livre), com os
+/// impeditivos em destaque, o encerramento da revisão, busca, filtros e a lista de alertas.
 @MainActor
 struct FindingsColumn: View {
     @EnvironmentObject private var store: ReviewStore
@@ -14,6 +15,11 @@ struct FindingsColumn: View {
     private func clearFilters() {
         store.search = ""; store.category = "Todas"; store.decisionFilter = "Todas"
         store.layerFilter = "Todas"; store.moduleFilter = "Todas"; store.severityFilter = "Todas"
+    }
+
+    private var emptyText: String {
+        if activeFilters > 0 || !store.search.isEmpty { return "Nada nesta seleção." }
+        return store.deskSection == .pendencies ? "Nenhuma pendência nesta leitura." : "Nenhuma observação nesta leitura."
     }
 
     private func move(_ offset: Int) {
@@ -50,6 +56,20 @@ struct FindingsColumn: View {
                     }.buttonStyle(.plain).help("Filtros").accessibilityLabel("Filtros, \(activeFilters) ativos")
                         .popover(isPresented: $showFilters, arrowEdge: .bottom) { filters }
                 }
+                if store.report != nil {
+                    Picker("Parte da mesa", selection: $store.deskSection) {
+                        Text("Pendências · \(store.tally.pending)").tag(DeskSection.pendencies)
+                        Text("Observações · \(store.tally.observations)").tag(DeskSection.observations)
+                    }.pickerStyle(.segmented).labelsHidden()
+                        .help("Pendências pedem decisão. Observações ficam à disposição e não impedem o encerramento.")
+                    if store.deskSection == .pendencies {
+                        ClosureStrip()
+                    } else {
+                        Text("Observações não pedem decisão e não impedem o encerramento. Consulte quando quiser.")
+                            .font(LumeFont.ui(11)).foregroundStyle(LumeTheme.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
                 if let contradiction = store.report?.metadata.tempoContradito {
                     TenseNotice(contradiction: contradiction)
                 }
@@ -59,9 +79,9 @@ struct FindingsColumn: View {
                 VStack(spacing: 10) {
                     Image(systemName: store.report == nil ? "book.closed" : "line.3.horizontal.decrease.circle")
                         .font(.system(size: 22, weight: .light))
-                    Text(store.report == nil ? "Seus alertas aparecerão aqui." : "Nada nesta seleção.")
+                    Text(store.report == nil ? "Seus alertas aparecerão aqui." : emptyText)
                         .font(LumeFont.display(16))
-                    if store.report != nil {
+                    if store.report != nil && activeFilters + (store.search.isEmpty ? 0 : 1) > 0 {
                         Button("Limpar filtros", action: clearFilters).buttonStyle(LumeButtonStyle())
                     }
                 }.foregroundStyle(LumeTheme.secondary).multilineTextAlignment(.center)
@@ -74,6 +94,7 @@ struct FindingsColumn: View {
                                 Button { store.selectedID = finding.id } label: {
                                     FindingCard(finding: finding, decision: store.decision(for: finding),
                                                 selected: store.selectedID == finding.id)
+                                        .opacity(finding.destination == .informacao && store.selectedID != finding.id ? 0.78 : 1)
                                 }.buttonStyle(.plain).id(finding.id)
                                 Divider().overlay(LumeTheme.line.opacity(0.6)).padding(.horizontal, 14)
                             }
@@ -174,6 +195,7 @@ private struct FindingCard: View {
     let selected: Bool
 
     private var severity: FindingSeverity? { finding.severity.flatMap(FindingSeverity.init(rawValue:)) }
+    private var observation: Bool { finding.destination == .informacao }
 
     /// Janela de leitura em volta do trecho: até 40 caracteres antes e 70 depois, só para exibição.
     /// O texto vem dos segmentos em pontos de código; nada é alterado no relatório.
@@ -189,6 +211,10 @@ private struct FindingCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .center) {
+                if finding.isBlocking {
+                    Label("Impeditivo", systemImage: "lock.fill").font(LumeFont.ui(10, weight: .semibold))
+                        .foregroundStyle(LumeTheme.error)
+                }
                 SeverityTag(severity: severity)
                 Spacer(minLength: 4)
                 Text("\(finding.chapter) · § \(finding.paragraph)").font(LumeFont.ui(10.5)).foregroundStyle(LumeTheme.secondary)
@@ -197,8 +223,8 @@ private struct FindingCard: View {
             Text(finding.category).font(LumeFont.ui(13, weight: .semibold)).lineLimit(2)
             excerpt.font(LumeFont.display(13)).foregroundStyle(LumeTheme.ink.opacity(0.85)).lineLimit(2)
             HStack(spacing: 5) {
-                Image(systemName: decision.symbol).font(.system(size: 10))
-                Text(decision == .pending ? "Pendente de decisão" : decision.rawValue)
+                Image(systemName: decision == .pending && observation ? "eye" : decision.symbol).font(.system(size: 10))
+                Text(decision != .pending ? decision.rawValue : (observation ? "Observação" : "Pendente de decisão"))
                 if finding.module == ReviewModule.audit.rawValue {
                     Text("·")
                     Text("Auditoria final")
@@ -212,5 +238,49 @@ private struct FindingCard: View {
             .contentShape(Rectangle())
             .accessibilityElement(children: .combine)
             .accessibilityAddTraits(selected ? .isSelected : [])
+    }
+}
+
+/// Impeditivos e encerramento, no topo das pendências. Os impeditivos têm destaque próprio mesmo
+/// quando são zero; “Encerrar revisão” fica disponível quando nenhum está sem decisão.
+@MainActor
+struct ClosureStrip: View {
+    @EnvironmentObject private var store: ReviewStore
+
+    var body: some View {
+        let counts = store.tally
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 7) {
+                Image(systemName: counts.blockingOpen > 0 ? "lock.fill" : "lock.open")
+                    .foregroundStyle(counts.blockingOpen > 0 ? LumeTheme.error : LumeTheme.sage)
+                Text("Impeditivos · \(counts.blockingOpen) sem decisão").font(LumeFont.ui(12, weight: .semibold))
+                Spacer()
+            }
+            if let closure = store.closure {
+                VStack(alignment: .leading, spacing: 3) {
+                    Label("Revisão concluída", systemImage: "checkmark.seal").font(LumeFont.ui(12.5, weight: .semibold))
+                        .foregroundStyle(LumeTheme.sage)
+                    Text("Encerrada em \(closure.closedAt.formatted(date: .abbreviated, time: .shortened)), com \(closure.openPendencies) pendência(s) e \(closure.openObservations) observação(ões) sem decisão. O processo de revisão terminou; isso não indica que o texto não tem erros.")
+                        .font(LumeFont.ui(11)).foregroundStyle(LumeTheme.secondary).fixedSize(horizontal: false, vertical: true)
+                }
+            } else {
+                Text(counts.blockingOpen > 0
+                     ? "Decida os impeditivos para poder encerrar a revisão. As demais pendências não impedem."
+                     : "Nada impede o encerramento. As pendências restantes podem ficar sem decisão, se você quiser.")
+                    .font(LumeFont.ui(11)).foregroundStyle(LumeTheme.secondary).fixedSize(horizontal: false, vertical: true)
+                HStack {
+                    Spacer()
+                    Button("Encerrar revisão") { store.closeReview() }
+                        .buttonStyle(LumeButtonStyle())
+                        .disabled(!store.canCloseReview)
+                        .help(store.hasUnsavedDecisions ? "Salve as decisões antes de encerrar."
+                              : "Registra que a revisão terminou, com o que ficou aberto, a data e as versões do motor e da política.")
+                }
+            }
+        }.padding(10).frame(maxWidth: .infinity, alignment: .leading)
+            .background(RoundedRectangle(cornerRadius: LumeRadius.medium).fill(LumeTheme.raised))
+            .overlay(RoundedRectangle(cornerRadius: LumeRadius.medium)
+                .stroke(counts.blockingOpen > 0 ? LumeTheme.error.opacity(0.6) : LumeTheme.line))
+            .accessibilityElement(children: .contain)
     }
 }

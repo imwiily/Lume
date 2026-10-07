@@ -81,7 +81,14 @@ enum ReviewDecision: String, CaseIterable, Identifiable {
     case falsePositive = "Falso positivo"
     case intentional = "Intencional"
     case accepted = "Aceito editorialmente"
+    /// A correção foi feita (no Pages, pelo Lume). Fica por último para não mudar os atalhos ⌘1–⌘6.
+    case corrected = "Corrigido"
     var id: String { rawValue }
+}
+
+/// Destino editorial dado pela política do motor. Relatório antigo, sem o campo, é pendência.
+enum FindingDestination: String {
+    case pendencia, informacao, diagnostico
 }
 
 struct TextEvidence: Decodable {
@@ -116,6 +123,12 @@ struct Finding: Decodable, Identifiable {
     var range: FindingRange? = nil
     var excerpt: String? = nil
     var suggestion: String? = nil
+    var destino: String? = nil
+    var impeditivo: Bool? = nil
+
+    var destination: FindingDestination { destino.flatMap(FindingDestination.init(rawValue:)) ?? .pendencia }
+    /// Impede o encerramento enquanto estiver sem decisão. Só pendência pode ser impeditiva.
+    var isBlocking: Bool { impeditivo == true && destination == .pendencia }
 
     var moduleTitle: String { module.flatMap(ReviewModule.init(rawValue:))?.title ?? "Relatório anterior" }
     var severityTitle: String { severity.flatMap(FindingSeverity.init(rawValue:))?.title ?? "Sem classificação" }
@@ -125,6 +138,8 @@ struct Finding: Decodable, Identifiable {
             && (confidence_score.map { $0.isFinite && (0...1).contains($0) } ?? true)
             && (range.map { $0.start >= 0 && $0.end >= $0.start && $0.end - $0.start == end - start } ?? true)
             && (excerpt.map { $0 == segments.marked } ?? true)
+            && (destino == nil || FindingDestination(rawValue: destino ?? "") != nil)
+            && (impeditivo != true || destination == .pendencia)
     }
 
     // Os offsets do Python contam pontos de código, não grafemas Swift ou UTF-16.
@@ -164,8 +179,13 @@ struct ReportMetadata: Decodable {
     let stages: [AnalysisStage]?
     let narrativeSummary: NarrativeSummary?
     let tempoContradito: TenseContradiction?
+    /// Versão da política de destino; nil em relatórios antigos.
+    var politicaVersao: Int? = nil
+    /// Achados fora da mesa (Auditoria de confiança baixa, categorias experimentais): só diagnóstico.
+    var diagnostico: [Finding]? = nil
     enum CodingKeys: String, CodingKey {
-        case tempo, paragrafos, languagetool, chapters, stages
+        case tempo, paragrafos, languagetool, chapters, stages, diagnostico
+        case politicaVersao = "politica_versao"
         case versaoFonte = "versao_fonte"
         case narrativeSummary = "narrative_summary"
         case tempoContradito = "tempo_contradito"
@@ -195,6 +215,84 @@ struct EditorialReport: Decodable {
                   && ($0.context ?? []).allSatisfy({ $0.valid }) }) else {
             throw FonteError.message("O relatório tem versão, identificadores ou posições inválidas.")
         }
+    }
+}
+
+/// Contagem editorial da mesa: o que pede decisão, o que impede o encerramento e o que é só observação.
+struct ReviewTally: Equatable {
+    var pending = 0, pendingOpen = 0
+    var blocking = 0, blockingOpen = 0
+    var observations = 0, observationsOpen = 0
+
+    init(findings: [Finding], decision: (Finding) -> ReviewDecision) {
+        for finding in findings {
+            let open = decision(finding) == .pending
+            switch finding.destination {
+            case .pendencia:
+                pending += 1; pendingOpen += open ? 1 : 0
+                if finding.isBlocking { blocking += 1; blockingOpen += open ? 1 : 0 }
+            case .informacao:
+                observations += 1; observationsOpen += open ? 1 : 0
+            case .diagnostico:
+                break
+            }
+        }
+    }
+
+    /// A revisão pode ser encerrada quando nenhum impeditivo está sem decisão. Pendências comuns e
+    /// observações abertas não impedem: ficam registradas no encerramento.
+    var canClose: Bool { blockingOpen == 0 }
+}
+
+/// Registro de “Revisão concluída”: o processo de auditoria definido terminou. Não certifica
+/// ausência de erros. Fica em Application Support/FONTE/Encerramentos/<sha256>.json.
+struct ReviewClosure: Codable, Equatable {
+    let schemaVersion: Int
+    let document: String
+    let sha256: String
+    let closedAt: Date
+    let engineVersion: String
+    let policyVersion: Int?
+    let openPendencies: Int
+    let openObservations: Int
+    let openBlocking: Int
+    enum CodingKeys: String, CodingKey {
+        case schemaVersion = "schema_version"
+        case document, sha256
+        case closedAt = "encerrada_em"
+        case engineVersion = "versao_motor"
+        case policyVersion = "versao_politica"
+        case openPendencies = "pendencias_abertas"
+        case openObservations = "observacoes_abertas"
+        case openBlocking = "impeditivos_abertos"
+    }
+
+    /// Só registra quando nenhum impeditivo está aberto.
+    init?(report: EditorialReport, tally: ReviewTally, date: Date = Date()) {
+        guard tally.canClose else { return nil }
+        schemaVersion = 1; document = report.document; sha256 = report.sha256; closedAt = date
+        engineVersion = report.metadata.versaoFonte; policyVersion = report.metadata.politicaVersao
+        openPendencies = tally.pendingOpen; openObservations = tally.observationsOpen; openBlocking = 0
+    }
+
+    /// Vale para o mesmo texto com a mesma política; um texto ou uma política novos pedem nova revisão.
+    func applies(to report: EditorialReport) -> Bool {
+        sha256 == report.sha256 && policyVersion == report.metadata.politicaVersao
+    }
+
+    static func fileName(_ sha256: String) -> String { sha256 + ".json" }
+
+    func encoded() throws -> Data {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
+        encoder.dateEncodingStrategy = .iso8601
+        return try encoder.encode(self)
+    }
+
+    static func decode(_ data: Data) throws -> ReviewClosure {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return try decoder.decode(ReviewClosure.self, from: data)
     }
 }
 
@@ -535,11 +633,11 @@ struct SearchRule: Identifiable {
     let title: String
     static let newIDs: Set<String> = ["construcao_invalida", "pontuacao_duplicada", "espacamento", "virgula_que_nao", "que_tonico_interrogativo", "coerencia_temporal", "acentuacao_contextual", "vocativo", "capitalizacao_contextual", "dialogo_contextual", "referente_contextual", "gerundismo",
                                           "crase", "homofonos", "concordancia", "regencia", "virgula_sujeito_verbo",
-                                          "correlacao_tempos", "frase_cortada", "locucoes", "tratamento"]
-    /// Regras da memória narrativa heurística, removida do motor: configurações antigas que as
-    /// mencionam continuam abrindo, e essas chaves são descartadas.
+                                          "correlacao_tempos", "frase_cortada", "locucoes"]
+    /// Regras retiradas do motor (memória narrativa heurística; `tratamento`, em 07/10/2026):
+    /// configurações antigas que as mencionam continuam abrindo, e essas chaves são descartadas.
     static let retiredIDs: Set<String> = ["memoria_narrativa", "conflito_habilidade", "conflito_objeto",
-                                          "conflito_cronologia", "coerencia_generica"]
+                                          "conflito_cronologia", "coerencia_generica", "tratamento"]
     static let all: [SearchRule] = [
         .init(id: "construcao_invalida", title: "Construções inválidas conhecidas"),
         .init(id: "pontuacao_duplicada", title: "Pontuação duplicada"),
@@ -558,7 +656,6 @@ struct SearchRule: Identifiable {
         .init(id: "correlacao_tempos", title: "Correlação de tempos: antes que, embora, se + subjuntivo"),
         .init(id: "frase_cortada", title: "Frase cortada, sem pontuação final ou ‘Que’ após reticências"),
         .init(id: "locucoes", title: "Ao invés de / em vez de; ‘embora’ sem verbo · narração"),
-        .init(id: "tratamento", title: "Você com verbo na forma de tu no mesmo trecho"),
         .init(id: "tempo_verbal", title: "Mudanças de tempo verbal"),
         .init(id: "estrutura", title: "Estrutura da frase · narração"),
         .init(id: "pontuacao_dialogo", title: "Ligação entre fala e narração"),

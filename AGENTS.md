@@ -24,7 +24,8 @@ Leia os documentos pertinentes antes de alterar código:
   [README do Coerencia](coerencia/README.md).
 - [Arquitetura existente](docs/arquitetura.md).
 - [Validação e limites](docs/validacao.md).
-- [Visão do produto](docs/visao.md).
+- [Visão do produto](docs/visao.md), principalmente “Ocorrência, pendência e encerramento” e
+  “Precisão antes de cobertura irrestrita”.
 - [ExecPlans](.agent/PLANS.md) para mudanças complexas.
 - `docs/product/lume-v0.11.md` e `docs/testing/acceptance-v0.11.md` são históricos: a
   memória narrativa heurística que eles descrevem foi removida em 29/09/2026. Os
@@ -51,8 +52,9 @@ aprovam um patch novo.
 4. Nenhuma regra ou instrução de modelo pode depender dos manuscritos reais de referência, de nomes de
    personagens, objetos particulares ou gênero literário. Generalizar cada defeito
    como classe editorial e testar substituições de nomes, objetos e contexto.
-5. Na dúvida, não alertar ou alertar como suspeita. Não transformar suspeita em erro
-   confirmado nem inventar sujeito, falante, tempo ou continuidade.
+5. Na dúvida, não alertar. Evidência fraca não entra na fila do editor: fica como informação,
+   diagnóstico do motor ou não é emitida, conforme a política de destino. Não transformar suspeita
+   em erro confirmado nem inventar sujeito, falante, tempo ou continuidade.
 6. Todo alerta aponta trechos que existem no texto. Trechos citados por um modelo de
    linguagem são conferidos no parágrafo indicado; o que não existir é descartado.
 7. Recursos com IA (Coerência e Auditoria final): nada é enviado à API sem ação e
@@ -61,6 +63,11 @@ aprovam um patch novo.
 8. Preservar contratos JSON e leitura de relatórios, decisões e configurações antigos
    (inclusive chaves de regras retiradas). Não confundir confiança heurística com
    probabilidade nem ausência de exceções com correção.
+9. O manuscrito precisa poder chegar ao fim. O critério de sucesso é a precisão das pendências e
+   um encerramento claro (“Revisão concluída”), não a ausência de alertas nem a cobertura máxima.
+   Só é impeditiva a classe com precisão real ≥ 90% em ≥ 20 decisões, natureza objetiva e
+   severidade de erro; classes editoriais, narrativas, de repetição, referência, estilo ou
+   continuidade nunca são impeditivas. Plano: `.agent/plans/encerramento-editorial.md`.
 
 ## Forma de trabalhar
 
@@ -73,11 +80,19 @@ aprovam um patch novo.
   próximas de manuscritos reais (em testes, corpus, exemplos, documentos, imagens ou
   mensagens de commit). Relatórios reais servem só para descobrir a classe do problema;
   o caso de teste é escrito do zero, com outras palavras e outros nomes.
-- Para correções de detecção, escrever primeiro o caso esperado, demonstrar a falha e
-  implementar a menor correção genérica, com positivos, negativos e ambiguidades.
-  Casos novos entram também no corpus de `fonte/tests/corpus/deteccao/`
-  e são medidos com `scripts/avaliar_deteccao.py`. Não enfraquecer ou remover testes
+- Um falso negativo encontrado depois **não** pede uma regra automaticamente. Antes de qualquer
+  regra ou detector novo, responder: a classe é generalizável, relevante e detectável com boa
+  precisão? Se não, o erro fica fora da cobertura automática, e isso é delimitação, não fracasso.
+  Não criar regra a partir de um caso isolado.
+- Uma classe nova entra como informação ou diagnóstico e só vira pendência com precisão medida em
+  livros reais (`scripts/medir_precisao.py`, quando existir).
+- Para correções de detecção aprovadas por essa pergunta, escrever primeiro o caso esperado,
+  demonstrar a falha e implementar a menor correção genérica, com positivos, negativos e
+  ambiguidades. O corpus de `fonte/tests/corpus/deteccao/` recebe classes, não cada caso
+  isolado, e é medido com `scripts/avaliar_deteccao.py`. Não enfraquecer ou remover testes
   para passar.
+- Falso positivo vale tanto quanto falso negativo: uma mudança que baixa a precisão das
+  pendências é regressão e precisa de justificativa, como a perda de acertos.
 - Não editar manuscritos, resultados esperados ou relatórios de referência para
   esconder regressões. Uma mudança legítima de expectativa precisa de justificativa.
 - Para código funcional, executar testes afetados, suítes do FONTE e do Coerencia,
@@ -90,11 +105,11 @@ aprovam um patch novo.
 - Não declarar concluída uma alteração funcional com falha ou regressão conhecida.
   Se faltar corpus, dependência ou execução, registrar a pendência e o motivo.
 - Ao terminar, informar arquivos alterados, testes realmente executados, resultados,
-  métricas comparáveis antes/depois e limitações. Revisar o diff final separadamente
-  da implementação.
+  métricas comparáveis antes/depois (alertas e pendências, não só acertos) e limitações.
+  Revisar o diff final separadamente da implementação.
 
 ## Fora do escopo atual
 
-Interpretação literária, inferência psicológica, regras profundas de gênero e reescrita
-automática do texto. A Auditoria final com IA fica nas categorias fechadas de
+Interpretação literária, inferência psicológica, regras profundas de gênero, reescrita
+automática do texto e a busca de “zero alertas” ou cobertura total. A Auditoria final com IA fica nas categorias fechadas de
 `fonte/fonte/auditoria_ia.py`; ampliá-las é uma mudança de escopo.

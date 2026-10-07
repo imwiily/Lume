@@ -14,6 +14,15 @@ struct FindingInspector: View {
     private var severity: FindingSeverity? { finding.severity.flatMap(FindingSeverity.init(rawValue:)) }
     private var currentIndex: Int? { store.filteredFindings.firstIndex { $0.id == finding.id } }
 
+    /// O destino dado pela política: o que este alerta pede do editor.
+    private var destinationNote: (text: String, symbol: String)? {
+        if finding.isBlocking { return ("Impeditivo: decida antes de encerrar a revisão.", "lock.fill") }
+        if finding.destination == .informacao {
+            return ("Observação: não pede decisão nem impede o encerramento. Decida só se quiser.", "eye")
+        }
+        return nil
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             header
@@ -58,6 +67,11 @@ struct FindingInspector: View {
                     .disabled(currentIndex == nil || currentIndex == store.filteredFindings.count - 1)
             }.buttonStyle(.borderless)
             Text(finding.category).font(LumeFont.display(20, weight: .semibold)).fixedSize(horizontal: false, vertical: true)
+            if let note = destinationNote {
+                Label(note.text, systemImage: note.symbol).font(LumeFont.ui(11))
+                    .foregroundStyle(finding.isBlocking ? LumeTheme.error : LumeTheme.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             Text("\(finding.chapter) · § \(finding.paragraph)").font(LumeFont.ui(11.5)).foregroundStyle(LumeTheme.secondary)
                 .textSelection(.enabled)
             Text("“\(finding.segments.marked)”").font(LumeFont.display(15)).italic()
@@ -202,7 +216,7 @@ struct FindingInspector: View {
                 }
             }.disabled(store.isBusy)
             HStack {
-                Text("⌘1–⌘6 escolhem a decisão.").font(LumeFont.ui(10.5)).foregroundStyle(LumeTheme.tertiary)
+                Text("⌘1–⌘7 escolhem a decisão.").font(LumeFont.ui(10.5)).foregroundStyle(LumeTheme.tertiary)
                 Spacer()
                 Button { confirm() } label: { Label("Confirmar", systemImage: "checkmark") }
                     .buttonStyle(LumeButtonStyle())
@@ -261,7 +275,7 @@ struct FindingInspector: View {
     }
 }
 
-/// Uma das decisões de `ReviewDecision`, com atalho ⌘1–⌘6.
+/// Uma das decisões de `ReviewDecision`, com atalho ⌘1–⌘7.
 struct DecisionChip: View {
     let decision: ReviewDecision
     let selected: Bool

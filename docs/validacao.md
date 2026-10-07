@@ -3,6 +3,35 @@
 Os registros abaixo pertencem às versões indicadas. Caminhos citados nos registros anteriores à 1.0 são da antiga pasta `LumeMac/` (correspondência em [README.md](../README.md#estrutura)); os comandos abaixo usam a raiz do repositório. As verificações do hotfix aparecem primeiro; os registros anteriores são mantidos para rastreabilidade.
 
 
+## Protocolo de métricas
+
+Desde 07/10/2026 ([plano](../.agent/plans/encerramento-editorial.md)), a pergunta principal é
+“dos alertas que interrompem o editor, quantos justificavam a interrupção?”, e não só “quantos
+erros do corpus o Lume encontrou?”. Os registros abaixo desta seção são anteriores e usam o
+critério antigo.
+
+Por ordem de importância:
+
+1. **Precisão das pendências**, medida nas decisões reais: erro confirmado ou corrigido ÷
+   decididos, por classe (regra × confiança) e no total. Alertas repetidos entre versões do mesmo
+   livro contam uma vez. Define a política de destino.
+2. **Pendências e impeditivos por 10 mil palavras.**
+3. **Falsos positivos e “estilo do autor” por 10 mil palavras**, e a proporção de intencionais.
+4. **Regressão de precisão:** uma mudança que baixa a precisão das pendências (no corpus ou nas
+   decisões reais) precisa de justificativa, como a perda de acertos.
+5. **Estabilidade:** a mesma versão no mesmo texto produz os mesmos IDs e destinos.
+6. **Auditoria:** achados promovidos a pendência e quantos se confirmaram como erro real. O número
+   de achados novos não é meta.
+7. **Cobertura** no corpus anotado, só nas categorias objetivas, como guarda contra regressão.
+
+Deixam de ser meta: o total de acertos no corpus sintético como número principal; “a Auditoria
+encontra cada vez menos”; o crescimento do corpus por caso isolado. Medidas para depois: alertas que
+levaram a alteração real (exige cruzar o registro de edições, hoje só no Pages) e custo editorial
+por alerta.
+
+Limites: as decisões vêm de poucos livros e de um autor; classes com menos de 20 decisões não têm
+precisão medida; o corpus é sintético e escrito junto com as regras.
+
 ## Dois planos na narração, tratamento tu/você e explicações simples (07/10/2026)
 
 Plano: [`.agent/plans/dois-planos-e-tratamento.md`](../.agent/plans/dois-planos-e-tratamento.md).

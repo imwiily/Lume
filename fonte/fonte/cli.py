@@ -227,7 +227,10 @@ def main(argv=None):
             output = Path(tempfile.mkdtemp(prefix=path.stem + "-revisao-", dir=path.parent))
         with (output / "relatorio.json").open("x", encoding="utf-8") as handle:
             handle.write(json.dumps(data, ensure_ascii=False, indent=2))
-        print(f"{len(findings)} suspeitas para avaliação humana. Isso não mede a qualidade nem certifica a publicação.")
+        destinos = metadata.get("destinos", {})
+        print(f"{destinos.get('pendencia', len(findings))} pendências ({metadata.get('impeditivos', 0)} impeditivas) e "
+              f"{destinos.get('informacao', 0)} observações para avaliação humana. Isso não mede a qualidade nem "
+              "certifica a publicação.")
         print(f"Relatório: {output / 'relatorio.json'}")
         print("Manuscrito preservado. Corretor gramatical geral: " + (
             f"LanguageTool local ({origin})" if args.languagetool else "não executado (opcional)"))

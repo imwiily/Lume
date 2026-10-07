@@ -3,11 +3,11 @@
 **Revisão editorial para manuscritos em português, no Mac.** Uma luz acesa ao lado de quem escreve.
 
 O Lume lê manuscritos do Word (.docx) e do Pages (.pages) e aponta:
-- ortografia e gramática: LanguageTool embutido e regras próprias de crase, homófonos, concordância, regência, vírgula, correlação de tempos, frase cortada, locuções e tratamento (tu/você);
+- ortografia e gramática: LanguageTool embutido e regras próprias de crase, homófonos, concordância, regência, vírgula, correlação de tempos, frase cortada e locuções;
 - tempo verbal da narração (passado ou presente);
 - repetições, diálogos, variações de nomes e prazos.
 
-Contradições narrativas são verificadas pela **Coerência com IA** (Claude), opcional. A **Auditoria final com IA** (Claude), também opcional, relê o livro depois das regras e aponta só o que elas deixaram passar. Sugestões e decisões ficam nos relatórios; o texto continua sendo do autor. A análise nunca altera o arquivo. Em documentos do Pages, o autor pode gravar a correção de um alerta no próprio arquivo (**Corrigir no manuscrito**): o Lume guarda antes uma cópia em `~/Library/Application Support/FONTE/Copias/`, usa o Pages para trocar só o trecho destacado e confere o resultado. Em **Editar parágrafo**, o autor reescreve o parágrafo do alerta e o Lume grava só a parte alterada.
+Contradições narrativas são verificadas pela **Coerência com IA** (Claude), opcional. A **Auditoria final com IA** (Claude), também opcional, relê o livro depois das regras como controle de qualidade: só achados sólidos chegam ao editor. Sugestões e decisões ficam nos relatórios; o texto continua sendo do autor. A análise nunca altera o arquivo. Em documentos do Pages, o autor pode gravar a correção de um alerta no próprio arquivo (**Corrigir no manuscrito**): o Lume guarda antes uma cópia em `~/Library/Application Support/FONTE/Copias/`, usa o Pages para trocar só o trecho destacado e confere o resultado. Em **Editar parágrafo**, o autor reescreve o parágrafo do alerta e o Lume grava só a parte alterada.
 
 ![Início do Lume](docs/identidade/previa-inicio-claro.png)
 
@@ -118,9 +118,9 @@ PYTHONPATH=fonte fonte/.venv/bin/python tests/check_python_contract.py
 (cd coerencia && ../fonte/.venv/bin/python -m unittest discover -s tests)
 ```
 
-A montagem completa executa também os testes Swift: contrato, correção no manuscrito e extração de falsos positivos.
+A montagem completa executa também os testes Swift: contrato, correção no manuscrito, extração de falsos positivos, decisões por livro, ferramentas da mesa e encerramento da revisão.
 
-A avaliação cega mede a detecção em textos que o motor não conhece. Ela gera um DOCX por texto do corpus anotado em `fonte/tests/corpus/deteccao/` e conta erros encontrados e alarmes falsos por categoria:
+A avaliação cega mede a detecção em textos que o motor não conhece. Ela gera um DOCX por texto do corpus anotado em `fonte/tests/corpus/deteccao/` e conta erros encontrados e alarmes falsos por categoria. Ela é guarda contra regressões, não a meta: a métrica principal é a precisão das pendências nas decisões reais ([validação](docs/validacao.md#protocolo-de-métricas)).
 
 ```sh
 fonte/.venv/bin/python scripts/avaliar_deteccao.py --conjunto validacao --languagetool --saida build/avaliacao-nova
@@ -132,7 +132,7 @@ Com `--auditoria`, a Auditoria final com IA roda em cada texto e é medida à pa
 
 ## Limites
 
-A revisão é heurística e parcial. Confiança não é probabilidade calibrada, e a ausência de alertas não garante ausência de erros. A Auditoria final com IA é opcional e foi medida só num corpus sintético pequeno. Os manuscritos usados no desenvolvimento não constituem uma avaliação independente de precisão.
+O Lume interrompe o editor só quando há boa razão: poucos alertas, alta confiança e um ponto de encerramento claro. Ele não promete que nenhum erro restante existe, e encontrar um erro depois dele não pede, por si, uma regra nova ([visão](docs/visao.md#precisão-antes-de-cobertura-irrestrita)). A revisão é heurística e parcial. Confiança não é probabilidade calibrada, e a ausência de alertas não garante ausência de erros. A Auditoria final com IA é opcional e foi medida só num corpus sintético pequeno. Os manuscritos usados no desenvolvimento não constituem uma avaliação independente de precisão.
 
 ## Licença
 

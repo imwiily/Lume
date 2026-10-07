@@ -1,7 +1,7 @@
 """Etapas sequenciais sobre uma captura imutável; sem correção automática."""
 from copy import deepcopy
 from time import perf_counter
-from .contracts import Manuscript, standardize
+from .contracts import Manuscript, check_destination, standardize
 from .settings import GRAMMAR_RULES, validate
 
 STAGES = (
@@ -178,7 +178,7 @@ def run(blocks, model_loader, *, settings=None, tense="auto", mode="ambas",
         (linguistic_mode and (rules["estrutura"] or rules["acentuacao_contextual"] or
             any(rules[r] for r in GRAMMAR_RULES) or
             ((rules["tempo_verbal"] or rules["coerencia_temporal"]) and options["tense_scopes"])), morphosyntactic,
-         "Tempo predominante, estrutura, quatro relações temporais locais, acentuação verbal contextual, crase, homófonos, concordância, regência, vírgula entre sujeito e verbo, correlação de tempos, frase cortada, locuções e tratamento tu/você. Cobertura parcial; homógrafos permanecem dúvidas."),
+         "Tempo predominante, estrutura, quatro relações temporais locais, acentuação verbal contextual, crase, homófonos, concordância, regência, vírgula entre sujeito e verbo, correlação de tempos, frase cortada e locuções. Cobertura parcial; homógrafos permanecem dúvidas."),
         ((linguistic_mode and rules["pontuacao_dialogo"]) or (editorial_mode and (
             any(rules[r] for r in ("palavra_proxima", "frase_duplicada", "referente_proximidade",
                                   "dialogo_contextual", "referente_contextual", "gerundismo")) or
@@ -247,7 +247,17 @@ def run(blocks, model_loader, *, settings=None, tense="auto", mode="ambas",
         if "context" not in item:
             i = positions[item["paragraph"]]
             item["context"] = [evidence(b) for b in blocks[max(0, i-2):i+3] if b.chapter == blocks[i].chapter]
+    # Destino editorial (política versionada): o que entra na fila, o que fica como observação e o
+    # que vai só para o diagnóstico do motor. Não muda IDs, trechos nem severidades.
+    from .politica import aplicar, politica
+    findings, diagnostico = aplicar(findings)
+    for item in findings + diagnostico:
+        check_destination(item)
     findings.sort(key=lambda f: (f["paragraph"], f["start"], f["category"]))
+    meta.update(politica_versao=politica()["versao"], diagnostico=diagnostico,
+                destinos={d: sum(f["destino"] == d for f in findings + diagnostico)
+                          for d in ("pendencia", "informacao", "diagnostico")},
+                impeditivos=sum(f["impeditivo"] for f in findings))
     meta.update(stages=stages, pipeline_version=2, occurrence_schema_version=1,
                 text_index=manuscript.index(), confidence_semantics="rule_strength_not_calibrated_probability")
     warnings.append("Etapa concluída significa apenas que as regras disponíveis terminaram; a cobertura continua parcial.")

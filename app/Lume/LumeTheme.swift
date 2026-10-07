@@ -272,6 +272,7 @@ extension ReviewDecision {
         case .falsePositive: return "checkmark.seal"
         case .intentional: return "heart"
         case .accepted: return "checkmark.circle"
+        case .corrected: return "pencil.circle"
         }
     }
     var color: Color {
@@ -282,6 +283,7 @@ extension ReviewDecision {
         case .falsePositive: return LumeTheme.sage
         case .intentional: return LumeTheme.amber
         case .accepted: return LumeTheme.sage
+        case .corrected: return LumeTheme.sage
         }
     }
     var explanation: String {
@@ -292,6 +294,7 @@ extension ReviewDecision {
         case .falsePositive: return "O alerta não se aplica"
         case .intentional: return "Escolha deliberada do autor"
         case .accepted: return "Avaliado e mantido na edição"
+        case .corrected: return "A correção já foi feita"
         }
     }
     var shortcut: KeyEquivalent {
