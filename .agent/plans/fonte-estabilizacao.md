@@ -20,8 +20,9 @@ Restrições:
 - [x] Fase 0 — linha de base e comparação (07/10).
 - [x] Fase 1 — identidade, regra e classe (07/10). Parada para revisão do autor.
 - [x] Fase 2a — núcleo verbal, sem mudança de comportamento (07/10). Aguarda o autor.
-- [x] Preparação da Fase 2b: evidência independente congelada e protocolo (07/10). Aguarda o autor.
-- [ ] Fases 2b–8.
+- [x] Preparação da Fase 2b: evidência independente congelada e protocolo (07/10; commit `b935ebf`).
+- [x] Fase 2b — reconhecimento verbal (08/10). Aguarda o autor.
+- [ ] Fases 3–8.
 
 ## Fontes de evidência usadas
 
@@ -881,3 +882,112 @@ percentuais, então os critérios são em itens, não em porcentagem.
   “sem verbo”.
 - **Consistência:** a validação mostra o mesmo padrão em números agregados (precisão 0,979;
   4 finitos com a classe errada pelo modelo).
+
+
+### Fase 2b — reconhecimento verbal (08/10/2026)
+
+Só `fonte/fonte/verbo.py` mudou no motor. As três operações continuam separadas. Cada mudança
+corresponde a uma classe estrutural, verificada numa varredura de todas as 12.687 palavras dos
+textos de desenvolvimento, e não só na amostra anotada. A varredura achou falsos positivos que a
+amostra não mostrava, e eles foram corrigidos antes de qualquer consulta à validação.
+
+**Mudanças:**
+
+1. **`pode_ser_verbo` (recuperar verbos reais):**
+   - `abre_oracao`: forma com leitura finita no léxico, núcleo de oração aberta por subordinante ou
+     relativo (futuro do subjuntivo igual ao infinitivo: “quando ele cantar”, “o que a alcançar”).
+     Pode saltar sujeito, negação, advérbio e clítico, mesmo com etiqueta errada. Não vale depois
+     de preposição, nem para nome com determinante logo antes, nem com o “que” determinante de um
+     nome (“Que posto queres?”), nem para palavras gramaticais.
+   - `abre_frase`: forma com maiúscula abrindo a frase ou uma fala ou citação (depois de «, “, —
+     ou :), seguida do que costuma seguir um verbo: objeto, pronome, subordinante ou infinitivo.
+     Verbo conjugado logo depois faz da forma o sujeito (“Quaresma disse”); preposição, adjetivo
+     ou advérbio fazem dela um nome (“Passo a passo”, “Morro abaixo”). Palavra com clítico
+     (“falar-lhe”) conta como palavra.
+2. **`certamente_verbo` (confirmação positiva, mantendo a precisão):**
+   - `nominal_context`:
+     - preposição regida pela forma sempre prova nome ou infinitivo (“no vão da porta”);
+     - artigo e cópula só provam se o léxico admite leitura nominal ou não finita, ou se a cópula
+       é ela mesma certamente verbo (“estava vazia”); a falsa cópula de “Uma nova era começa”
+       não veta;
+     - forma dependente sem sujeito que governa objeto ou oração é verbo, se o léxico não admite
+       leitura não finita (“e vale a pena”; não “crime achar dinheiro”).
+   - Sem confirmação do modelo:
+     - nome do modelo precedido de determinante não é confirmado só pelo léxico (“A vida é
+       longa”: lacuna nominal do léxico; 76 casos assim no desenvolvimento);
+     - exceto clítico depois de palavra que o atrai (“não a sentia”).
+   - Evidência forte, mesmo com etiqueta nominal do modelo:
+     - `rege_infinitivo`: forma não gramatical seguida de infinitivo de verdade (minúsculo, por
+       morfologia ou terminação -r); não depois de cópula, artigo ou preposição (“Venho explicar”;
+       não “É preciso sair”);
+     - `entre_sujeito_e_complemento`: forma do presente, minúscula, entre determinante + nome e um
+       complemento que começa por determinante ou nome, concordando em número (“A garra segura o
+       menino”, “O braço causa coceira”); sem determinante no complemento, a forma que concorda
+       como adjetivo é adjetivo posposto (“a tarde inteira sozinha”).
+3. **`ha_forma_verbal` (reconhecimento excessivo):** o léxico veta a palavra que ele conhece e
+   nunca como finita (“Oh”, “perdão”, “romance”). É o mesmo veto da confirmação positiva.
+
+**Alcance nas 12.687 palavras do desenvolvimento** (motor `7407ab5` → candidato):
+- **`certamente_verbo`:**
+  - +16, todos verbos reais, conferidos um a um;
+  - −76: nomes que o léxico só conhece como verbo e cerca de 3 verbos que o modelo leu como nome
+    depois de determinante, que passam a não confirmados.
+- **`pode_ser_verbo`:** +18, sobretudo futuros do subjuntivo e infinitivos depois de subordinante.
+- **`ha_forma_verbal`:** −36, nomes, interjeições e alguns infinitivos e gerúndios com clítico,
+  que não são formas conjugadas.
+
+**Métricas** (desenvolvimento só com textos publicados; a validação na consulta 1):
+
+| Métrica | Desenvolvimento antes | Desenvolvimento depois | Validação antes | Validação depois |
+|---|---|---|---|---|
+| `certamente_verbo`: precisão (falsos positivos) | 0,978 (1) | 0,978 (1) | 0,979 (1) | 0,979 (1) |
+| `certamente_verbo`: cobertura | 0,917 | 0,938 | 0,885 | 0,904 |
+| `pode_ser_verbo`: cobertura | 0,958 | **1,000** | 0,962 | **0,981** |
+| `pode_ser_verbo`: taxa em não verbais | 0,101 | 0,101 | 0,109 | 0,109 |
+| `ha_forma_verbal`: cobertura | 0,958 | 0,958 | 0,904 | 0,904 |
+| `ha_forma_verbal`: taxa em não verbais | 0,145 | **0,043** | 0,091 | **0,018** |
+| Finitos: confirmados / não confirmados / classe errada no modelo | 44 / 3 / 1 | 45 / 2 / 1 | 46 / 2 / 4 | 47 / 2 / 3 |
+
+O invariante “certo implica possível” vale. Com os 20 construídos, a cobertura de
+`certamente_verbo` no desenvolvimento vai de 0,828 para 0,897.
+
+**Consultas à validação:**
+- **Consulta 1 (08/10):** só agregada, depois de a candidata estar definida pelo desenvolvimento.
+  O hash da validação foi conferido antes (igual ao congelado). Todos os critérios atendidos.
+  Nenhum ajuste depois dela.
+- Restam 2 consultas.
+
+**Regressão:**
+- 29 conjuntos **idênticos** a `9f0f6d8` (IDs, destinos, classes, severidades, confianças). Nenhum
+  alerta criado, eliminado ou alterado.
+- Uma candidata intermediária criava 1 alerta de tempo verbal em predicativo (“estava vazia”, num
+  texto de controle e no texto de terceiros). A causa foi identificada (cópula verdadeira) e
+  corrigida antes da validação.
+- Herança real igual (A 28, A com LT 28, C 15, C com LT 17).
+- Corpus: precisão das pendências 97%, linguística 65/84, como antes.
+
+**Testes:**
+- FONTE 432:
+  - `test_verbo.py`: os dois testes de caracterização da 2a foram atualizados, com justificativa
+    (“segura” e “causa” confirmados; futuro do subjuntivo possível);
+  - nova classe `VerbClassTests`, com 5 testes de classe e contraexemplos.
+- Pacotes 45, contrato Python, Coerencia 25.
+- Swift: contrato, decisões por livro, mesa, falsos positivos, encerramento.
+
+**Limitações que permanecem:**
+- Lacunas do léxico:
+  - “Vão temor!”: o adjetivo “vão” não está no léxico, então segue como falso positivo de
+    `certamente_verbo`;
+  - “vida”: segue em `ha_forma_verbal`, porque o léxico só a conhece como verbo.
+- `certamente_verbo` não confirma:
+  - “Preciso falar-lhe” (o infinitivo com clítico foi lido como forma conjugada);
+  - “Basta fechal-o” (grafia antiga);
+  - “Canto” e “Olho” no início de frase.
+
+  Os quatro ficam como “pode ser verbo”, de propósito.
+- `pode_ser_verbo` aceita alguns infinitivos depois de “que” e subordinantes (“prevenir que
+  curar”). É a direção conservadora: só faz a estrutura se abster.
+- **Critério anterior `sole_verb`:** frase nominal sem nenhum verbo (“Grito no corredor.”, “Olho
+  por olho.”) já era “pode ser verbo” e continua assim.
+- Cerca de 3 verbos que o modelo lê como nome depois de determinante não clítico (“outras *dormia*”)
+  perderam a confirmação. Ficam como possíveis.

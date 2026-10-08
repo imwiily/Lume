@@ -85,6 +85,21 @@ do Lume passa a ser interromper o editor só com boa razão e deixar o manuscrit
 - **Regra `tratamento` retirada** por decisão do autor (nasceu de um caso isolado). A chave
   continua aceita nas configurações salvas, sem efeito.
 
+Estabilização do FONTE, Fase 2b: reconhecimento verbal mais preciso no núcleo (`verbo.py`), sem
+nenhum alerta novo ou perdido nos textos de regressão.
+- **“Pode ser verbo”:** reconhece o futuro do subjuntivo igual ao infinitivo (“quando ele
+  cantar”) e o verbo no início de frase ou de fala seguido do complemento (“Preciso falar-lhe”).
+- **“Certamente verbo”:**
+  - confirma verbos que o modelo lia como nome ou adjetivo quando a sintaxe sustenta (“A garra
+    segura o menino”, “Uma nova era começa”, “e vale a pena”);
+  - deixa de confirmar nomes que o léxico só conhece como verbo (“A vida é longa”);
+  - a precisão se mantém.
+- **“Há forma verbal”:** deixa de aceitar nomes e interjeições que o léxico conhece como não
+  verbais (“Oh”, “perdão”).
+- **Evidência independente:** na validação congelada (consulta 1 de 3), a cobertura de “pode ser
+  verbo” foi de 0,962 para 0,981 e a taxa de não verbais em “há forma verbal”, de 0,091 para
+  0,018, sem falso positivo novo em “certamente verbo”.
+
 Estabilização do FONTE, Fase 2a: núcleo de identificação verbal (`fonte/fonte/verbo.py`), sem
 mudar nenhum alerta.
 - **Três operações distintas:**

@@ -22,8 +22,21 @@ import re
 
 from .lexicon import FINITE, FUTURE, NONFINITE, NONVERB, PAST, PRESENT, VERBAL_DEPS, flags
 
+# Palavras que atraem o pronome átono para antes do verbo (próclise).
+ATRAEM_PRONOME = {"não", "nunca", "jamais", "já", "também", "que", "quem", "quando", "se", "onde", "como",
+                  "porque", "eu", "tu", "ele", "ela", "nós", "eles", "elas", "você", "vocês"}
+
 # Relativos que abrem oração (também usados por `analysis`).
 RELATIVOS = {"que", "onde", "cujo", "cuja", "cujos", "cujas"}
+
+
+# Classes gramaticais que nunca são o verbo da frase, mesmo com uma leitura finita no léxico.
+GRAMATICAIS_NAO_VERBAIS = {"ADP", "SCONJ", "CCONJ", "ADV", "NUM", "DET", "PRON", "INTJ", "PUNCT"}
+# O que segue um verbo que abre a frase: o complemento (infinitivo, objeto, pronome) ou uma
+# subordinada. Um nome no início da frase segue com preposição, adjetivo, conjunção ou advérbio.
+CONTINUAM_VERBO = {"VERB", "AUX", "DET", "PRON", "SCONJ"}
+# Sinais que abrem uma fala ou citação: o que vem depois começa uma frase.
+ABERTURAS_DE_FALA = {"«", "“", "\"", "—", "–", ":", "-"}
 
 
 def conjugado_pelo_modelo(token):
@@ -51,11 +64,25 @@ def nominal_context(token, value):
         return (child.text.casefold() in {'o', 'a', 'os', 'as'}
                 and child.i == token.i - 1
                 and (exclusive_finite or has_subject))
-    if any(c.dep_ in {'case', 'cop'}
-           or (c.dep_ == 'det' and not possible_clitic(c)) for c in token.children):
+    # Preposição regida pela forma (“no vão de uma sacada”) prova nome ou infinitivo, mesmo que o
+    # léxico não traga essa leitura. Artigo e cópula só provam se o léxico admite leitura nominal ou
+    # não finita; sem ela, são erro da árvore (“Uma nova era começa”: ‘era’ como cópula de ‘começa’).
+    if any(c.dep_ == 'case' for c in token.children):
         return True
+    if value & (NONVERB | NONFINITE) and any(c.dep_ == 'cop' or (c.dep_ == 'det' and not possible_clitic(c))
+                                             for c in token.children):
+        return True
+    # Cópula que é certamente verbo (“A despensa estava vazia”) faz da forma um predicativo, mesmo
+    # sem leitura nominal no léxico. A falsa cópula de “Uma nova era começa” não é verbo certo.
+    if any(c.dep_ == 'cop' and c.i < token.i and certamente_verbo(c) for c in token.children):
+        return True
+    # Forma dependente sem sujeito próprio lê-se como nome, a menos que governe complemento verbal
+    # (objeto ou oração): nome não toma objeto (“é divertida e vale a pena”). Infinitivo também toma
+    # (“crime achar dinheiro”): a isenção só vale sem leitura não finita no léxico.
+    governs_complement = not value & NONFINITE and any(c.dep_ in {'obj', 'iobj', 'ccomp', 'xcomp'}
+                                                        for c in token.children)
     if value & NONVERB and token.dep_ != 'ROOT':
-        if not has_subject:
+        if not has_subject and not governs_complement:
             return True
     # Adjetivo posposto (“a noite inteira”): o substantivo anterior não é o
     # sujeito desta forma e concorda com ela como adjetivo (minúscula, mesmo
@@ -109,6 +136,11 @@ def certamente_verbo(token):
         return False
     if after_article(token):
         return False
+    # Evidência sintática forte, mesmo com etiqueta nominal do modelo: a forma rege um infinitivo
+    # (“Preciso falar-lhe”) ou ocupa o lugar do verbo entre sujeito e complemento (“A garra segura
+    # o menino”). Não vale depois de cópula (“É preciso sair”), artigo ou preposição.
+    if value & FINITE and (rege_infinitivo(token) or entre_sujeito_e_complemento(token)):
+        return True
     if token.i > 0 and token.doc[token.i - 1].text.casefold() in NOMINAL_DETERMINERS and value & NONVERB:
         return False
     # “Uma nova era começa”, “uma longa era de paz”: determinante + adjetivo + nome, seguido de
@@ -130,6 +162,15 @@ def certamente_verbo(token):
         # finita do léxico ligada como cópula ou auxiliar é verbo: duas fontes concordam.
         if token.dep_ in VERBAL_DEPS:
             return True
+        # O modelo vê um nome precedido de determinante (“A vida é longa”): o léxico sozinho não basta,
+        # porque pode faltar nele a leitura nominal da forma.
+        if token.pos_ in {'NOUN', 'PROPN', 'ADJ'} and token.i > 0 and token.doc[token.i - 1].pos_ == 'DET':
+            # Exceto o pronome átono depois de palavra que o atrai (“não a sentia”, “que a sacudisse”):
+            # aí ‘o/a’ é clítico do verbo, não artigo.
+            clitic, before = token.doc[token.i - 1], token.doc[token.i - 2] if token.i > 1 else None
+            if not (clitic.lower_ in {'o', 'a', 'os', 'as'} and before is not None
+                    and before.lower_ in ATRAEM_PRONOME):
+                return False
         # Só recupera sem o modelo se não houver leitura nominal ou não finita.
         if value & NONVERB and not value & NONFINITE and token.i > 0:
             previous = token.doc[token.i-1]
@@ -138,6 +179,58 @@ def certamente_verbo(token):
         return not value & (NONVERB | NONFINITE)
     # Fora do léxico, aceita o modelo para evitar alertas de estrutura excessivos.
     return model_finite(token)
+
+
+def infinitivo(token):
+    """Infinitivo pela morfologia do modelo ou, se ele não a dá, pela terminação em -r (com ou sem
+    clítico) de uma forma que o léxico admite como não finita. Particípio e gerúndio não contam, nem
+    palavra em maiúscula (número romano, título)."""
+    if not token.text[:1].islower():
+        return False
+    if "Inf" in token.morph.get("VerbForm"):
+        return True
+    return (token.pos_ in {"VERB", "AUX"} and "Fin" not in token.morph.get("VerbForm")
+            and bool(flags(token.text) & NONFINITE) and token.lower_.split("-")[0].endswith("r"))
+
+
+def rege_infinitivo(token):
+    """Forma que não é palavra gramatical nem infinitivo, seguida imediatamente de infinitivo, sem
+    verbo, artigo nem preposição antes dela (“Venho explicar-te”, “não te deixes vencer”). Não vale
+    depois de cópula (“É preciso sair”)."""
+    doc = token.doc
+    if token.i + 1 >= len(doc) or token.pos_ in GRAMATICAIS_NAO_VERBAIS or infinitivo(token):
+        return False
+    previous = doc[token.i - 1] if token.i > token.sent.start else None
+    return infinitivo(doc[token.i + 1]) and (previous is None or previous.pos_ not in {"VERB", "AUX", "DET", "ADP"})
+
+
+def entre_sujeito_e_complemento(token):
+    """Forma do presente, em minúscula, entre um sintagma nominal completo (determinante + nome) e
+    um complemento que começa por determinante ou nome, concordando em número com o nome (“O braço
+    causa coceira”). Adjetivo posposto segue com relativo, clítico, conjunção ou preposição (“a
+    tristeza profunda que…”), e não entra."""
+    doc = token.doc
+    value = flags(token.text)
+    if (not value & PRESENT or value & (PAST | FUTURE | NONFINITE) or token.i < 2 or not token.text[:1].islower()
+            or token.pos_ in GRAMATICAIS_NAO_VERBAIS or token.i + 1 >= token.sent.end):
+        return False
+    noun, det, following = doc[token.i - 1], doc[token.i - 2], doc[token.i + 1]
+    # Complemento: determinante ou nome; o léxico corrige o modelo só quando ele marcou como verbo
+    # uma palavra que o léxico conhece apenas como não verbal (“causa coceira”).
+    following_value = flags(following.text)
+    by_model = following.pos_ in {"DET", "NOUN"}
+    by_lexicon = following.pos_ in {"VERB", "AUX"} and following_value & NONVERB and not following_value & FINITE
+    if noun.pos_ not in {"NOUN", "PROPN"} or det.pos_ != "DET" or not (by_model or by_lexicon):
+        return False
+    # Sem determinante abrindo o complemento, a forma que concorda com o nome como um adjetivo
+    # (“a tarde inteira sozinha”) é adjetivo posposto, não verbo (“a garra segura o menino” tem ‘o’).
+    if following.pos_ != "DET":
+        gender, number = noun.morph.get("Gender"), noun.morph.get("Number")
+        endings = ("a", "as") if "Fem" in gender else ("o", "os") if "Masc" in gender else ()
+        if endings and token.lower_.endswith(endings) and token.lower_.endswith("s") == ("Plur" in number):
+            return False
+    plural = "Plur" in noun.morph.get("Number")
+    return token.lower_.endswith("m") if plural else not token.lower_.endswith(("m", "s"))
 
 
 def indicative_tense(token):
@@ -177,7 +270,7 @@ def pode_ser_verbo(token):
     if model_finite(token) or not lex & (NONVERB | NONFINITE):
         return True
     from .temporal import sole_verb
-    return sole_verb(token) or posicao_de_verbo(token)
+    return sole_verb(token) or posicao_de_verbo(token) or abre_oracao(token) or abre_frase(token)
 
 
 # Entre o relativo e o verbo da relativa cabem negação, clíticos e pronome sujeito.
@@ -207,10 +300,66 @@ def posicao_de_verbo(token):
     return token.lower_.endswith("m") if plural else not token.lower_.endswith(("m", "s"))
 
 
+# Palavras que abrem oração com verbo finito (subordinantes e relativos). Depois delas, uma forma
+# que o léxico também admite como finita é o verbo da oração: “quando ele cantar”, “o que a
+# alcançar” (futuro do subjuntivo igual ao infinitivo). Depois de preposição, seria infinitivo.
+ABREM_ORACAO_FINITA = RELATIVOS | {"quem", "quanto", "quando", "se", "enquanto", "caso", "conforme", "como"}
+# Entre a abertura e o verbo cabem sujeito, negação, clíticos e advérbios curtos. O clítico
+# pode vir com etiqueta errada (“o que agora a alcançar”: ‘a’ lido como conjunção).
+ENTRE_ABERTURA_E_VERBO = {"DET", "NOUN", "PROPN", "PRON", "ADV"}
+CLITICOS = {"o", "a", "os", "as", "lo", "la", "los", "las", "no", "na", "nos", "nas"}
+
+
+def abre_oracao(token):
+    """Forma com leitura finita no léxico, núcleo de uma oração aberta por subordinante ou relativo.
+    Só para a identificação conservadora: basta para não afirmar ausência de verbo."""
+    doc = token.doc
+    if (token.i == token.sent.start or token.pos_ in GRAMATICAIS_NAO_VERBAIS or doc[token.i - 1].pos_ == "ADP"
+            # Nome com determinante logo antes (“que o marido”) é sujeito, não o verbo da oração.
+            or (doc[token.i - 1].pos_ == "DET" and token.pos_ not in {"VERB", "AUX"})):
+        return False
+    walk, passos = token.i - 1, 0
+    while (walk > token.sent.start and passos < 4 and doc[walk].lower_ not in ABREM_ORACAO_FINITA
+           and (doc[walk].pos_ in ENTRE_ABERTURA_E_VERBO or doc[walk].lower_ in ANTES_DO_VERBO
+                or (doc[walk].lower_ in CLITICOS and doc[walk].pos_ != "ADP"))):
+        walk, passos = walk - 1, passos + 1
+    # “Que posto queres?”, “que desabafo!”: o ‘que’ determinante do próprio nome não abre oração.
+    return doc[walk].lower_ in ABREM_ORACAO_FINITA and doc[walk].dep_ != "det"
+
+
+
+def abre_frase(token):
+    """Forma com leitura finita no léxico que abre a frase, com maiúscula e sem determinante (não há
+    nada antes dela), seguida do que costuma seguir um verbo: verbo com sujeito oculto é comum
+    (“Preciso falar-lhe”, “Canto quando estou só”); nome sem determinante no início segue com
+    preposição ou adjetivo (“Grito no corredor”). Só para a identificação conservadora."""
+    doc = token.doc
+    # Palavra com letras: verbo com clítico (“falar-lhe”) não é `is_alpha` no spaCy.
+    def lexical(t):
+        return any(c.isalpha() for c in t.text)
+    first = next((t for t in token.sent if lexical(t)), None)
+    # Começo de fala ou citação dentro da frase do modelo (“…: «Preciso falar-lhe»”).
+    previous = next((t for t in reversed(doc[token.sent.start:token.i]) if not t.is_space), None)
+    opens = token == first or (previous is not None and previous.text in ABERTURAS_DE_FALA)
+    following = next((t for t in doc[token.i + 1:token.sent.end] if lexical(t)), None)
+    if not (opens and token.text[:1].isupper() and token.pos_ not in GRAMATICAIS_NAO_VERBAIS and following is not None):
+        return False
+    # Verbo conjugado logo depois: a forma inicial é o sujeito dele (“Quaresma disse…”). Só um
+    # infinitivo continua um verbo inicial (“Preciso falar-lhe”), mesmo lido como conjugado.
+    if following.pos_ in {"VERB", "AUX"}:
+        stem = following.lower_.split("-")[0]
+        return infinitivo(following) or bool(flags(following.text) & NONFINITE and stem.endswith("r"))
+    return following.pos_ in CONTINUAM_VERBO or following.lower_ in ABREM_ORACAO_FINITA
+
+
 def ha_forma_verbal(token):
     """Verificação de presença: verbo conjugado pelo modelo ou, quando ele erra a classe, pelo léxico
     (forma só verbal, sem leitura nominal): “É porque…”, “a fila só crescia”."""
+    value = flags(token.text)
+    # O léxico conhece a palavra e nunca como verbo finito (“Oh”, “perdão”, “romance”): a etiqueta
+    # verbal do modelo não basta. O mesmo veto da identificação positiva.
+    if value and not value & FINITE:
+        return False
     if conjugado_pelo_modelo(token):
         return True
-    value = flags(token.text)
     return bool(value & FINITE and not value & NONVERB)
