@@ -15,8 +15,7 @@ Ingredientes compartilhados: `model_finite` (leitura do modelo, com ‘Fin’ ou
 `conjugado_pelo_modelo` (só ‘Fin’, quando a regra precisa também do número e da pessoa do
 modelo), `so_verbo_no_lexico`, `nominal_context` e `after_article`.
 
-O tempo do verbo (`indicative_tense`) mora aqui por depender da identificação; será unificado na
-Fase 3. Nenhuma função deste módulo usa nomes ou frases de obras.
+O tempo e o modo do verbo ficam em `tempo.py` (Fase 3). Nenhuma função deste módulo usa nomes ou frases de obras.
 """
 import re
 
@@ -233,23 +232,6 @@ def entre_sujeito_e_complemento(token):
     return token.lower_.endswith("m") if plural else not token.lower_.endswith(("m", "s"))
 
 
-def indicative_tense(token):
-    value = flags(token.text)
-    if not certamente_verbo(token):
-        return None
-    # Uma forma como "passamos" admite ambos. Não escolhe o tempo pela grafia.
-    if value & PAST and value & PRESENT:
-        return None
-    if value & PAST and not value & (PRESENT | FUTURE):
-        return 'passado'
-    if value & PRESENT and not value & (PAST | FUTURE):
-        # Exige que o modelo também indique o indicativo para separar imperativo.
-        if 'Ind' in token.morph.get('Mood') and model_finite(token):
-            return 'presente'
-    # Sem confirmação lexical não cria alerta temporal, mesmo que o modelo sugira.
-    return None
-
-
 def pode_ser_verbo(token):
     """Identificação conservadora: pode ser uma forma verbal finita?
 
@@ -269,8 +251,8 @@ def pode_ser_verbo(token):
         return False
     if model_finite(token) or not lex & (NONVERB | NONFINITE):
         return True
-    from .temporal import sole_verb
-    return sole_verb(token) or posicao_de_verbo(token) or abre_oracao(token) or abre_frase(token)
+    from .tempo import verbo_unico_da_frase
+    return verbo_unico_da_frase(token) or posicao_de_verbo(token) or abre_oracao(token) or abre_frase(token)
 
 
 # Entre o relativo e o verbo da relativa cabem negação, clíticos e pronome sujeito.

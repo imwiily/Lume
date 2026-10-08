@@ -13,6 +13,7 @@ import re
 from .analysis import TERMINACOES, explicar, finding, forma_de_fala, lista_ou_rotulo, verbo_de_fala
 from .lexicon import FINITE, NONVERB, flags
 from .verbo import certamente_verbo, conjugado_pelo_modelo, ha_forma_verbal, so_verbo_no_lexico
+from .tempo import TERMINACAO_CONDICIONAL, imperfeito_do_subjuntivo
 from .segments import classify
 
 PORQUE_PERGUNTA = explicar("Em pergunta, escreve-se separado: ‘Por que você saiu?’. Junto (‘porque’) é para responder "
@@ -539,22 +540,13 @@ def subject_comma(block, doc, emit):
 # Subordinantes que, com o imperfeito do subjuntivo, situam a oração no passado.
 CORRELATIVES = ("antes que", "ainda que", "mesmo que", "a menos que", "desde que", "sem que", "embora", "caso",
                 "se", "conquanto")
-IMPERFECT_SUBJUNCTIVE = re.compile(r"sse(?:s|m|mos|is)?$")
-
-
-def imperfect_subjunctive(token):
-    """Terminação do imperfeito do subjuntivo sem leitura no indicativo (“disse” é pretérito perfeito)."""
-    from .lexicon import FUTURE, PAST, PRESENT
-    value = flags(token.text)
-    return (bool(IMPERFECT_SUBJUNCTIVE.search(token.lower_)) and bool(value & FINITE)
-            and not value & (PAST | PRESENT | FUTURE))
 
 
 def present_main(sentence, exclude):
     """Verbo finito mais próximo da subordinada, fora dela, se estiver no presente do indicativo. O
     mais próximo, e não a raiz: numa frase com fala e narração, ou com outra oração no meio (“numa
     sala que, se soubesse antes, nunca teria aberto”), a subordinada se liga ao verbo vizinho."""
-    from .temporal import event_tense
+    from .tempo import tempo_recuperado
     from .lexicon import PAST, PRESENT
     first, last = min(exclude), max(exclude)
 
@@ -568,7 +560,7 @@ def present_main(sentence, exclude):
 
     verbs = [t for t in sentence if t.i not in exclude and t.is_alpha and not crosses_dash(t)
              and (conjugado_pelo_modelo(t)
-                  or event_tense(t) is not None or only_finite(t))]
+                  or tempo_recuperado(t) is not None or only_finite(t))]
     if not verbs:
         return None
     nearest = min(verbs, key=lambda t: first - t.i if t.i < first else t.i - last)
@@ -577,11 +569,10 @@ def present_main(sentence, exclude):
         present = bool(value & PRESENT) and not value & PAST
     else:
         present = (("Ind" in nearest.morph.get("Mood") and "Pres" in nearest.morph.get("Tense"))
-                   or event_tense(nearest) == "present")
-    return nearest if present and not CONDITIONAL.search(nearest.lower_) else None
+                   or tempo_recuperado(nearest) == "present")
+    return nearest if present and not TERMINACAO_CONDICIONAL.search(nearest.lower_) else None
 
 
-CONDITIONAL = re.compile(r"r(?:ia|ias|íamos|íeis|iam)$")
 
 
 def correlation(block, doc, emit):
@@ -599,7 +590,7 @@ def correlation(block, doc, emit):
             if phrase is None or (phrase == "se" and i > 0 and lowered[i - 1] in {"como", "nem"}):
                 continue
             after = words[i + len(phrase.split()):]
-            verb = next((t for t in after[:6] if imperfect_subjunctive(t)), None)
+            verb = next((t for t in after[:6] if imperfeito_do_subjuntivo(t)), None)
             if verb is None or any(t.text in {",", ";", "—", "–"} for t in doc[word.i:verb.i]):
                 continue
             # A subordinada vai até a próxima vírgula; a principal está fora dela.

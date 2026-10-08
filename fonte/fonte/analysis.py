@@ -6,7 +6,8 @@ import re
 
 from .reader import Block
 from .lexicon import FINITE, FUTURE, NONFINITE, NONVERB, PAST, PRESENT, flags
-from .verbo import RELATIVOS, certamente_verbo, indicative_tense, model_finite, pode_ser_verbo
+from .verbo import RELATIVOS, certamente_verbo, model_finite, pode_ser_verbo
+from .tempo import DEPOIS_DE_PARAR, passado_so_no_lexico, tempo_narrativo
 
 SPEECH = set("dizer informar perguntar responder murmurar gritar sussurrar comentar retrucar afirmar falar exclamar replicar declarar indagar confessar explicar acrescentar argumentar insistir ordenar pedir protestar avisar pensar refletir ponderar admitir lembrar concluir continuar completar interromper balbuciar resmungar cochichar implorar vociferar anunciar observar sugerir repetir garantir negar confirmar questionar reclamar ironizar brincar saudar chamar ler recitar citar ditar cantar declamar terminar".split())
 
@@ -17,7 +18,6 @@ TERMINACOES = re.compile(r"(?:o|a|as|amos|ais|am|ei|aste|ou|astes|aram|ava|avas|
 
 
 # Depois destas palavras “para” não pode ser preposição: é o verbo parar (“o braço para no ar”).
-DEPOIS_DE_PARAR = {"de", "do", "da", "dos", "das", "em", "no", "na", "nos", "nas", "num", "numa"}
 
 
 def para_verbal(sent):
@@ -377,7 +377,7 @@ def analyze(blocks: list[Block], nlp, tense="auto", protect_italics=True, min_wo
         masks = masks_override
     active = set(enabled_rules) if enabled_rules is not None else {'tempo_verbal','estrutura','residuo_edicao','pontuacao_dialogo','palavra_consecutiva'}
     docs = list(nlp.pipe(masks, batch_size=32))
-    counts = Counter(indicative_tense(t) for d in docs for t in d)
+    counts = Counter(tempo_narrativo(t) for d in docs for t in d)
     counts.pop(None, None)
     if "tempo_verbal" not in active:
         expected = None
@@ -396,12 +396,8 @@ def analyze(blocks: list[Block], nlp, tense="auto", protect_italics=True, min_wo
         if block.heading or lista_ou_rotulo(block.text):
             continue
         for token in doc:
-            observed = indicative_tense(token)
-            # Forma que o léxico só conhece como pretérito finito (“havia”), com morfologia finita do
-            # modelo, mesmo quando a árvore a liga como complemento (“de uma havia um bilhete”).
-            lex = flags(token.text)
-            if (observed is None and expected == "presente" and model_finite(token) and lex & FINITE and lex & PAST
-                    and not lex & (PRESENT | FUTURE | NONVERB | NONFINITE)):
+            observed = tempo_narrativo(token)
+            if observed is None and expected == "presente" and passado_so_no_lexico(token):
                 observed = "passado"
             if "tempo_verbal" in active and expected and observed and observed != expected:
                 from .temporal import legitimate_present, past_plane, present_function

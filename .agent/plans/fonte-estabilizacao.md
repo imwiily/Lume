@@ -21,8 +21,9 @@ Restrições:
 - [x] Fase 1 — identidade, regra e classe (07/10). Parada para revisão do autor.
 - [x] Fase 2a — núcleo verbal, sem mudança de comportamento (07/10). Aguarda o autor.
 - [x] Preparação da Fase 2b: evidência independente congelada e protocolo (07/10; commit `b935ebf`).
-- [x] Fase 2b — reconhecimento verbal (08/10). Aguarda o autor.
-- [ ] Fases 3–8.
+- [x] Fase 2b — reconhecimento verbal (08/10; commit `184ffbc`).
+- [x] Fase 3 — núcleo de tempo e modo, só consolidação (08/10). Aguarda o autor.
+- [ ] Fases 4–8.
 
 ## Fontes de evidência usadas
 
@@ -991,3 +992,98 @@ O invariante “certo implica possível” vale. Com os 20 construídos, a cober
   por olho.”) já era “pode ser verbo” e continua assim.
 - Cerca de 3 verbos que o modelo lê como nome depois de determinante não clítico (“outras *dormia*”)
   perderam a confirmação. Ficam como possíveis.
+
+
+### Fase 3 — núcleo de tempo e modo, sem mudança de comportamento (08/10/2026)
+
+**Implementações antigas e responsabilidades:**
+
+| Antes | Onde | Responsabilidade |
+|---|---|---|
+| `form` | `temporal` | classificação estrita (modelo + léxico, indicativo exigido; condicional, futuro, ambíguo) |
+| `indicative_tense` | `verbo` | classificação estrita da narração (“passado”/“presente”); passado só pelo léxico |
+| `event_tense` | `temporal` | recuperação de eventos (léxico, sintaxe, lema, 1ª do plural ambígua) |
+| `sole_verb`, `verbal_para` | `temporal` | recuperação: verbo único da frase; “para” verbal |
+| recuperação embutida em `analyze` | `analysis` | passado só no léxico na narração no presente |
+| `imperfect`, `pluperfect` | `temporal` | morfologia: imperfeito; locução ter/haver + particípio |
+| `imperfect_subjunctive` | `grammar` | modo: imperfeito do subjuntivo sem leitura no indicativo |
+| `CONDITIONAL_ENDING`, `CONDITIONAL`, expressão dentro de `form` | `temporal`, `grammar` | terminação do condicional (três cópias) |
+| `IMPERFECT_SUBJUNCTIVE` | `temporal`, `grammar` | terminação do imperfeito do subjuntivo (duas cópias) |
+| `clause_tense` | `temporal` | tempo da principal de uma condicional (específico da relação; continua em `temporal`) |
+
+**Arquitetura consolidada:** `fonte/fonte/tempo.py`, que depende só de `lexicon` e `verbo`.
+
+| Responsabilidade | Onde fica |
+|---|---|
+| Morfologia | `TERMINACAO_CONDICIONAL`, `TERMINACAO_IMPERFEITO_SUBJUNTIVO`, `IMPERFECT_ENDING`, `IRREGULAR_IMPERFECT`, `imperfeito`, `mais_que_perfeito_composto` |
+| Modo | `imperfeito_do_subjuntivo`; o modo do modelo é lido nas classificações |
+| Forma finita ou não finita | `verbo.py` (Fase 2) |
+| Classificação estrita | `tempo_estrito` e `tempo_narrativo` |
+| Recuperação | `tempo_recuperado`, `passado_so_no_lexico`, `para_como_verbo`, `verbo_unico_da_frase` |
+| Relação temporal entre orações e plano narrativo | continuam em `temporal.py` (`relations`, `conditionals`, `modality`, `sequence`, `past_plane`, `legitimate_present`, `narrator_frame`), consumindo o núcleo |
+
+`verbo.pode_ser_verbo` importa `verbo_unico_da_frase` do núcleo de tempo. `DEPOIS_DE_PARAR`
+passou para o núcleo.
+
+**Diferenças semânticas preservadas (intencionais):**
+- **`tempo_estrito` × `tempo_narrativo`:** a narrativa aceita o passado só pelo léxico, sem o
+  indicativo do modelo. Há 97 casos assim no desenvolvimento (“Conheci-o”, “Era” no início).
+  Ela exige o indicativo do modelo para o presente (separa o imperativo).
+- **Imperfeito do subjuntivo em dois sentidos,** com a terminação compartilhada:
+  - na correlação (`imperfeito_do_subjuntivo`), sem leitura no indicativo (“disse” não conta);
+  - nas condicionais de `temporal`, a terminação + léxico finito, sem esse filtro, como antes.
+- **A recuperação nunca é alvo de alerta sozinha.** A 1ª do plural ambígua vira passado só como
+  âncora (“Passamos”: ambígua na estrita).
+
+**Evidências:**
+- **29 conjuntos:** idênticos a `9f0f6d8` (código 0) e iguais à Fase 2b **byte a byte** em
+  alertas, mensagens, sugestões, metadados e avisos.
+- **Equivalência palavra a palavra:** os dez classificadores (estrito, recuperado, verbo único,
+  “para”, imperfeito, mais-que-perfeito, narrativo, imperfeito do subjuntivo, passado só no léxico
+  e `clause_tense`) dão o mesmo resultado em `184ffbc` e na Fase 3 nas 12.687 palavras do
+  desenvolvimento.
+- **Herança real igual:** A 28 e 28; C 15 e 17.
+- **Validação reservada:** não consultada (refatoração sem mudança de comportamento; restam 2
+  consultas).
+
+**Testes:**
+- **FONTE 444:** novo `test_tempo.py`, com 12 testes:
+  - estrito × recuperação × narrativo;
+  - homógrafos presente/perfeito;
+  - condicional e subjuntivo;
+  - morfologia;
+  - limitações registradas;
+  - definição única.
+- **Testes antigos:** dois trocaram só o caminho de importação (`form` e `sole_verb`).
+- Pacotes 45, contrato Python, Coerencia 25.
+- Swift: contrato, decisões por livro, mesa, falsos positivos, encerramento.
+- **Uma falha de importação** (`IRREGULAR_IMPERFECT` em `temporal`) apareceu numa verificação de
+  nomes não definidos e foi corrigida antes dos testes. Ela só se manifestaria na sugestão do
+  imperfeito.
+
+**Problemas encontrados que exigiriam mudança de comportamento** (registrados em
+`LimitacoesRegistradas`; não corrigidos):
+1. `imperfeito` dá positivo para o condicional “-íamos” (“construiríamos”) e para o imperfeito do
+   subjuntivo (“fosse”). Quem o usa são `past_plane` (narração no presente) e a sugestão.
+2. `tempo_recuperado` ignora o modo do modelo. Subjuntivo e imperativo (“Fale com ela”, “Vamos
+   embora”) saem “presente”, e um nome próprio também (“Quaresma”, pelo verbo único da frase).
+   Isso pode servir de âncora indevida na sequência narrativa.
+3. A política narrativa aceita o passado pelo léxico mesmo quando o modelo lê subjuntivo, desde
+   que o léxico só tenha o passado. Os 97 casos do desenvolvimento são passados reais; o risco não
+   foi medido.
+
+**Limitações da Fase 2b, mantidas:**
+- falso positivo residual de “Vão temor!”;
+- verbos lidos como nome depois de determinante não clítico (“outras dormia”);
+- permissividade de `pode_ser_verbo` com alguns infinitivos depois de “que”;
+- frases nominais sem verbo, já aceitas pelo critério do verbo único;
+- ambiguidades morfológicas sem decisão segura (“vira”, 1ª do plural, “-íamos”).
+
+**Avaliação de risco** para o tempo verbal (408 decisões, 91%) e a correlação temporal:
+- **Nesta fase:** nenhum, pela equivalência integral.
+- **Numa mudança futura:**
+  - o problema 2 (recuperação ignorando o modo) é o de maior alcance, porque alimenta a
+    sequência narrativa;
+  - o problema 1 afeta só a narração no presente (`past_plane`) e a sugestão do imperfeito.
+- Qualquer mudança nesses pontos exige a mesma rotina da Fase 2b: varredura ampla, critérios na
+  validação e comparação dos 29 conjuntos.

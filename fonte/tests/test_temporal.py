@@ -8,7 +8,8 @@ from fonte.linguistic import analyze as mechanical
 from fonte.pipeline import run
 from fonte.reader import Block
 from fonte.settings import validate, LEGACY_RULES
-from fonte.temporal import analyze, form
+from fonte.temporal import analyze
+from fonte.tempo import tempo_estrito as form
 
 
 def options(*rules):

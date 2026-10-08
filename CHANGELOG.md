@@ -85,6 +85,20 @@ do Lume passa a ser interromper o editor só com boa razão e deixar o manuscrit
 - **Regra `tratamento` retirada** por decisão do autor (nasceu de um caso isolado). A chave
   continua aceita nas configurações salvas, sem efeito.
 
+Estabilização do FONTE, Fase 3: núcleo de tempo e modo (`fonte/fonte/tempo.py`), sem mudar nenhum
+alerta.
+- **O que foi reunido:**
+  - as classificações de tempo que estavam espalhadas por `temporal.py`, `verbo.py`, `grammar.py`
+    e `analysis.py`;
+  - a terminação do condicional, antes repetida três vezes;
+  - a do imperfeito do subjuntivo, antes repetida duas vezes.
+- **Duas políticas estritas com nomes próprios:** `tempo_estrito` (relações temporais) e
+  `tempo_narrativo` (regra de tempo verbal). Elas diferem de propósito: a narrativa aceita o
+  passado só pelo léxico.
+- **Resultado:** 29 conjuntos idênticos a 9f0f6d8 e iguais à Fase 2b em alertas, mensagens,
+  sugestões, metadados e avisos. Os dez classificadores são idênticos aos anteriores em 12.687
+  palavras.
+
 Estabilização do FONTE, Fase 2b: reconhecimento verbal mais preciso no núcleo (`verbo.py`), sem
 nenhum alerta novo ou perdido nos textos de regressão.
 - **“Pode ser verbo”:** reconhece o futuro do subjuntivo igual ao infinitivo (“quando ele

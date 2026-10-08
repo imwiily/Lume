@@ -478,7 +478,7 @@ class KnownLimitsTests(unittest.TestCase):
             with self.subTest(paragraphs=paragraphs):
                 self.assertTrue(self.at(verb, *paragraphs))
         # Palavra sozinha na frase continua nominal e não vira presente da cena (“Nada.”, “Fala.”).
-        from fonte.temporal import sole_verb
+        from fonte.tempo import verbo_unico_da_frase as sole_verb
         for text in ["Nada.", "O vento soprou. Nada."]:
             with self.subTest(text=text):
                 self.assertFalse(any(sole_verb(t) for t in self.nlp(text) if t.lower_ == "nada"))
