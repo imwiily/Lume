@@ -85,6 +85,18 @@ do Lume passa a ser interromper o editor só com boa razão e deixar o manuscrit
 - **Regra `tratamento` retirada** por decisão do autor (nasceu de um caso isolado). A chave
   continua aceita nas configurações salvas, sem efeito.
 
+Estabilização do FONTE, Fase 4: núcleo de segmentação entre fala e narração (`segments.py`), sem
+mudar nenhum alerta.
+- **Peças únicas:** percurso das aspas, travessões e hífen de diálogo, abertura de fala e inciso,
+  e tabelas de aspas.
+- **Duas leituras com as mesmas peças:** a atual (`classify`) e a antiga (`narrative_masks`), com
+  as diferenças entre elas registradas no plano.
+- **Resultado:**
+  - os segmentadores são idênticos aos anteriores em 189 combinações de texto e configuração;
+  - os 29 conjuntos são iguais à Fase 3 em alertas, metadados e avisos.
+- **Imperfeito:** a verificação do contrato de `imperfeito` achou um erro real, registrado para
+  correção posterior: todo futuro do pretérito passa como imperfeito.
+
 Estabilização do FONTE, Fase 3: núcleo de tempo e modo (`fonte/fonte/tempo.py`), sem mudar nenhum
 alerta.
 - **O que foi reunido:**

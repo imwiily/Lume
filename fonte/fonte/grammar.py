@@ -14,7 +14,7 @@ from .analysis import TERMINACOES, explicar, finding, forma_de_fala, lista_ou_ro
 from .lexicon import FINITE, NONVERB, flags
 from .verbo import certamente_verbo, conjugado_pelo_modelo, ha_forma_verbal, so_verbo_no_lexico
 from .tempo import TERMINACAO_CONDICIONAL, imperfeito_do_subjuntivo
-from .segments import classify
+from .segments import classify, termina_em_travessao
 
 PORQUE_PERGUNTA = explicar("Em pergunta, escreve-se separado: ‘Por que você saiu?’. Junto (‘porque’) é para responder "
                            "ou explicar: ‘Saí porque choveu’.", "por que / porque")
@@ -417,7 +417,7 @@ def regency(block, doc, emit):
         if (nxt.lower_ in {"ele", "ela", "eles", "elas"} and nxt.dep_ == "obj" and nxt.head == token
                 and token.pos_ == "VERB" and conjugado_pelo_modelo(token)
                 and not verbo_de_fala(token) and token.lemma_.casefold() not in INTRANSITIVE
-                and not block.text[:token.idx].rstrip().endswith(("—", "–"))):
+                and not termina_em_travessao(block.text[:token.idx])):
             clitic = {"ele": "o", "ela": "a", "eles": "os", "elas": "as"}[nxt.lower_]
             emit("regencia", "Pronome reto como objeto", token.idx, nxt.idx + len(nxt.text), "editorial_attention", .7,
                  explicar(f"Na escrita formal, ‘{token.text} {nxt.text}’ vira ‘{token.text}-{clitic}’ (ou ‘{clitic} "

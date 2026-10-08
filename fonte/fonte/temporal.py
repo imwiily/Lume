@@ -14,7 +14,7 @@ from .verbo import certamente_verbo, model_finite, so_verbo_no_lexico
 from .tempo import (IMPERFECT_ENDING, IRREGULAR_IMPERFECT, TERMINACAO_CONDICIONAL, TERMINACAO_IMPERFEITO_SUBJUNTIVO, imperfeito,
                     mais_que_perfeito_composto, para_como_verbo, tempo_estrito, tempo_recuperado,
                     verbo_unico_da_frase)
-from .segments import classify, spans
+from .segments import abre_fala, classify, spans
 
 TIME_SHIFTS = {"hoje", "agora", "atualmente", "amanhã", "ontem", "outrora", "antigamente",
                "sempre", "geralmente", "habitualmente", "ainda", "desde", "depois", "atual"}
@@ -661,9 +661,6 @@ def anchored(token):
     return bool(words & (INDEFINITE | ANAPHORIC)) or preposed or "1" in person or "2" in person or aspectual
 
 
-# Parágrafo que abre com hífen ou travessão e espaço: fala, mesmo quando a marcação de
-# diálogo configurada é outra. Fica fora da sequência narrativa.
-SPEECH_OPENING = re.compile(r"^\s*[-–—]\s")
 
 
 def events(block, offset, doc, nlp, sentence_base, trace=None):
@@ -672,7 +669,9 @@ def events(block, offset, doc, nlp, sentence_base, trace=None):
     `trace` (lista, só para depuração): recebe cada forma finita no presente descartada, com o motivo.
     """
     out = []
-    if SPEECH_OPENING.match(block.text):
+    # Parágrafo que abre com hífen ou travessão e espaço: fala, mesmo quando a marcação de
+    # diálogo configurada é outra. Fica fora da sequência narrativa.
+    if abre_fala(block.text, exige_espaco=True):
         if trace is not None:
             trace.append({"block": block.number, "token": block.text[:20], "discard_reason": "parágrafo de fala"})
         events.verbal = 0

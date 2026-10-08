@@ -8,6 +8,7 @@ from .reader import Block
 from .lexicon import FINITE, FUTURE, NONFINITE, NONVERB, PAST, PRESENT, flags
 from .verbo import RELATIVOS, certamente_verbo, model_finite, pode_ser_verbo
 from .tempo import DEPOIS_DE_PARAR, passado_so_no_lexico, tempo_narrativo
+from .segments import FECHA_ASPAS, marcar_travessoes, percorrer_aspas
 
 SPEECH = set("dizer informar perguntar responder murmurar gritar sussurrar comentar retrucar afirmar falar exclamar replicar declarar indagar confessar explicar acrescentar argumentar insistir ordenar pedir protestar avisar pensar refletir ponderar admitir lembrar concluir continuar completar interromper balbuciar resmungar cochichar implorar vociferar anunciar observar sugerir repetir garantir negar confirmar questionar reclamar ironizar brincar saudar chamar ler recitar citar ditar cantar declamar terminar".split())
 
@@ -138,14 +139,13 @@ def fecha_oracao_dependente(verb):
     return False
 
 
-ABRE_ASPAS = {"”": "“", "»": "«", '"': '"', "’": "‘"}
 
 
 def aspas_de_destaque(text, closing, nlp):
     """Aspas de destaque, ironia ou termo especial, não fala: até três palavras sem verbo finito nem
     pontuação interna, abertas no meio da oração (depois de uma palavra, não de pontuação final,
     dois-pontos ou travessão). Aspas que vêm de outro parágrafo continuam tratadas como fala."""
-    opening = text.rfind(ABRE_ASPAS.get(text[closing], ""), 0, closing)
+    opening = text.rfind(FECHA_ASPAS.get(text[closing], ""), 0, closing)
     if opening < 0:
         return False
     content = text[opening + 1:closing].strip()
@@ -302,56 +302,27 @@ def finding(block, category, priority, start, end, reason, source="Regras FONTE 
 
 
 def narrative_masks(blocks, protect_italics=True):
-    """Mantém comprimento/offsets. Aspas podem atravessar parágrafos."""
-    masks, closing_positions, warnings = [], [], []
-    closer = None
-    for block in blocks:
+    """Leitura antiga da narração, com as peças de `segments`. Mantém comprimento/offsets.
+
+    Diferente de `segments.classify`, de propósito (registrado no plano da estabilização): as aspas
+    contam sempre como fala; a aspa que reabre a mesma fala no início de um parágrafo continua a
+    fala; o travessão só abre fala no início do parágrafo, sem hífen de diálogo e sem leitura por
+    linha. Devolve as máscaras (narração visível), as posições das aspas que fecham e os avisos."""
+    aspas, warnings = percorrer_aspas(blocks, repete_abertura=True)
+    masks, closing_positions = [], []
+    for block, (marcas, fechamentos) in zip(blocks, aspas):
         text = block.text
         if block.heading:
-            if closer:
-                warnings.append(f"Aspas possivelmente abertas antes do título no parágrafo {block.number}.")
-            closer = None
             masks.append(" " * len(text))
             closing_positions.append([])
             continue
-        # Recupera sincronização após aspas ausentes: um novo par completo
-        # no início é tratado como nova fala, nunca invertido em narração.
-        stripped = text.lstrip()
-        opener = {'”': '“', '»': '«', '"': '"', '’': '‘'}.get(closer)
-        if closer and opener and stripped.startswith(opener) and closer in stripped[1:]:
-            warnings.append(f"Aspas anteriores possivelmente sem fechamento: a separação foi reiniciada no parágrafo {block.number}. Confira o trecho anterior.")
-            closer = None
-        visible = list(text)
-        closed = []
-        for i, char in enumerate(text):
-            if closer and i == len(text)-len(stripped) and char == opener:
-                # Abertura repetida no início de uma fala com vários parágrafos.
-                visible[i] = " "
-                continue
-            if closer:
-                visible[i] = " "
-                if char == closer:
-                    closer = None
-                    closed.append(i)
-            elif char in {'“', '«', '"', '‘'}:
-                closer = {'“': '”', '«': '»', '"': '"', '‘': '’'}[char]
-                visible[i] = " "
-        # Travessão inicial: alterna fala / inciso narrativo / fala.
-        if text.lstrip().startswith(("—", "–")):
-            spoken = False
-            for i, char in enumerate(text):
-                if char in "—–":
-                    spoken = not spoken
-                    visible[i] = " "
-                elif spoken:
-                    visible[i] = " "
+        roles = ['narracao' if marca is None else 'fala' for marca in marcas]
+        marcar_travessoes(text, roles, por_linha=False, hifen=False)
         if protect_italics:
             for start, end in block.italic:
-                visible[start:end] = [" "] * (end-start)
-        masks.append("".join(visible))
-        closing_positions.append(closed)
-    if closer:
-        warnings.append("Há aspas sem fechamento até o fim do texto; isso pode ocultar trechos da análise narrativa.")
+                roles[start:end] = ['italico'] * (end - start)
+        masks.append("".join(c if role == 'narracao' else " " for c, role in zip(text, roles)))
+        closing_positions.append(fechamentos)
     return masks, closing_positions, warnings
 
 

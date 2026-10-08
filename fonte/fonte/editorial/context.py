@@ -6,7 +6,7 @@ sustentam referências; parágrafos seguintes só ajudam a revisão humana.
 import re
 from ..analysis import explicar, forma_de_fala, verbo_de_fala
 from ..verbo import model_finite
-from ..segments import classify, spans
+from ..segments import TRAVESSOES, classify, spans
 from .common import alert, evidence
 
 RULES = {'dialogo_contextual', 'referente_contextual', 'gerundismo'}
@@ -85,7 +85,7 @@ def analyze(blocks, nlp, settings, *, docs=None):
 
         if settings['rules']['dialogo_contextual'] and settings['dialogue_dashes']:
             for start, end, role in spans(roles, ['narracao']):
-                if start == 0 or block.text[start - 1] not in '—–':
+                if start == 0 or block.text[start - 1] not in TRAVESSOES:
                     continue
                 fragment = block.text[start:end]
                 parsed = nlp(fragment)
@@ -104,7 +104,7 @@ def analyze(blocks, nlp, settings, *, docs=None):
                     emit('dialogo_contextual', 'Ação narrativa após fala', start + first.idx,
                          start + verb.idx + len(verb.text),
                          action_reason(block.text[:start - 1].rstrip(), fragment.lstrip()))
-                elif verbo_de_fala(verb) and end < len(block.text) and block.text[end] in '—–':
+                elif verbo_de_fala(verb) and end < len(block.text) and block.text[end] in TRAVESSOES:
                     continuation = block.text[end + 1:].lstrip()
                     if (continuation and continuation[0].isupper()
                             and not fragment.rstrip().endswith(('.', '!', '?', '…', ':'))):

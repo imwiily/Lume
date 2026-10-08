@@ -25,6 +25,7 @@ from urllib.error import URLError
 
 from .analysis import explicar, finding, forma_de_fala
 from .lexicon import flags
+from .segments import termina_em_travessao
 from .settings import validate
 
 SERVER_JAR = "languagetool-server.jar"
@@ -351,7 +352,7 @@ def check(blocks, port=8081, protect_italics=True, settings=None, avancar=None):
             if rule.get("id") == "CRASE_CONFUSION" and forma_de_fala(excerpt.split()[0]):
                 continue
             # Inciso após travessão (“— Vamos? — perguntou ela.”) não é início de frase.
-            if rule.get("id") == "UPPERCASE_SENTENCE_START" and text[:start].rstrip().endswith(("—", "–")):
+            if rule.get("id") == "UPPERCASE_SENTENCE_START" and termina_em_travessao(text[:start]):
                 continue
             if spelling and (excerpt.strip().casefold() in names
                              or any(s < end and start < e for s, e in italics)):

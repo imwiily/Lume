@@ -22,8 +22,9 @@ Restrições:
 - [x] Fase 2a — núcleo verbal, sem mudança de comportamento (07/10). Aguarda o autor.
 - [x] Preparação da Fase 2b: evidência independente congelada e protocolo (07/10; commit `b935ebf`).
 - [x] Fase 2b — reconhecimento verbal (08/10; commit `184ffbc`).
-- [x] Fase 3 — núcleo de tempo e modo, só consolidação (08/10). Aguarda o autor.
-- [ ] Fases 4–8.
+- [x] Fase 3 — núcleo de tempo e modo, só consolidação (08/10; commit `e0159ca`).
+- [x] Fase 4 — segmentação entre fala e narração, só consolidação (08/10). Aguarda o autor.
+- [ ] Fases 5–8.
 
 ## Fontes de evidência usadas
 
@@ -1063,8 +1064,17 @@ passou para o núcleo.
 
 **Problemas encontrados que exigiriam mudança de comportamento** (registrados em
 `LimitacoesRegistradas`; não corrigidos):
-1. `imperfeito` dá positivo para o condicional “-íamos” (“construiríamos”) e para o imperfeito do
-   subjuntivo (“fosse”). Quem o usa são `past_plane` (narração no presente) e a sugestão.
+1. `imperfeito` dá positivo para **todo** futuro do pretérito, e não só para “-ríamos”: “faria”,
+   “viajaria” e “construiríamos” terminam em “-ia”/“-íamos” (`IMPERFECT_ENDING`). Também dá positivo
+   para o imperfeito do subjuntivo (“fosse”, “cantasse”), pela etiqueta `Tense=Imp` do modelo.
+   - **Contrato real:** “qualquer imperfeito, de qualquer modo, e também o condicional por
+     engano”, e não “imperfeito do indicativo”.
+   - **Quem o usa:** `past_plane` (narração no presente) e a sugestão. `modal_imperfect` usa a
+     mesma terminação, então “deveria” e “poderia” também passam.
+   - **Verificação de 08/10:** o relatório ao autor da Fase 3 descreveu por engano “construíamos”
+     (que é imperfeito do indicativo, corretamente classificado) como condicional. Os testes e
+     este plano usam a forma certa, “construiríamos”.
+   - Correção comportamental pendente.
 2. `tempo_recuperado` ignora o modo do modelo. Subjuntivo e imperativo (“Fale com ela”, “Vamos
    embora”) saem “presente”, e um nome próprio também (“Quaresma”, pelo verbo único da frase).
    Isso pode servir de âncora indevida na sequência narrativa.
@@ -1087,3 +1097,88 @@ passou para o núcleo.
   - o problema 1 afeta só a narração no presente (`past_plane`) e a sugestão do imperfeito.
 - Qualquer mudança nesses pontos exige a mesma rotina da Fase 2b: varredura ampla, critérios na
   validação e comparação dos 29 conjuntos.
+
+
+### Fase 4 — segmentação entre fala e narração, sem mudança de comportamento (08/10/2026)
+
+**Verificação preliminar (pedida pelo autor).** Houve erro de descrição no relatório da Fase 3:
+“construíamos” é imperfeito do indicativo e está classificado corretamente; o condicional é
+“construiríamos”, a forma usada nos testes e no plano. Houve também erro real no componente,
+maior do que o descrito: `imperfeito` dá positivo para todo futuro do pretérito (“faria”,
+“viajaria”) e para o imperfeito do subjuntivo. O contrato real e a correção pendente estão no
+problema 1 da Fase 3, acima.
+
+**Inventário dos segmentadores:**
+
+| Mecanismo | O que decide | Quem usa |
+|---|---|---|
+| `segments.classify` | papel de cada caractere: travessão e hífen por linha, aspas com papel configurável, itálico como pensamento, título | linguística, gramática, temporal, contexto (diálogo), repetição, Auditoria, máscaras da pipeline (`search`) |
+| `analysis.narrative_masks` | leitura antiga: aspas sempre fala, travessão só no início do parágrafo, itálico oculto | `analysis.analyze` chamado direto (testes); na pipeline, só os fechamentos de aspas (pontuação de diálogo) e os avisos de aspas |
+| `temporal.SPEECH_OPENING` | parágrafo que abre com travessão ou hífen **seguido de espaço** sai da sequência narrativa | `temporal.events` |
+| “texto anterior termina em travessão” | inciso de fala | `grammar` (pronome reto como objeto), `languagetool` (maiúscula depois de inciso) |
+| caractere vizinho é travessão | começo e retomada de inciso | `editorial/context` (diálogo contextual) |
+| tabela de aspas em `analysis` | aspas de destaque | pontuação de diálogo |
+
+**Representação compartilhada** (`fonte/fonte/segments.py`):
+- o papel de cada caractere na posição original (`narracao`, `dialogo`, `pensamento`,
+  `separador`, `titulo`), com `spans` para os trechos;
+- `percorrer_aspas(blocks, repete_abertura)`: estado das aspas entre parágrafos, fechamentos e
+  avisos;
+- `marcar_travessoes(text, roles, por_linha, hifen)`;
+- `abre_fala(texto, exige_espaco)` e `termina_em_travessao(prefixo)`;
+- `TRAVESSOES`, `ABRE_ASPAS` e `FECHA_ASPAS` como constantes únicas.
+
+O núcleo não julga a pontuação. `classify` e `narrative_masks` são montados com essas peças.
+
+**Diferenças preservadas, com os comportamentos contraditórios encontrados.** Nenhuma foi escolhida
+como certa; cada uma está em `tests/test_segmentacao.py::DiferencasPreservadas`.
+1. **Hífen de diálogo** (“- Vamos - disse”): fala em `classify`, narração em `narrative_masks`.
+2. **Fala que começa numa linha do meio do parágrafo:** só `classify`, por causa da correção de
+   07/10 (`por_linha`).
+3. **Aspas com `quotes_role = narracao`:** `classify` as trata como narração, mas os fechamentos
+   de `narrative_masks`, usados pela pontuação de diálogo, continuam tratando-as como fala.
+4. **Aspa que reabre a mesma fala no início de um parágrafo, sem fechar** (aspas retas): a fala
+   continua em `narrative_masks` (`repete_abertura`); em `classify`, a aspa fecha a fala anterior.
+5. **Abertura de fala:** `classify` aceita “—Vamos” sem espaço; `temporal.events` só tira da
+   sequência o parágrafo com o sinal **seguido de espaço** (`abre_fala(exige_espaco=True)`).
+   Num parágrafo “—Fala — disse ela”, o inciso entra na sequência narrativa; com espaço, não.
+6. **Itálico:** em `classify`, vira pensamento conforme `italic_thoughts`; em `narrative_masks`,
+   é ocultado conforme `protect_italics` (opção `--incluir-italico`). São configurações
+   diferentes.
+7. **Inciso:** `grammar` e `languagetool` olham o texto anterior até o travessão (ignorando
+   espaços); `context` olha o caractere vizinho do trecho. Na prática, são equivalentes.
+
+**Código duplicado removido:**
+- três tabelas de aspas e duas máquinas de estado de aspas viraram uma;
+- dois laços de travessão viraram um, com modos;
+- `SPEECH_OPENING` e três testes de travessão escritos à mão passaram a usar o núcleo.
+
+**Evidências:**
+- **Fotografia caractere a caractere** de `classify` (5 configurações) e `narrative_masks` (com e
+  sem itálico): desenvolvimento, corpus, A, B, C, texto de terceiros e 18 casos-limite, num total
+  de 189 combinações, **idênticas** antes e depois.
+- **29 conjuntos:** idênticos a `9f0f6d8` (código 0) e iguais à Fase 3 em alertas, metadados e
+  avisos.
+- **Herança real igual:** A 28 e 28; C 15 e 17.
+- **Validação reservada:** não consultada.
+
+**Testes:**
+- FONTE 459: novo `test_segmentacao.py`, com 15 testes:
+  - travessão, aspas e papel das aspas;
+  - inciso, ação depois de fala, narração antes e depois, duas falas;
+  - quebra de linha, hífen de diálogo, palavra composta;
+  - pensamento em itálico, travessões desligados;
+  - peças compartilhadas e diferenças preservadas.
+- Pacotes 45, contrato Python, Coerencia 25.
+- Swift: contrato, decisões por livro, mesa, falsos positivos, encerramento.
+
+**Riscos para a Fase 5** (verbos de elocução):
+- As listas de verbos de fala alimentam o diálogo contextual (91% em 32 decisões), a pontuação de
+  diálogo (78% em 9), a vírgula entre sujeito e verbo, o pronome reto como objeto, a frase cortada
+  (`complement_verb`) e listas temporais (`REPORTING`, `NARRATOR_THAT`). Unir listas muda o que
+  cada regra reconhece; é preciso medir regra por regra.
+- A pontuação de diálogo depende dos fechamentos da leitura antiga (`narrative_masks`, diferenças
+  3 e 4). Mudar a lista de fala sem mexer na segmentação mantém essa dependência; unificar a
+  segmentação de verdade seria mudança de comportamento, fora da Fase 5.
+- **Sobreposição de sentidos:** “dizer” é de fala; “sentir” e “achar” são de complemento
+  (`COMPLEMENT_VERBS`). A Fase 5 não pode misturá-los.
