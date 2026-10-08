@@ -7,7 +7,8 @@ from dataclasses import asdict
 import re
 import unicodedata
 
-from .analysis import TERMINACOES, explicar, finding, lista_ou_rotulo
+from .analysis import explicar, finding, lista_ou_rotulo
+from .elocucao import ATESTA, COMENTARIO_DO_NARRADOR, NARRADOR_ANUNCIA, RELATO, TERMINACOES
 from .editorial.common import evidence
 from .lexicon import FINITE, PAST, PRESENT, FUTURE, NONFINITE, flags
 from .verbo import certamente_verbo, model_finite, so_verbo_no_lexico
@@ -88,10 +89,8 @@ def explicit_shift(root):
 # O narrador em primeira pessoa fala de si no presente, fora da cena: “me chamo”, “sou” + nome ou
 # adjetivo, “acho que”, “confesso que”, “vou contar”. Ações da cena (“Sinto o frio”, “Vou até a
 # porta”, “Sou atingido”) continuam comparadas com a narração.
-NARRATOR_THAT = {"acho", "sinto", "sei", "creio", "acredito", "confesso", "admito", "imagino", "espero",
-                 "lembro", "garanto", "juro", "suponho", "quero", "penso", "reconheço"}
-NARRATOR_TELLS = re.compile(r"vou\s+(?:\w+\s+)?(?:contar|narrar|relatar|explicar|falar|dizer|começar|descrever|"
-                            r"mostrar|resumir|apresentar)\b", re.I)
+NARRATOR_THAT = frozenset(COMENTARIO_DO_NARRADOR.values())
+NARRATOR_TELLS = re.compile(r"vou\s+(?:\w+\s+)?(?:" + "|".join(NARRADOR_ANUNCIA) + r")\b", re.I)
 
 
 def narrator_frame(token):
@@ -148,7 +147,7 @@ def legitimate_present(token):
     if token.lower_ == "quer" and re.search(r"\bque\s*$", prefix, re.I) and re.match(r"quer\s+que\b", tail, re.I):
         return True
     if token.lemma_.casefold() == "poder" and any(
-            c.dep_ == "xcomp" and c.lemma_.casefold() in {"confirmar", "afirmar", "garantir", "dizer", "atestar"}
+            c.dep_ == "xcomp" and c.lemma_.casefold() in ATESTA
             for c in token.children):
         return True
     # Estado posterior expresso por cópula, sem converter progressivos como
@@ -326,7 +325,7 @@ def conditionals(block, offset, doc):
         walk = main
         reported = False
         while walk.head != walk:
-            if walk.dep_ in {"ccomp", "xcomp"} and walk.head.lemma_.casefold() in REPORTING:
+            if walk.dep_ in {"ccomp", "xcomp"} and walk.head.lemma_.casefold() in RELATO:
                 reported = True
             walk = walk.head
         if reported:
@@ -468,9 +467,6 @@ STATE = STATIVE | {"ser", "ter", "haver", "parecer", "viver", "morar", "custar",
                    "lembrar", "recordar", "esquecer", "acreditar", "achar", "imaginar", "duvidar"}
 # Modais com infinitivo (“posso garantir”, “deve haver”): atitude ou possibilidade, não evento.
 MODAL = {"poder", "dever", "precisar", "querer"}
-# Verbos que introduzem conteúdo relatado ou sabido: “explicou que a Terra gira”.
-REPORTING = {"dizer", "explicar", "contar", "afirmar", "saber", "aprender", "ensinar", "descobrir", "lembrar",
-             "perceber", "entender", "ler", "ouvir", "achar", "pensar", "acreditar", "notar", "garantir"}
 HABITUAL_MARKS = {"quando", "se", "sempre", "sempre que", "toda vez que"}
 # Hábito sem conjunção: “durante todo o ano”, “todos os dias”, “normalmente”, “costuma”.
 HABITUAL_WORDS = {"normalmente", "geralmente", "habitualmente", "frequentemente", "costumar"}
@@ -552,7 +548,7 @@ def present_function(token):
         return "narrator_comment"
     walk = root
     while walk.head != walk:
-        if walk.dep_ in {"ccomp", "csubj", "acl:relcl", "acl", "advcl", "xcomp"} and walk.head.lemma_.casefold() in REPORTING:
+        if walk.dep_ in {"ccomp", "csubj", "acl:relcl", "acl", "advcl", "xcomp"} and walk.head.lemma_.casefold() in RELATO:
             return "general_truth"
         walk = walk.head
     # Consequência de uma condição (“Se eu parar, vou cair”): hipótese, não ação da cena.

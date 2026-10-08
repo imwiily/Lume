@@ -23,8 +23,10 @@ Restrições:
 - [x] Preparação da Fase 2b: evidência independente congelada e protocolo (07/10; commit `b935ebf`).
 - [x] Fase 2b — reconhecimento verbal (08/10; commit `184ffbc`).
 - [x] Fase 3 — núcleo de tempo e modo, só consolidação (08/10; commit `e0159ca`).
-- [x] Fase 4 — segmentação entre fala e narração, só consolidação (08/10). Aguarda o autor.
-- [ ] Fases 5–8.
+- [x] Fase 4 — segmentação entre fala e narração, só consolidação (08/10; commit `f01bd9e`).
+- [x] Fase 5 — verbos de fala, pensamento e percepção, só consolidação (08/10). Aguarda o autor.
+- [ ] Fases 6–8.
+- [ ] Pendente, fase com mudança de comportamento: `imperfeito` (problema 1 da Fase 3).
 
 ## Fontes de evidência usadas
 
@@ -1182,3 +1184,95 @@ como certa; cada uma está em `tests/test_segmentacao.py::DiferencasPreservadas`
   segmentação de verdade seria mudança de comportamento, fora da Fase 5.
 - **Sobreposição de sentidos:** “dizer” é de fala; “sentir” e “achar” são de complemento
   (`COMPLEMENT_VERBS`). A Fase 5 não pode misturá-los.
+
+### Fase 5 — verbos de fala, pensamento e percepção, sem mudança de comportamento (08/10/2026)
+
+**Inventário das listas** (antes da Fase 5):
+
+| Lista | Onde | Reconhece por | Verbos | Quem usa | Efeito |
+|---|---|---|---|---|---|
+| `SPEECH` + `IRREGULARES_DE_FALA` | `analysis` | lema do modelo **ou** forma (radical ≥ 3 letras + terminação; 11 formas de dizer/pedir) | 63 | pontuação de diálogo (verbo depois de aspas e vírgula), diálogo contextual (ação depois da fala e retomada depois do inciso), pronome reto como objeto, vírgula sujeito-verbo (inciso), crase do LanguageTool | o verbo da lista **suprime** o alerta, exceto na retomada do diálogo contextual, em que é condição |
+| `forma_de_fala` | `analysis` | só a forma | os mesmos | diálogo contextual (palavra logo após o travessão), crase do LanguageTool | idem |
+| `verb_de_fala_form` | `grammar` | lema ou forma, com a forma contada duas vezes | os mesmos | vírgula sujeito-verbo (duas verificações) | suprime |
+| `COMPLEMENT_VERBS` + `complement_verb` | `grammar` | forma (inciso **ou** radical destes) | 17 + os do inciso | frase cortada (“Que” maiúsculo depois de reticências) | **condição** do alerta |
+| `REPORTING` | `temporal` | só lema | 18 | condicional sem hipótese (discurso indireto fica de fora), função do presente (verdade geral) | suprime |
+| `NARRATOR_THAT` | `temporal` | forma da 1ª pessoa do singular + “que” | 16 | comentário do narrador (presente legítimo) | suprime |
+| `NARRATOR_TELLS` | `temporal` | “vou” + verbo | 11 | comentário do narrador | suprime |
+| lista em linha de “poder” + infinitivo | `temporal` | só lema | 5 | presente legítimo (“posso garantir”) | suprime |
+| `DATIVE` | `grammar` | lema | 31 | crase dativa | não é lista de fala: verbos com objeto indireto; fica fora |
+| `STATE`, `STATIVE` | `temporal` | lema | — | estado mental e estados | não é lista de fala; fica fora |
+
+**Diferenças entre as listas** (todas preservadas): o inciso aceita pensamento e verbos que só são
+fala pelo contexto; os que pedem “que” somam crença e percepção ao inciso; o relato tem
+conhecimento e percepção, mas não “perguntar” nem os modos de dizer (“murmurar”); o comentário
+do narrador é de formas, não de lemas; o reconhecimento pela forma só existe no inciso e nos que
+pedem “que”.
+
+**Categorias** (do verbo, não do uso), em `elocucao.CATEGORIAS`, a única fonte:
+- **elocução** (55 verbos): dizer, perguntar, prometer, jurar, contar, narrar, atestar…;
+- **pensamento** (18): pensar, refletir, lembrar, achar, saber, crer, supor, querer…;
+- **percepção** (5): sentir, perceber, ouvir, notar, observar;
+- **só pelo contexto** (11): continuar, completar, interromper, terminar, brincar, chamar, ler,
+  cantar, começar, mostrar, apresentar.
+Admitir oração com “que” não é categoria: é o perfil `PEDEM_QUE`.
+
+**Perfis preservados** (cada um igual à lista antiga): `INCISO` (+ `INCISO_IRREGULARES`),
+`PEDEM_QUE`, `RELATO`, `COMENTARIO_DO_NARRADOR` (lema → forma da 1ª pessoa), `NARRADOR_ANUNCIA`,
+`ATESTA`. Nenhum perfil é definido pela união de outros nem por categoria: mudar isso muda o que
+as regras reconhecem.
+
+**Código duplicado removido:**
+- o reconhecimento por radical + terminação existia duas vezes (`forma_de_fala` e
+  `complement_verb`, com `len(v) > 4` no lugar de radical ≥ 3): agora é `pelo_radical`;
+- `verb_de_fala_form` somava a forma escrita a `verbo_de_fala`, que já a olha em minúsculas;
+  `casefold` de `lower` é igual a `casefold` em todo o Unicode, então a soma era redundante;
+- `TERMINACOES` passou de `analysis` para o núcleo (o tempo verbal também usa);
+- listas em linha do `temporal` passaram a vir dos perfis.
+
+**Inconsistências linguísticas encontradas (sem correção, mudariam alertas):**
+1. **Reconhecimento pela forma sem léxico:** pelo radical, 1.178 formas passam como verbo do
+   inciso e 1.466 como verbo que pede “que”; 52 e 67 delas também são nome ou adjetivo (“grito”,
+   “chama”, “canto”, “fala”, “completa”), e há formas de outro verbo com o mesmo radical
+   (“sentou”, de sentar, passa como “sentir”; “contem”, de conter, como “contar”). No inciso
+   isso só suprime alertas; na frase cortada é condição do alerta.
+2. **Formas que o radical não alcança:** mais-que-perfeito (“dissera”, “falara”), condicional
+   (“diria”), imperfeito do subjuntivo (“dissesse”), futuro do subjuntivo (“disser”), “dirão”.
+   Só o lema do modelo as reconhece. “ler” tem radical curto e também depende do lema.
+3. **Mecanismos diferentes:** o inciso aceita a forma quando o lema falha; o relato, o comentário
+   e “poder” + infinitivo só aceitam o lema.
+4. **Percepção pela metade:** `PEDEM_QUE` tem “sentir” e “perceber”, mas não “notar”, “ver” nem
+   “ouvir”, que também pedem “que”; o inciso tem “observar” e não os outros.
+5. **Ambiguidades de sentido:** “esperar” (ter esperança ou aguardar) e “chamar”, “terminar”,
+   “continuar” só são fala no inciso.
+
+**Evidências:**
+- **Fotografia por palavra**, antes e depois, **idêntica**: as funções de forma em todas as
+  857.387 formas do léxico (minúsculas, inicial e caixa alta) e, em 223.624 palavras em contexto
+  (desenvolvimento, corpus e textos públicos), o verbo de fala, o relato pelo lema, o comentário
+  do narrador, o presente legítimo e a função do presente.
+- **Testes por consumidor** (`PorConsumidor`): passam no código antigo (`f01bd9e`, com as funções
+  antigas no lugar das novas) e no novo.
+- **29 conjuntos:** idênticos a `9f0f6d8` (código 0; controle negativo dá 1) e iguais à Fase 4 em
+  alertas, metadados e avisos. Por isso não mudam o diálogo contextual (91% em 32 decisões), a
+  pontuação de diálogo, os incisos, a vírgula sujeito-verbo, o pronome reto, a frase cortada nem
+  o tempo verbal.
+- **Herança real igual:** A 28 e 28; C 15 e 17.
+- **Validação reservada:** não consultada.
+
+**Testes:** FONTE 470 (novo `test_elocucao.py`, 11 testes: listas antigas, categorias por perfil,
+inciso por lema e por forma com elocução, pensamento, percepção, verbos que pedem “que” e ações,
+radical curto, frase cortada, relato, comentário e anúncio do narrador, fonte única). Pacotes 45,
+contrato Python, Coerencia 25; Swift: contrato, decisões por livro, mesa, falsos positivos,
+encerramento e correções; build do app.
+
+**Pendência mantida:** o defeito de `imperfeito` (problema 1 da Fase 3) continua sem correção:
+confunde o futuro do pretérito (“faria”) com o imperfeito do indicativo (“fazia”) e não separa o
+imperfeito do subjuntivo. Fica para uma fase controlada com mudança de comportamento.
+
+**Riscos para a Fase 6** (deduplicação FONTE × LanguageTool):
+- A crase do LanguageTool é suprimida pela forma do inciso (`forma_de_fala`); a deduplicação
+  muda a ordem e a origem dos alertas, e a supressão precisa continuar antes dela.
+- A deduplicação compara trechos e IDs; o ID não inclui a regra, mas a herança no app inclui.
+  Mudar a origem de um alerta pode perder decisões herdadas (`legacyContentKey`).
+- A maiúscula depois de inciso do LanguageTool usa `termina_em_travessao`; a do FONTE usa o
+  caractere vizinho. Deduplicar exige saber qual é a leitura de cada um.

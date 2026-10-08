@@ -4,7 +4,8 @@ Janelas não atravessam capítulos/cortes explícitos. Evidências anteriores
 sustentam referências; parágrafos seguintes só ajudam a revisão humana.
 """
 import re
-from ..analysis import explicar, forma_de_fala, verbo_de_fala
+from ..analysis import explicar
+from ..elocucao import forma_de_fala, verbo_de_fala
 from ..verbo import model_finite
 from ..segments import TRAVESSOES, classify, spans
 from .common import alert, evidence

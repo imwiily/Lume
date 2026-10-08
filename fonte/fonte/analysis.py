@@ -9,14 +9,7 @@ from .lexicon import FINITE, FUTURE, NONFINITE, NONVERB, PAST, PRESENT, flags
 from .verbo import RELATIVOS, certamente_verbo, model_finite, pode_ser_verbo
 from .tempo import DEPOIS_DE_PARAR, passado_so_no_lexico, tempo_narrativo
 from .segments import FECHA_ASPAS, marcar_travessoes, percorrer_aspas
-
-SPEECH = set("dizer informar perguntar responder murmurar gritar sussurrar comentar retrucar afirmar falar exclamar replicar declarar indagar confessar explicar acrescentar argumentar insistir ordenar pedir protestar avisar pensar refletir ponderar admitir lembrar concluir continuar completar interromper balbuciar resmungar cochichar implorar vociferar anunciar observar sugerir repetir garantir negar confirmar questionar reclamar ironizar brincar saudar chamar ler recitar citar ditar cantar declamar terminar".split())
-
-# Terminações verbais comuns; com o radical de um verbo de elocução, reconhecem a forma
-# mesmo quando o modelo pequeno erra o lema (“perguntei” → “perguntei”, “respondemos” → “respond”).
-TERMINACOES = re.compile(r"(?:o|a|as|amos|ais|am|ei|aste|ou|astes|aram|ava|avas|ávamos|avam|e|es|emos|em|i|este|eu|"
-                         r"estes|eram|ia|ias|íamos|iam|iu|imos|iram|ará|arão|erá|erão|irá|irão|ando|endo|indo)(?:-\w+)?")
-
+from .elocucao import verbo_de_fala
 
 # Depois destas palavras “para” não pode ser preposição: é o verbo parar (“o braço para no ar”).
 
@@ -231,26 +224,6 @@ def classificar_fragmento(sent, previous=None, following=None):
     if any(not any(certamente_verbo(t) for t in s) for s in vizinhos):
         return "likely_literary_fragment"
     return "uncertain"
-
-
-def verbo_de_fala(token):
-    """Verbo de elocução ou pensamento, pelo lema ou pelo radical + terminação verbal."""
-    return token.lemma_.casefold() in SPEECH or forma_de_fala(token.lower_)
-
-
-IRREGULARES_DE_FALA = {"disse", "disseram", "diz", "dizem", "dizia", "diziam", "dirá", "pediu", "pediram", "pede", "pedia"}
-
-
-def forma_de_fala(forma):
-    """Mesmo critério, só pela forma escrita (sem análise sintática)."""
-    forma = forma.casefold()
-    if forma in IRREGULARES_DE_FALA:
-        return True
-    for verbo in SPEECH:
-        radical = verbo[:-2]
-        if len(radical) >= 3 and forma.startswith(radical) and TERMINACOES.fullmatch(forma[len(radical):]):
-            return True
-    return False
 
 
 @dataclass

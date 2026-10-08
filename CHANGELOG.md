@@ -85,6 +85,18 @@ do Lume passa a ser interromper o editor só com boa razão e deixar o manuscrit
 - **Regra `tratamento` retirada** por decisão do autor (nasceu de um caso isolado). A chave
   continua aceita nas configurações salvas, sem efeito.
 
+Estabilização do FONTE, Fase 5: verbos de fala, pensamento e percepção numa só fonte
+(`elocucao.py`), sem mudar nenhum alerta.
+- **Categorias e perfis:** cada verbo tem uma categoria (elocução, pensamento, percepção ou só
+  pelo contexto); cada regra pede o seu perfil (inciso, verbos que pedem “que”, relato, comentário
+  do narrador, anúncio do narrador, “poder” + verbo de atestar), com as mesmas listas de antes.
+- **Duplicações removidas:** o reconhecimento pela forma (radical + terminação) existia duas
+  vezes; a verificação “lema ou forma” da vírgula repetia a mesma conta.
+- **Resultado:**
+  - as funções dão as mesmas respostas antes e depois em 857 mil formas do léxico e 224 mil
+    palavras em contexto;
+  - os 29 conjuntos são iguais à Fase 4 em alertas, metadados e avisos.
+
 Estabilização do FONTE, Fase 4: núcleo de segmentação entre fala e narração (`segments.py`), sem
 mudar nenhum alerta.
 - **Peças únicas:** percurso das aspas, travessões e hífen de diálogo, abertura de fala e inciso,

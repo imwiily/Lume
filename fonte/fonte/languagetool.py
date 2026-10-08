@@ -23,7 +23,8 @@ from urllib.parse import urlencode
 from urllib.request import Request, ProxyHandler, HTTPRedirectHandler, build_opener
 from urllib.error import URLError
 
-from .analysis import explicar, finding, forma_de_fala
+from .analysis import explicar, finding
+from .elocucao import forma_de_fala
 from .lexicon import flags
 from .segments import termina_em_travessao
 from .settings import validate

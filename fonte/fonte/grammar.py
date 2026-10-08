@@ -10,7 +10,8 @@ formalizar a voz de personagens. Nenhuma regra usa nomes ou frases de obras.
 from dataclasses import asdict
 import re
 
-from .analysis import TERMINACOES, explicar, finding, forma_de_fala, lista_ou_rotulo, verbo_de_fala
+from .analysis import explicar, finding, lista_ou_rotulo
+from .elocucao import pede_completiva, verbo_de_fala
 from .lexicon import FINITE, NONVERB, flags
 from .verbo import certamente_verbo, conjugado_pelo_modelo, ha_forma_verbal, so_verbo_no_lexico
 from .tempo import TERMINACAO_CONDICIONAL, imperfeito_do_subjuntivo
@@ -432,17 +433,6 @@ def regency(block, doc, emit):
 
 
 RELATIVE_OPENERS = {"que", "onde", "cujo", "cuja", "cujos", "cujas"}
-# Verbos que pedem complemento com ‘que’, além dos de fala (“prometi… que voltaria”).
-COMPLEMENT_VERBS = ("prometer", "jurar", "avisar", "contar", "achar", "saber", "acreditar", "garantir", "sentir",
-                    "perceber", "imaginar", "esperar", "temer", "lembrar", "esquecer", "decidir", "admitir")
-
-
-def complement_verb(word):
-    word = word.casefold()
-    return forma_de_fala(word) or any(
-        word.startswith(v[:-2]) and len(v) > 4 and TERMINACOES.fullmatch(word[len(v) - 2:]) for v in COMPLEMENT_VERBS)
-
-
 def relative_subject_comma(doc, emit):
     """Sujeito com oração relativa restritiva fechado por uma vírgula sem abertura (“a moça que cuidou do
     jardim no verão, rega as flores”). Pela forma, porque a árvore costuma se perder nessas frases: o
@@ -455,7 +445,7 @@ def relative_subject_comma(doc, emit):
             if comma.text != "," or k + 1 >= len(tokens):
                 continue
             verb = tokens[k + 1]
-            if not (certamente_verbo(verb) or (flags(verb.text) & FINITE and verb.pos_ in {"VERB", "AUX"})) or verb_de_fala_form(verb):
+            if not (certamente_verbo(verb) or (flags(verb.text) & FINITE and verb.pos_ in {"VERB", "AUX"})) or verbo_de_fala(verb):
                 continue
             start = next((j + 1 for j in range(k - 1, -1, -1) if tokens[j].is_punct), 0)
             segment = tokens[start:k]
@@ -471,10 +461,6 @@ def relative_subject_comma(doc, emit):
                  explicar(f"O trecho com ‘{segment[rel].text}’ faz parte de quem pratica a ação. A vírgula no fim dele "
                           "separa quem faz da ação, o que não se faz. Ou essa vírgula sai, ou entra outra também antes do "
                           f"‘{segment[rel].text}’.", "vírgula entre sujeito e verbo"), "")
-
-
-def verb_de_fala_form(token):
-    return verbo_de_fala(token) or forma_de_fala(token.text)
 
 
 LINKING_PLURAL = {"é": "são", "está": "estão", "fica": "ficam", "parece": "parecem", "continua": "continuam",
@@ -520,7 +506,7 @@ def subject_comma(block, doc, emit):
         if set(verb.morph.get("Person")) & {"1", "2"}:
             continue
         # Inciso de fala (“…, disse ele, …”): o verbo de fala não é o predicado do sujeito anterior.
-        if verb_de_fala_form(verb) and verb.i + 1 < len(doc) and doc[verb.i + 1].pos_ in {"PRON", "PROPN"}:
+        if verbo_de_fala(verb) and verb.i + 1 < len(doc) and doc[verb.i + 1].pos_ in {"PRON", "PROPN"}:
             continue
         words = [t for t in subject.subtree if not t.is_punct]
         if not words:
@@ -655,7 +641,7 @@ def truncated(block, doc, emit):
         before = re.findall(r"[^\W\d_]+", text[:match.start()])
         rest = re.split(r"[.!?…]", text[match.start(1):], maxsplit=1)[0]
         clause = doc.char_span(match.start(1), match.start(1) + len(rest), alignment_mode="contract")
-        if (before and complement_verb(before[-1]) and clause is not None
+        if (before and pede_completiva(before[-1]) and clause is not None
                 and any(certamente_verbo(t) for t in clause if t.i != clause.start)):
             emit("frase_cortada", "Maiúscula após reticências", match.start(1), match.end(1), "editorial_attention", .65,
                  explicar("As reticências fazem uma pausa, mas a frase continua: o ‘que’ completa o que veio antes (‘eu "
