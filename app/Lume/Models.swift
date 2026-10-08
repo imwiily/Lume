@@ -101,6 +101,20 @@ struct TextEvidence: Decodable {
     var valid: Bool { start >= 0 && end >= start && end <= text.unicodeScalars.count }
 }
 
+/// Ocorrência que o motor juntou a outra por equivalência comprovada (mesma família de fenômeno,
+/// trecho em comum e mesma correção). Guarda a identidade e a origem que tinha quando aparecia sozinha.
+struct AbsorbedFinding: Decodable {
+    let id: String
+    let rule: String?
+    let classe: String?
+    let category: String
+    let source: String
+    let paragraph: Int
+    let start: Int
+    let end: Int
+    var related: [TextEvidence]? = nil
+}
+
 struct Finding: Decodable, Identifiable {
     let id: String
     let category: String
@@ -125,10 +139,20 @@ struct Finding: Decodable, Identifiable {
     var suggestion: String? = nil
     var destino: String? = nil
     var impeditivo: Bool? = nil
+    /// Fontes que apontaram o mesmo fenômeno e ocorrências que o motor juntou a esta (Fase 6b).
+    /// Relatórios anteriores não têm os campos.
+    var detectores: [String]? = nil
+    var absorvidos: [AbsorbedFinding]? = nil
 
     var destination: FindingDestination { destino.flatMap(FindingDestination.init(rawValue:)) ?? .pendencia }
     /// Impede o encerramento enquanto estiver sem decisão. Só pendência pode ser impeditiva.
     var isBlocking: Bool { impeditivo == true && destination == .pendencia }
+
+    /// Ocorrências absorvidas: no mesmo parágrafo, dentro do texto.
+    var validAbsorbed: Bool {
+        (absorvidos ?? []).allSatisfy { $0.paragraph == paragraph && $0.start >= 0 && $0.end >= $0.start
+            && $0.end <= text.unicodeScalars.count && ($0.related ?? []).allSatisfy({ $0.valid }) }
+    }
 
     var moduleTitle: String { module.flatMap(ReviewModule.init(rawValue:))?.title ?? "Relatório anterior" }
     var severityTitle: String { severity.flatMap(FindingSeverity.init(rawValue:))?.title ?? "Sem classificação" }
@@ -212,7 +236,8 @@ struct EditorialReport: Decodable {
               findings.allSatisfy({ $0.start >= 0 && $0.end >= $0.start
                   && $0.end <= $0.text.unicodeScalars.count && $0.validContract
                   && ($0.related ?? []).allSatisfy({ $0.valid })
-                  && ($0.context ?? []).allSatisfy({ $0.valid }) }) else {
+                  && ($0.context ?? []).allSatisfy({ $0.valid })
+                  && $0.validAbsorbed }) else {
             throw FonteError.message("O relatório tem versão, identificadores ou posições inválidas.")
         }
     }
@@ -377,9 +402,48 @@ struct DecisionFile: Codable {
     let sha256: String
     let document: String
     let decisions: [String: String]
+    /// ID do alerta → decisões anteriores divergentes do mesmo fenômeno (campo opcional; arquivos
+    /// antigos não têm).
+    var conflicts: [String: [String]]? = nil
     enum CodingKeys: String, CodingKey {
         case schemaVersion = "schema_version"
         case sha256, document, decisions
+        case conflicts = "conflitos"
+    }
+}
+
+/// Decisões herdadas e as divergências encontradas ao herdar.
+struct InheritedDecisions: Equatable {
+    var decisions: [String: ReviewDecision] = [:]
+    /// ID do alerta → descrições das decisões divergentes (“Erro confirmado — origem”).
+    var conflicts: [String: [String]] = [:]
+
+    mutating func addConflict(_ id: String, _ entries: [String]) {
+        var merged = conflicts[id] ?? []
+        for entry in entries where !merged.contains(entry) { merged.append(entry) }
+        conflicts[id] = merged
+    }
+}
+
+/// Herança pelas identidades absorvidas: primeiro a do próprio alerta, depois as que o motor juntou
+/// a ele. Nunca escolhe entre decisões diferentes nem sobrescreve a decisão do próprio alerta.
+enum DecisionHistory {
+    static func entry(_ decision: ReviewDecision, _ origin: String) -> String { "\(decision.rawValue) — \(origin)" }
+
+    /// `direct`: decisão já atribuída ao alerta; `absorbed`: decisões das identidades absorvidas, com a
+    /// origem. Devolve a decisão a aplicar (só sem decisão própria e com as absorvidas de acordo) e o
+    /// conflito, quando há decisões diferentes.
+    static func resolve(direct: ReviewDecision?, absorbed: [(ReviewDecision, String)])
+        -> (decision: ReviewDecision?, conflict: [String]?) {
+        let values = absorbed.filter { $0.0 != .pending }
+        guard !values.isEmpty else { return (nil, nil) }
+        if let direct, direct != .pending {
+            guard values.contains(where: { $0.0 != direct }) else { return (nil, nil) }
+            return (nil, [entry(direct, "este alerta")] + values.map { entry($0.0, $0.1) })
+        }
+        let distinct = Set(values.map(\.0))
+        if distinct.count == 1 { return (values[0].0, nil) }
+        return (nil, values.map { entry($0.0, $0.1) })
     }
 }
 
@@ -401,6 +465,21 @@ extension Finding {
     }
 
     private func contentKey(rule: String?) -> String {
+        Self.contentKey(category: category, rule: rule, source: source, text: text, start: start, end: end, related: related)
+    }
+
+    /// Chaves de conteúdo que uma ocorrência absorvida tinha quando aparecia sozinha (mesmo parágrafo):
+    /// a atual e, para as regras que só depois vieram com `rule`, a antiga.
+    func contentKeys(of item: AbsorbedFinding) -> [String] {
+        let key = Self.contentKey(category: item.category, rule: item.rule, source: item.source, text: text,
+                                  start: item.start, end: item.end, related: item.related)
+        guard let rule = item.rule, Self.rulesAddedLater.contains(rule) else { return [key] }
+        return [key, Self.contentKey(category: item.category, rule: nil, source: item.source, text: text,
+                                     start: item.start, end: item.end, related: item.related)]
+    }
+
+    private static func contentKey(category: String, rule: String?, source: String, text: String, start: Int, end: Int,
+                                   related: [TextEvidence]?) -> String {
         struct Evidence: Encodable { let text: String; let start: Int; let end: Int; let document: String }
         struct Key: Encodable {
             let category: String; let rule: String?; let source: String
@@ -443,21 +522,38 @@ extension Finding {
 struct CarriedDecisions {
     let book: BookMemory
     let byID: [String: ReviewDecision]
+    let conflictsByID: [String: [String]]
     let selectedID: String?
 
-    init(report: EditorialReport, decisions: [String: ReviewDecision], selectedID: String?) {
-        book = BookMemory(report: report, decisions: decisions)
+    init(report: EditorialReport, decisions: [String: ReviewDecision], conflicts: [String: [String]] = [:],
+         selectedID: String?) {
+        book = BookMemory(report: report, decisions: decisions, conflicts: conflicts)
         byID = decisions.filter { $0.value != .pending }
+        conflictsByID = conflicts
         self.selectedID = selectedID
     }
 
     func belongs(to report: EditorialReport) -> Bool { book.belongs(to: report) }
 
     func merged(into restored: [String: ReviewDecision], for report: EditorialReport) -> [String: ReviewDecision] {
-        var result = restored
-        let byContent = book.inherited(for: report)
-        for finding in report.findings where (result[finding.id] ?? .pending) == .pending {
-            if let value = byID[finding.id] ?? byContent[finding.id] { result[finding.id] = value }
+        merge(into: restored, for: report).decisions
+    }
+
+    /// Pelo ID, depois pelo conteúdo e, para o alerta que juntou outras ocorrências, pelo ID de cada
+    /// uma delas. Decisões já restauradas não são sobrescritas; divergências viram conflito.
+    func merge(into restored: [String: ReviewDecision], for report: EditorialReport) -> InheritedDecisions {
+        var result = InheritedDecisions(decisions: restored)
+        let byContent = book.inheritance(for: report)
+        for finding in report.findings where (result.decisions[finding.id] ?? .pending) == .pending {
+            if let value = byID[finding.id] ?? byContent.decisions[finding.id] { result.decisions[finding.id] = value }
+        }
+        for (id, entries) in byContent.conflicts { result.addConflict(id, entries) }
+        for finding in report.findings {
+            if let old = conflictsByID[finding.id] { result.addConflict(finding.id, old) }
+            let absorbed = (finding.absorvidos ?? []).compactMap { item in byID[item.id].map { ($0, item.source) } }
+            let (decision, conflict) = DecisionHistory.resolve(direct: result.decisions[finding.id], absorbed: absorbed)
+            if let decision { result.decisions[finding.id] = decision }
+            if let conflict { result.addConflict(finding.id, conflict) }
         }
         return result
     }
@@ -577,16 +673,24 @@ struct BookMemory: Codable {
     let sha256: String
     /// Chave de conteúdo → decisões dos alertas com essa chave, na ordem do relatório.
     let decisions: [String: [String]]
+    /// Chave de conteúdo → decisões anteriores divergentes do mesmo fenômeno (opcional; memórias
+    /// antigas não têm). Ficam registradas mesmo depois de o editor decidir.
+    var conflicts: [String: [String]]? = nil
     enum CodingKeys: String, CodingKey {
         case schemaVersion = "schema_version"
         case document, sha256, decisions
+        case conflicts = "conflitos"
     }
 
-    init(report: EditorialReport, decisions: [String: ReviewDecision]) {
+    init(report: EditorialReport, decisions: [String: ReviewDecision], conflicts: [String: [String]] = [:]) {
         schemaVersion = 1; document = report.document; sha256 = report.sha256
         self.decisions = report.findings.reduce(into: [:]) { result, finding in
             result[finding.contentKey, default: []].append((decisions[finding.id] ?? .pending).rawValue)
         }
+        let byKey = report.findings.reduce(into: [String: [String]]()) { result, finding in
+            if let entries = conflicts[finding.id], !entries.isEmpty { result[finding.contentKey] = entries }
+        }
+        self.conflicts = byKey.isEmpty ? nil : byKey
     }
 
     /// Nome do livro: sem extensão (.docx e .pages são o mesmo livro), sem maiúsculas, Unicode composto.
@@ -605,7 +709,32 @@ struct BookMemory: Codable {
 
     /// Decisões (exceto Pendente) dos alertas idênticos. Chave repetida só herda, na ordem,
     /// quando a quantidade é a mesma antes e depois; senão é ambígua e fica pendente.
-    func inherited(for report: EditorialReport) -> [String: ReviewDecision] {
+    func inherited(for report: EditorialReport) -> [String: ReviewDecision] { inheritance(for: report).decisions }
+
+    /// Herança completa: pelo conteúdo do próprio alerta (e pela chave antiga); depois, para o alerta
+    /// que juntou outras ocorrências, pelo conteúdo de cada uma delas, sem escolher entre decisões
+    /// diferentes; e os conflitos já registrados para o mesmo alerta.
+    func inheritance(for report: EditorialReport) -> InheritedDecisions {
+        var result = InheritedDecisions(decisions: direct(for: report))
+        let present = Set(report.findings.map(\.contentKey))
+        for finding in report.findings {
+            if let old = conflicts?[finding.contentKey] { result.addConflict(finding.id, old) }
+            var absorbed: [(ReviewDecision, String)] = []
+            for item in finding.absorvidos ?? [] {
+                // A chave atual primeiro; a antiga só se a atual não estiver na memória. Uma chave que
+                // ainda é de outro alerta do relatório pertence a ele, não a este.
+                guard let key = finding.contentKeys(of: item).first(where: { decisions[$0] != nil }),
+                      !present.contains(key) else { continue }
+                absorbed += (decisions[key] ?? []).compactMap(ReviewDecision.init(rawValue:)).map { ($0, item.source) }
+            }
+            let (decision, conflict) = DecisionHistory.resolve(direct: result.decisions[finding.id], absorbed: absorbed)
+            if let decision { result.decisions[finding.id] = decision }
+            if let conflict { result.addConflict(finding.id, conflict) }
+        }
+        return result
+    }
+
+    private func direct(for report: EditorialReport) -> [String: ReviewDecision] {
         var result: [String: ReviewDecision] = [:]
         var matched = Set<String>()
         func take(_ groups: [String: [Finding]]) {

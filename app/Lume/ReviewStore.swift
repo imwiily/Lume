@@ -36,6 +36,9 @@ final class ReviewStore: ObservableObject {
     /// Último `falsos-positivos.json` gravado para o relatório aberto.
     @Published private(set) var falsePositivesURL: URL?
     @Published var decisions: [String: ReviewDecision] = [:]
+    /// ID do alerta → decisões anteriores divergentes do mesmo fenômeno (identidades que o motor juntou).
+    /// Mostradas no inspetor; ficam registradas mesmo depois da decisão do editor.
+    @Published private(set) var decisionConflicts: [String: [String]] = [:]
     @Published var selectedID: String?
     @Published var category = "Todas"
     @Published var decisionFilter = "Todas"
@@ -303,10 +306,13 @@ final class ReviewStore: ObservableObject {
         let loaded = try JSONDecoder().decode(EditorialReport.self, from: readData(url))
         try loaded.validate()
         var restored: [String: ReviewDecision] = [:]
+        var history = InheritedDecisions()
         let cache = try decisionURL(for: loaded)
         if manager.fileExists(atPath: cache.path) {
             do {
-                restored = try parseDecisions(readData(cache), for: loaded)
+                let file = try decisionFile(readData(cache), for: loaded)
+                restored = decisionsOf(file)
+                for (id, entries) in file.conflicts ?? [:] { history.addConflict(id, entries) }
             } catch {
                 // Preserva o arquivo problemático antes de permitir novos salvamentos.
                 let backup = cache.deletingPathExtension().appendingPathExtension("recuperacao-\(UUID().uuidString).json")
@@ -316,11 +322,15 @@ final class ReviewStore: ObservableObject {
         }
         var inherited = 0
         if restored.isEmpty, !manager.fileExists(atPath: cache.path) {
-            restored = inheritedDecisions(for: loaded)
+            let fromEdits = inheritedDecisions(for: loaded)
+            restored = fromEdits.decisions
+            for (id, entries) in fromEdits.conflicts { history.addConflict(id, entries) }
             // Edições feitas fora do Lume (ou só salvar de novo) mudam o SHA-256: o livro, pelo
             // nome do arquivo, devolve as decisões dos alertas idênticos pelo conteúdo.
             if let book = bookMemory(for: loaded) {
-                restored.merge(book.inherited(for: loaded)) { fromEdits, _ in fromEdits }
+                let fromBook = book.inheritance(for: loaded)
+                restored.merge(fromBook.decisions) { fromEdits, _ in fromEdits }
+                for (id, entries) in fromBook.conflicts { history.addConflict(id, entries) }
             }
             inherited = restored.count
         }
@@ -330,10 +340,14 @@ final class ReviewStore: ObservableObject {
         carriedDecisions = nil
         if let carry {
             let before = restored.values.filter { $0 != .pending }.count
-            restored = carry.merged(into: restored, for: loaded)
+            let merged = carry.merge(into: restored, for: loaded)
+            restored = merged.decisions
+            for (id, entries) in merged.conflicts { history.addConflict(id, entries) }
             carried = restored.values.filter { $0 != .pending }.count - before
         }
+        let ids = Set(loaded.findings.map(\.id))
         report = loaded; reportURL = url; decisions = restored
+        decisionConflicts = history.conflicts.filter { ids.contains($0.key) }
         falsePositivesURL = falsePositivesFile(next: url).flatMap { manager.fileExists(atPath: $0.path) ? $0 : nil }
         editLog = readEditLog(loaded.sha256)
         analysisStages = loaded.metadata.stages ?? []
@@ -346,13 +360,16 @@ final class ReviewStore: ObservableObject {
         hasUnsavedDecisions = false
         let counts = ReviewTally(findings: loaded.findings, decision: { restored[$0.id] ?? .pending })
         status = "\(counts.pending) pendências e \(counts.observations) observações. Avalie as pendências no contexto."
-        if inherited > 0 || carried > 0 {
+        if inherited > 0 || carried > 0 || !decisionConflicts.isEmpty {
             try autosave()
             status = "\(counts.pending) pendências e \(counts.observations) observações. \(inherited + carried) decisões mantidas nos alertas que não mudaram desde a análise anterior."
         }
         if let carry {
             let kept = restored.values.filter { $0 != .pending }.count
             status = "Reanálise concluída: \(counts.pending) pendências e \(counts.observations) observações; \(kept) de \(carry.byID.count) marcações anteriores mantidas nos alertas que continuam no texto."
+        }
+        if !decisionConflicts.isEmpty {
+            status += " \(decisionConflicts.count) alerta(s) com decisões anteriores divergentes: veja no inspetor."
         }
     }
 
@@ -415,9 +432,9 @@ final class ReviewStore: ObservableObject {
 
     /// Depois de correções feitas pelo Lume, a nova análise mantém as decisões dos alertas
     /// idênticos (mesmo ID: mesmo parágrafo, texto, regra e trecho). Nada é herdado por aproximação.
-    private func inheritedDecisions(for report: EditorialReport) -> [String: ReviewDecision] {
+    private func inheritedDecisions(for report: EditorialReport) -> InheritedDecisions {
         guard let folder = try? supportDirectory("Edicoes"),
-              let files = try? manager.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil) else { return [:] }
+              let files = try? manager.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil) else { return InheritedDecisions() }
         let decoder = JSONDecoder(); decoder.dateDecodingStrategy = .iso8601
         let ids = Set(report.findings.map(\.id))
         for file in files where file.pathExtension == "json" {
@@ -425,13 +442,24 @@ final class ReviewStore: ObservableObject {
                   log.atual == report.sha256, log.origem != report.sha256,
                   let source = try? supportDirectory("Decisoes").appendingPathComponent(log.origem + ".json"),
                   let previous = try? JSONDecoder().decode(DecisionFile.self, from: readData(source)) else { continue }
-            return previous.decisions.reduce(into: [:]) { result, entry in
+            var result = InheritedDecisions(decisions: previous.decisions.reduce(into: [:]) { result, entry in
                 if ids.contains(entry.key), let value = ReviewDecision(rawValue: entry.value), value != .pending {
                     result[entry.key] = value
                 }
+            })
+            for (id, entries) in previous.conflicts ?? [:] where ids.contains(id) { result.addConflict(id, entries) }
+            // O alerta que juntou outras ocorrências consulta também o ID de cada uma delas.
+            for finding in report.findings {
+                let absorbed = (finding.absorvidos ?? []).compactMap { item in
+                    previous.decisions[item.id].flatMap(ReviewDecision.init(rawValue:)).map { ($0, item.source) }
+                }
+                let (decision, conflict) = DecisionHistory.resolve(direct: result.decisions[finding.id], absorbed: absorbed)
+                if let decision { result.decisions[finding.id] = decision }
+                if let conflict { result.addConflict(finding.id, conflict) }
             }
+            return result
         }
-        return [:]
+        return InheritedDecisions()
     }
 
     private func confirmFirstEdit(_ document: URL, backup: URL) -> Bool {
@@ -548,7 +576,8 @@ final class ReviewStore: ObservableObject {
 
     func reanalyze() {
         guard canReanalyze, let report else { return }
-        carriedDecisions = CarriedDecisions(report: report, decisions: decisions, selectedID: selectedID)
+        carriedDecisions = CarriedDecisions(report: report, decisions: decisions, conflicts: decisionConflicts,
+                                            selectedID: selectedID)
         analyze()
     }
 
@@ -851,7 +880,8 @@ final class ReviewStore: ObservableObject {
     private func payload() throws -> Data {
         guard let report = report else { throw FonteError.message("Abra um relatório primeiro.") }
         let file = DecisionFile(schemaVersion: 1, sha256: report.sha256, document: report.document,
-                                decisions: decisions.mapValues(\.rawValue))
+                                decisions: decisions.mapValues(\.rawValue),
+                                conflicts: decisionConflicts.isEmpty ? nil : decisionConflicts)
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
         return try encoder.encode(file)
@@ -861,7 +891,8 @@ final class ReviewStore: ObservableObject {
         guard let report = report else { return }
         try payload().write(to: decisionURL(for: report), options: .atomic)
         // O livro só serve às próximas análises: uma falha nele não invalida a decisão já salva.
-        try? BookMemory(report: report, decisions: decisions).encoded().write(to: bookURL(report.document), options: .atomic)
+        try? BookMemory(report: report, decisions: decisions, conflicts: decisionConflicts).encoded()
+            .write(to: bookURL(report.document), options: .atomic)
         hasUnsavedDecisions = false
     }
 
@@ -892,6 +923,10 @@ final class ReviewStore: ObservableObject {
         if counts.pendingOpen > 0 || counts.observationsOpen > 0 {
             lines.append("Ficam sem decisão \(counts.pendingOpen) pendência(s) e \(counts.observationsOpen) observação(ões); isso fica registrado.")
         }
+        let divergent = report.findings.filter { decisionConflicts[$0.id] != nil && decision(for: $0) == .pending }.count
+        if divergent > 0 {
+            lines.append("\(divergent) alerta(s) com decisões anteriores divergentes continuam sem decisão.")
+        }
         lines.append("O encerramento guarda a data, a versão do motor e a versão da política. Ele indica que o processo de revisão terminou, não que o texto não tem erros.")
         alert.informativeText = lines.joined(separator: "\n\n")
         alert.addButton(withTitle: "Encerrar revisão")
@@ -905,11 +940,19 @@ final class ReviewStore: ObservableObject {
     }
 
     private func parseDecisions(_ data: Data, for report: EditorialReport) throws -> [String: ReviewDecision] {
+        decisionsOf(try decisionFile(data, for: report))
+    }
+
+    private func decisionFile(_ data: Data, for report: EditorialReport) throws -> DecisionFile {
         let file = try JSONDecoder().decode(DecisionFile.self, from: data)
         guard file.schemaVersion == 1, file.sha256 == report.sha256 else {
             throw FonteError.message("As decisões pertencem a outra versão do manuscrito.")
         }
-        return file.decisions.reduce(into: [:]) { result, entry in
+        return file
+    }
+
+    private func decisionsOf(_ file: DecisionFile) -> [String: ReviewDecision] {
+        file.decisions.reduce(into: [:]) { result, entry in
             if let value = ReviewDecision(rawValue: entry.value) { result[entry.key] = value }
         }
     }

@@ -12,7 +12,7 @@ Os manuscritos são somente lidos. A sequência Linguístico → Morfossintátic
 | `verbo.py` | Núcleo de identificação verbal com três operações distintas: `certamente_verbo` (para alertar sobre um verbo), `pode_ser_verbo` (para se abster antes de dizer “sem verbo”) e `ha_forma_verbal` (guarda de presença). Os módulos de regras usam este núcleo; o léxico (`lexicon.py`) só fornece os dados |
 | `segments.py` | Núcleo de segmentação entre fala e narração: papel de cada caractere (narração, diálogo, pensamento, sinal, título), percurso das aspas entre parágrafos, travessões e hífen de diálogo, verificações de abertura de fala e de inciso. `classify` (leitura atual) e `analysis.narrative_masks` (leitura antiga, usada nos fechamentos de aspas da pontuação de diálogo) são montados com as mesmas peças; as diferenças entre elas estão registradas no plano da estabilização |
 | `elocucao.py` | Verbos de fala, pensamento e percepção numa só fonte: a categoria de cada verbo (`CATEGORIAS`) e os perfis que cada regra usa (`INCISO`, `PEDEM_QUE`, `RELATO`, `COMENTARIO_DO_NARRADOR`, `NARRADOR_ANUNCIA`, `ATESTA`), sem unir perfis; reconhecimento pelo lema ou pela forma escrita (radical + terminação). Não decide pontuação nem tempo: só diz se o verbo pertence ao perfil |
-| `deduplicacao.py` | Deduplicação entre detectores: quando duas fontes apontam o mesmo trecho, qual ocorrência aparece (LanguageTool × regras linguísticas, gramática × LanguageTool, tempo verbal × coerência temporal, mesmo ID entre etapas, Auditoria × anteriores). Não é supressão linguística, que fica em cada regra; a precedência interna de um detector fica nele |
+| `deduplicacao.py` | Deduplicação entre detectores: FONTE × LanguageTool só por família de fenômeno, trecho em comum e mesma correção, com a ocorrência absorvida registrada na principal; tempo verbal × coerência temporal, mesmo ID entre etapas e Auditoria × anteriores. Não é supressão linguística, que fica em cada regra; a precedência interna de um detector fica nele |
 | `tempo.py` | Núcleo de tempo e modo: morfologia (terminações do condicional e do imperfeito do subjuntivo, imperfeito, mais-que-perfeito composto), duas classificações estritas com políticas distintas (`tempo_estrito` para as relações temporais; `tempo_narrativo` para a regra de tempo verbal) e a recuperação (`tempo_recuperado`, `passado_so_no_lexico`, `verbo_unico_da_frase`). Não decide incoerência: relações e planos temporais ficam em `temporal.py` |
 | `grammar.py` | Crase, homófonos, concordância, regência, vírgula entre sujeito e verbo, correlação de tempos, frase cortada e locuções (etapa Morfossintática) |
 | `languagetool.py` | Corretor gramatical LanguageTool local: filtros, falas e servidor embutido |
@@ -154,6 +154,20 @@ terminar ([visão](visao.md#ocorrência-pendência-e-encerramento)).
   decisões (tempo verbal da narração, diálogo contextual) são editoriais.
 - **Compatibilidade:** os campos se somam ao contrato. Relatório antigo, sem destino, é lido
   como hoje: tudo pendência, nada impeditivo. Os IDs não mudam, então as decisões continuam.
+- **Deduplicação FONTE × LanguageTool** (`fonte/fonte/deduplicacao.py`, depois de todas as etapas e
+  antes da política):
+  - **Critério:** só se juntam alertas da mesma família (crase, pontuação duplicada, espaçamento,
+    maiúscula inicial, palavra duplicada), com trecho em comum **e** a mesma correção do
+    parágrafo. Trecho em comum não basta; sem correção comparável, os dois ficam.
+  - **Principal:** definido família por família; hoje é o FONTE nas cinco, porque a identidade fica
+    igual com e sem o LanguageTool. Ele mantém `id`, `rule` e `classe`, e ganha `detectores` (as
+    origens) e `absorvidos` (ID, regra, classe, categoria, origem e trecho de cada ocorrência
+    juntada). `metadata.deduplicacao` conta as absorvidas.
+  - **Medições:** a absorvida não soma amostra a nenhuma classe.
+  - **App:** a memória editorial consulta primeiro a identidade do próprio alerta e depois as
+    absorvidas (pelo ID e pela chave de conteúdo, inclusive a antiga). Decisões divergentes não são
+    escolhidas: viram conflito, mostrado no inspetor e gravado (`conflitos`) no arquivo de decisões
+    e na memória do livro. A decisão do próprio alerta nunca é sobrescrita.
 - **Encerramento:** o app oferece **Encerrar revisão** quando nenhum impeditivo está sem decisão
   e registra observações e pendências abertas, data, versão do motor e versão da política. O
   estado se chama “Revisão concluída”, nunca “sem erros”.

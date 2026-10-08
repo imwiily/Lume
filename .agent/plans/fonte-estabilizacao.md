@@ -25,8 +25,9 @@ Restrições:
 - [x] Fase 3 — núcleo de tempo e modo, só consolidação (08/10; commit `e0159ca`).
 - [x] Fase 4 — segmentação entre fala e narração, só consolidação (08/10; commit `f01bd9e`).
 - [x] Fase 5 — verbos de fala, pensamento e percepção, só consolidação (08/10; commit `30549b0`).
-- [x] Fase 6a — deduplicação centralizada, sem mudança de comportamento (08/10). Aguarda o autor.
-- [ ] Fase 6b — deduplicação controlada: levantamento e estratégia prontos, aguardam aprovação.
+- [x] Fase 6a — deduplicação centralizada, sem mudança de comportamento (08/10; commit `02888c9`).
+- [x] Fase 6b — deduplicação por família com preservação das decisões (08/10). Aguarda o autor.
+- [ ] Fase 6b — campos originais do LanguageTool e tolerância à indisponibilidade (commits à parte).
 - [ ] Fases 7–8.
 - [ ] Pendente, fase com mudança de comportamento: `imperfeito` (problema 1 da Fase 3).
 
@@ -1408,3 +1409,81 @@ imperfeito do subjuntivo. Fica para uma fase controlada com mudança de comporta
      exige severidade de erro. Precisa de aprovação separada.
 6. **LT indisponível:** manter a interrupção explícita, ou seguir só com o FONTE e um aviso. É
    decisão do autor.
+
+### Fase 6b — execução, parte 1: deduplicação (08/10/2026)
+
+**Decisões do autor:**
+- **D1:** famílias aprovadas, com equivalência de fenômeno **e** de correção; sem precedência
+  universal; na dúvida, os dois alertas ficam.
+- **D2:** `detectores` e `absorvidos`, herança pela identidade principal e depois pelas absorvidas;
+  conflito registrado e mostrado, nunca escolhido.
+- **D3:** só os campos originais do LanguageTool; severidade, confiança, classe e destino iguais.
+- **D4:** o FONTE segue sem o LanguageTool indisponível, com a análise marcada como parcial.
+
+**Implementação:**
+- `deduplicacao.consolidar`, depois de todas as etapas e antes da política. Saem os dois filtros
+  por sobreposição (LT sob regra linguística, gramática sob LT).
+- Famílias (`FAMILIAS`) com as regras do FONTE e os IDs do LanguageTool 6.6, conferidos no servidor
+  embutido com frases de teste:
+
+  | Família | FONTE | LanguageTool | Principal |
+  |---|---|---|---|
+  | crase | `crase` | `CRASE_CONFUSION`, `CRASE_CONFUSION_2`, `ERROS_DE_CRASE_MARCOAGPINTO`, `SAIR_AS_RUAS` | FONTE |
+  | pontuação duplicada | `pontuacao_duplicada` | `DOUBLE_PUNCTUATION`, `DOUBLE_PUNCTUATION_XML` | FONTE |
+  | espaçamento | `espacamento` | `ESPACO_DUPLO`, `WHITESPACE_RULE`, `SPACE_BEFORE_PUNCTUATION`, `SPACE_BEFORE_PUNCTUATION2`, `COMMA_PARENTHESIS_WHITESPACE` | FONTE |
+  | maiúscula inicial | `capitalizacao_contextual` | `UPPERCASE_SENTENCE_START` | FONTE |
+  | palavra duplicada | `palavra_consecutiva` | `PORTUGUESE_WORD_REPEAT_RULE`, `WORD_REPEAT_RULE` | FONTE |
+
+- **Equivalência:**
+  - mesma família, trecho em comum e o mesmo texto corrigido do parágrafo;
+  - a palavra dobrada do FONTE, sem sugestão, tem correção implícita (ficar com uma palavra);
+  - “Dois pontos finais” (pode ser reticências) não tem correção comparável e nunca se junta.
+- **Precedência por família, com motivo registrado no código:** em todas, o FONTE mantém a mesma
+  identidade com e sem o LanguageTool. Não há medida específica de crase de nenhum dos lados
+  (`languagetool:gramatica` mistura fenômenos).
+- **Fenômenos diferentes no mesmo trecho ficam separados.** Exemplo conferido no servidor: em
+  “a a”, o LT propõe “à” (contração) e o FONTE aponta palavra dobrada.
+- **App:** campos opcionais `detectores` e `absorvidos` (validados: mesmo parágrafo e dentro do
+  texto). A herança segue esta ordem:
+  1. a identidade própria (ID e conteúdo, inclusive a chave antiga);
+  2. as absorvidas pelo ID (reanálise e edições pelo Lume);
+  3. as absorvidas pela chave de conteúdo (memória do livro).
+
+  Decisões divergentes não são escolhidas: viram conflito (`conflitos`, no arquivo de decisões e
+  na memória do livro), mostrado no inspetor, contado no status e lembrado no diálogo de
+  encerramento. A decisão própria nunca é sobrescrita. Os critérios de encerramento não mudam.
+
+**Diferenças nos 29 conjuntos** (contra a Fase 6a e a linha de base): **uma**, em B com o
+LanguageTool.
+
+| Campo | Antes | Depois |
+|---|---|---|
+| Ocorrência anterior | `f90940b991a9fb77`, LanguageTool `CRASE_CONFUSION`, classe `languagetool:gramatica`, pendência, provável erro, confiança média | absorvida em `absorvidos` (ID, regra, classe, origem e trecho preservados) |
+| Ocorrência principal | — (a crase do FONTE caía sob o LT) | `b59c213854d4c288`, `crase`, classe `crase`, pendência, provável erro, confiança alta: o mesmo ID, com os mesmos campos, de B sem LT |
+| Equivalência | — | família crase, mesmo trecho, a mesma correção (tirar o acento antes de verbo) |
+| Decisões | nenhuma salva para os dois IDs | herança simulada nos relatórios reais: decisão no LT antigo → principal (livro e reanálise); decisão própria preservada com conflito registrado |
+| Métricas | uma amostra possível para `languagetool:gramatica` | para `crase`; destinos iguais (4 pendências, 14 observações) |
+
+Metadados: `deduplicacao` (1 absorvida). As contagens por etapa descontam a absorvida
+(linguística 4 → 3); a morfossintática ganha a crase (2 → 3).
+Os outros 28 conjuntos ficam idênticos. Herança real igual: A 28 e 28; C 15 e 17.
+
+**Testes:**
+- FONTE 487 (`test_deduplicacao.py`, 17 testes):
+  - equivalência: crase e espaço com trechos parciais, palavra dobrada;
+  - mesmo trecho com outro fenômeno, outra correção, sem correção, sem caractere comum;
+  - consolidação com identidade, classe e registro;
+  - pipeline com LT simulado: mesmo fenômeno, outro fenômeno no mesmo trecho, mesma identidade com
+    e sem o LT.
+- Pacotes 45, contrato Python, Coerencia 25.
+- Swift: as 6 verificações anteriores e a nova `DeduplicationCheck`, que cobre:
+  - herança direta e por absorvida, inclusive pela chave antiga;
+  - decisões compatíveis, incompatíveis e direta divergente;
+  - persistência do conflito;
+  - fenômenos diferentes, reanálise e arquivos antigos.
+- Build do app.
+
+**Pendências registradas:**
+- A severidade automática “provável erro” do LT (D3) será revista em fase própria.
+- A relação temporal que absorve o tempo verbal (Fase 6a) ainda não registra `absorvidos`. É
+  FONTE × FONTE, e o alerta absorvido nunca apareceu, então não há decisão a perder.

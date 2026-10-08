@@ -85,6 +85,21 @@ do Lume passa a ser interromper o editor só com boa razão e deixar o manuscrit
 - **Regra `tratamento` retirada** por decisão do autor (nasceu de um caso isolado). A chave
   continua aceita nas configurações salvas, sem efeito.
 
+Estabilização do FONTE, Fase 6b (deduplicação): FONTE e LanguageTool só se juntam quando apontam o
+mesmo fenômeno.
+- **Critério:** mesma família (crase, pontuação duplicada, espaçamento, maiúscula inicial, palavra
+  duplicada), trecho em comum e a mesma correção. Antes, bastava tocar o mesmo trecho, e a
+  precedência se invertia entre as etapas.
+- **Identidade:** o alerta principal mantém ID, regra e classe e registra as fontes (`detectores`)
+  e as ocorrências juntadas (`absorvidos`). O app herda pelas identidades juntadas e não escolhe
+  entre decisões divergentes: mostra o conflito no inspetor e o guarda junto das decisões.
+- **Resultado:**
+  - nos 29 conjuntos, muda um alerta, em B com LanguageTool: a crase do FONTE passa a ser a
+    principal e absorve a do LanguageTool (mesmo trecho, mesma correção). O alerta tem o mesmo ID
+    que em B sem LanguageTool;
+  - destinos, decisões herdadas e as demais 28 análises não mudam.
+- Verificação nova: `tests/DeduplicationCheck.swift`.
+
 Estabilização do FONTE, Fase 6a: deduplicação entre detectores num só lugar
 (`deduplicacao.py`), sem mudar nenhum alerta.
 - **Mecanismos reunidos:**

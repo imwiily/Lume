@@ -65,7 +65,7 @@ def run(blocks, model_loader, *, settings=None, tense="auto", mode="ambas",
             from .languagetool import check
             extra, extra_warnings = check(blocks, port, options["italic_thoughts"], settings=options,
                                           avancar=lambda f, t: avancar(f, t, "parágrafos"))
-            out.extend(deduplicacao.languagetool_sob_regras_linguisticas(extra, out))
+            out.extend(extra)
             warnings.extend(extra_warnings)
         else:
             warnings.append("Revisão linguística sem o corretor gramatical local (LanguageTool): ortografia geral e boa parte da concordância não foram verificadas. As regras do FONTE cobrem apenas classes específicas.")
@@ -110,7 +110,7 @@ def run(blocks, model_loader, *, settings=None, tense="auto", mode="ambas",
                                           "local_narrative_tense_shift"]
         if any(rules[r] for r in GRAMMAR_RULES):
             from .grammar import analyze as grammar
-            out.extend(deduplicacao.gramatica_sob_languagetool(grammar(blocks, language_model, options), findings))
+            out.extend(grammar(blocks, language_model, options))
         return out
 
     def editorial():
@@ -221,6 +221,13 @@ def run(blocks, model_loader, *, settings=None, tense="auto", mode="ambas",
             emit("failed")
             raise
 
+    # FONTE × LanguageTool: só o mesmo fenômeno, com a mesma correção, vira uma ocorrência.
+    findings, absorvidas = deduplicacao.consolidar(findings)
+    if absorvidas:
+        for stage in stages:
+            stage["finding_count"] -= absorvidas.get(stage["module"], 0)
+        meta["deduplicacao"] = {"absorvidos": sum(absorvidas.values()),
+                                "criterio": "mesma família, trecho em comum e mesma correção"}
     from .editorial.common import evidence
     positions = {b.number: i for i, b in enumerate(blocks)}
     for item in findings:
