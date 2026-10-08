@@ -182,6 +182,8 @@ def registro(item, nome):
              "confidence": item.get("confidence"), "familia": nome}
     if item.get("related"):
         dados["related"] = item["related"]
+    if item.get("languagetool"):
+        dados["languagetool"] = item["languagetool"]
     return dados
 
 

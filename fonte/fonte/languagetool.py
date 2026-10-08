@@ -371,7 +371,10 @@ def check(blocks, port=8081, protect_italics=True, settings=None, avancar=None):
             item.update(rule="languagetool", category_code="grammar",
                         suggestion=replacements[0] if replacements else None, suggestion_kind="possible",
                         confidence="alta" if spelling else "média",
-                        confidence_score=.9 if spelling else .75)
+                        confidence_score=.9 if spelling else .75,
+                        # Como o LanguageTool informou; não decide severidade, confiança, classe nem destino.
+                        languagetool={"regra": rule.get("id"), "categoria": rule.get("category", {}).get("id"),
+                                      "tipo": rule.get("issueType")})
             # Termo desconhecido e recorrente: pode ser vocabulário da obra; a sugestão do corretor
             # (uma palavra comum parecida) não é aceita como certa.
             # Sugestão a duas letras ou mais da palavra (“taser” → “fazer”): erro de digitação costuma ficar a

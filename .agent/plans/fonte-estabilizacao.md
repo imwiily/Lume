@@ -1487,3 +1487,27 @@ Os outros 28 conjuntos ficam idênticos. Herança real igual: A 28 e 28; C 15 e 
 - A severidade automática “provável erro” do LT (D3) será revista em fase própria.
 - A relação temporal que absorve o tempo verbal (Fase 6a) ainda não registra `absorvidos`. É
   FONTE × FONTE, e o alerta absorvido nunca apareceu, então não há decisão a perder.
+
+### Fase 6b — execução, parte 2: categoria original do LanguageTool (08/10/2026)
+
+- **Mudança:** cada alerta do LT leva `languagetool: {regra, categoria, tipo}`, como o servidor
+  informou; a ocorrência absorvida também o guarda. Severidade, confiança, classe e destino não
+  mudam.
+- **Diferenças nos 29 conjuntos:** só o campo novo, em 16 alertas do LT (B 3, C 2, X 11) e no
+  absorvido de B. Mais nada. Herança igual: A 28 e 28; C 15 e 17.
+- **Para a revisão futura da severidade (D3, sem mudança agora).** Nos relatórios atuais, todo
+  alerta do LT é “provável erro”:
+
+  | Tipo | Categoria do LT | Alertas | Classe | Confiança | Destino |
+  |---|---|---|---|---|---|
+  | `misspelling` | `TYPOS` | 9 | `languagetool:ortografia` | baixa | informação |
+  | `typographical` | `TYPOGRAPHY`, `PUNCTUATION` | 4 | `languagetool:gramatica` | média | pendência |
+  | `uncategorized` | `PUNCTUATION`, `MISC` | 2 | `languagetool:gramatica` | média | pendência |
+  | `grammar` | `GRAMMAR` | 1 | `languagetool:gramatica` | média | pendência |
+
+  - Seis dos sete alertas de `languagetool:gramatica` são tipografia, pontuação ou sem categoria.
+    A classe mistura fenômenos, e a medição dela (60% em 30 decisões) também.
+  - A ortografia é reconhecida por dois critérios diferentes: a confiança usa o tipo
+    (`misspelling`/`TYPOS`); a classe usa o nome da regra (`MORFOLOGIK`/`SPELLING`). Hoje coincidem.
+- **Testes:** FONTE 488 (`CategoriaOriginalTests`: o campo existe; severidade, confiança e classe
+  ficam iguais depois do contrato e da política).

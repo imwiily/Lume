@@ -85,6 +85,10 @@ do Lume passa a ser interromper o editor só com boa razão e deixar o manuscrit
 - **Regra `tratamento` retirada** por decisão do autor (nasceu de um caso isolado). A chave
   continua aceita nas configurações salvas, sem efeito.
 
+Estabilização do FONTE, Fase 6b (LanguageTool): cada alerta do LanguageTool registra a regra, a
+categoria e o tipo originais (`languagetool`). Severidade, confiança, classe e destino não mudam. A
+revisão da severidade automática “provável erro” fica registrada para uma fase própria.
+
 Estabilização do FONTE, Fase 6b (deduplicação): FONTE e LanguageTool só se juntam quando apontam o
 mesmo fenômeno.
 - **Critério:** mesma família (crase, pontuação duplicada, espaçamento, maiúscula inicial, palavra

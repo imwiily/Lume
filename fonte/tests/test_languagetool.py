@@ -375,3 +375,24 @@ class PlainExplanationTests(unittest.TestCase):
                                    ["fazer"], "Encontrado possível erro de ortografia.")
         self.assertIn("itálico", simple)
         self.assertEqual(term, "ortografia.")
+
+
+class CategoriaOriginalTests(unittest.TestCase):
+    """Fase 6b (D3): a categoria e o tipo do LanguageTool ficam registrados à parte; severidade,
+    confiança, classe e destino não mudam por causa deles."""
+
+    def test_original_category_is_kept_apart(self):
+        from fonte.contracts import Manuscript, standardize
+        from fonte.politica import aplicar
+        text = "Ela parou,, e olhou a jannela."
+        blocks = [Block(1, text)]
+        results, _ = check(blocks, {text: [match(text, ",,", "DOUBLE_PUNCTUATION", "typographical", "PUNCTUATION", [","]),
+                                           match(text, "jannela", "MORFOLOGIK_RULE_PT_BR", "misspelling", "TYPOS", ["janela"])]})
+        self.assertEqual([r["languagetool"] for r in results],
+                         [{"regra": "DOUBLE_PUNCTUATION", "categoria": "PUNCTUATION", "tipo": "typographical"},
+                          {"regra": "MORFOLOGIK_RULE_PT_BR", "categoria": "TYPOS", "tipo": "misspelling"}])
+        padrao = standardize(results, "linguistic", Manuscript.capture(blocks))
+        mesa, _ = aplicar(padrao)
+        self.assertEqual([(f["severity"], f["confidence"], f["classe"]) for f in mesa],
+                         [("probable_error", "média", "languagetool:gramatica"),
+                          ("probable_error", "alta", "languagetool:ortografia")])
