@@ -19,7 +19,8 @@ Restrições:
 - [x] Etapa 3 — plano de estabilização (07/10; aguarda aprovação, nada implementado).
 - [x] Fase 0 — linha de base e comparação (07/10).
 - [x] Fase 1 — identidade, regra e classe (07/10). Parada para revisão do autor.
-- [ ] Fases 2a–8.
+- [x] Fase 2a — núcleo verbal, sem mudança de comportamento (07/10). Aguarda o autor.
+- [ ] Fases 2b–8.
 
 ## Fontes de evidência usadas
 
@@ -715,3 +716,70 @@ antigos dessas regras continuam legíveis.
 - **Limitação conhecida:** um motor externo anterior a esta versão recusa uma configuração que traga
   `residuo_edicao`. É o mesmo comportamento de quando entraram as regras gramaticais; o app usa o
   motor embutido da mesma versão.
+
+
+### Fase 2a — núcleo de identificação verbal (07/10/2026)
+
+**Núcleo novo, `fonte/fonte/verbo.py`.** Os corpos foram movidos por cópia exata e renomeados:
+
+| Operação | Origem | Pergunta |
+|---|---|---|
+| `certamente_verbo` | `lexicon.finite` | identificação positiva |
+| `pode_ser_verbo` + `posicao_de_verbo` | `analysis.verbo_finito_possivel` | identificação conservadora |
+| `ha_forma_verbal` | `grammar.verbal` | verificação de presença |
+
+Ingredientes:
+- `model_finite`: leitura do modelo, com `Fin` ou modo;
+- `conjugado_pelo_modelo`: só `Fin`, novo nome para as verificações diretas que existiam;
+- `so_verbo_no_lexico`: unifica dois `only_finite`;
+- `nominal_context`, `after_article`, `NOMINAL_DETERMINERS`, `TOTALIZERS`;
+- `RELATIVOS`: uma definição só, importada por `analysis`.
+
+`indicative_tense` mudou para o núcleo, por depender da identificação; o tempo será unificado na
+Fase 3. `lexicon.py` fica só com os dados do léxico.
+
+**Ligação de cada uso** (a semântica anterior é a regra):
+- **`certamente_verbo`:** todos os usos de `finite` em `analysis` (estrutura, elipse, subordinada,
+  pontuação de diálogo, resíduo), em `grammar` (vírgula com relativa, frase cortada, “Que” depois
+  de reticências, “embora”) e em `temporal` (`form`, sujeito, coordenação, `sole_verb`,
+  `event_tense`).
+- **`pode_ser_verbo`:** estrutura (“sem verbo”), `aspas_de_destaque` e `fecha_oracao_dependente`
+  (guarda do resíduo de edição).
+- **`ha_forma_verbal`:** guardas de homófonos (“porque”, “mais”).
+- **`conjugado_pelo_modelo`:** concordância (laço principal e verbo anterior na oração), pronome reto
+  como objeto, vírgula entre sujeito e verbo, `present_main`.
+- **`model_finite`:** `form`, `indicative_tense`, tempo verbal (passado só no léxico) e diálogo
+  contextual (primeiro verbo pelo modelo).
+
+**Combinações próprias mantidas como estavam** (não cabem limpas numa das três operações; ficam
+documentadas para a Fase 2b):
+- `grammar.relative_subject_comma`: `certamente_verbo(v) or (léxico finito and etiqueta verbal)`.
+- `grammar.locutions` (“embora”): `certamente_verbo(t) or etiqueta verbal`.
+- `grammar.present_main.only_finite`: `so_verbo_no_lexico(t)` e etiqueta não nominal.
+- `temporal.event_tense`: verifica `"Fin" not in verb_form` dentro da recuperação de tempo
+  (classificação de tempo, Fase 3).
+- `pronome reto como objeto`: `token.pos_ == "VERB" and conjugado_pelo_modelo(token)` (sem AUX,
+  como antes).
+
+**Comportamentos estranhos vistos na sondagem, não corrigidos** (candidatos à Fase 2b, a medir):
+- “começa” em “Uma nova era começa.” não passa em `certamente_verbo`, embora seja verbo;
+- “coceira” passa em `ha_forma_verbal` por uma entrada do léxico.
+
+**Testes:**
+- `fonte/tests/test_verbo.py` (6), de caracterização:
+  - o certo implica o possível;
+  - o possível sem o certo, na posição do verbo;
+  - a presença sem certeza;
+  - as três concordam nos verbos claros;
+  - definição única, com os módulos usando o núcleo.
+- Quatro testes antigos só trocaram o caminho de importação (`fonte.lexicon.finite` →
+  `fonte.verbo.certamente_verbo`; `nominal_context`). Nenhuma expectativa mudou.
+
+**Evidências:**
+- 29 conjuntos idênticos a `9f0f6d8` (código 0) e **byte a byte iguais à Fase 1**, inclusive
+  mensagens e sugestões;
+- herança real igual (A 28, A com LT 28, C 15, C com LT 17);
+- FONTE 427, pacotes 41, contrato Python, Coerencia 25;
+- Swift: contrato (relatório novo e antigo), decisões por livro, mesa, falsos positivos,
+  encerramento;
+- build Debug.

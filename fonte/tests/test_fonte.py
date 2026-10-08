@@ -9,7 +9,7 @@ import spacy
 from docx import Document
 
 from fonte.analysis import analyze, narrative_masks
-from fonte.lexicon import finite
+from fonte.verbo import certamente_verbo as finite
 from fonte.cli import main
 from fonte.reader import Block, read_docx
 from fonte.languagetool import check, utf16_index

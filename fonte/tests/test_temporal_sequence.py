@@ -526,7 +526,7 @@ class KnownLimitsTests(unittest.TestCase):
         self.assertEqual(roles[text.index("disse")], "narracao")
 
     def test_noun_era_after_determiner(self):
-        from fonte.lexicon import finite
+        from fonte.verbo import certamente_verbo as finite
         for text in ["Uma era de ouro para a cidade.", "Nessa era distante e tranquila."]:
             with self.subTest(text=text):
                 self.assertFalse(any(finite(t) for t in self.nlp(text) if t.lower_ == "era"))

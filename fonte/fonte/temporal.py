@@ -9,7 +9,8 @@ import unicodedata
 
 from .analysis import DEPOIS_DE_PARAR, TERMINACOES, explicar, finding, lista_ou_rotulo
 from .editorial.common import evidence
-from .lexicon import FINITE, PAST, PRESENT, FUTURE, NONFINITE, NONVERB, flags, finite, model_finite
+from .lexicon import FINITE, PAST, PRESENT, FUTURE, NONFINITE, flags
+from .verbo import certamente_verbo, model_finite, so_verbo_no_lexico
 from .segments import classify, spans
 
 TIME_SHIFTS = {"hoje", "agora", "atualmente", "amanhã", "ontem", "outrora", "antigamente",
@@ -27,7 +28,7 @@ IRREGULAR_IMPERFECT = {
 
 def form(token):
     """A grafia sozinha nunca desempata presente/pretérito nem decide o modo."""
-    if token.pos_ not in {"VERB", "AUX"} or not finite(token) or not model_finite(token):
+    if token.pos_ not in {"VERB", "AUX"} or not certamente_verbo(token) or not model_finite(token):
         return None
     value = flags(token.text)
     mood = token.morph.get("Mood")
@@ -92,7 +93,7 @@ def governs(root, token):
     if token.dep_ == "mark":
         return False  # Subordinante: abre outra oração.
     walk = token.head
-    while walk != root and walk.head != walk and walk.pos_ not in {"VERB", "AUX"} and not finite(walk):
+    while walk != root and walk.head != walk and walk.pos_ not in {"VERB", "AUX"} and not certamente_verbo(walk):
         walk = walk.head
     return walk == root
 
@@ -235,7 +236,7 @@ def misattached(conjunct):
     pendurou na oração errada (“abaixa para pegar a moeda, mas não encontrou nada”); a coordenação
     verdadeira é com a linha principal."""
     head = conjunct.head
-    finite_conjunct = finite(conjunct) and "Sub" not in conjunct.morph.get("Mood")
+    finite_conjunct = certamente_verbo(conjunct) and "Sub" not in conjunct.morph.get("Mood")
     return finite_conjunct and (bool(set(head.morph.get("VerbForm")) & {"Inf", "Ger"}) or "Sub" in head.morph.get("Mood"))
 
 
@@ -561,7 +562,7 @@ def sole_verb(token):
                      and all(t.pos_ in {"DET", "ADJ", "NUM"} for t in token.doc[sent.start:previous.i]))
     return ((token == first or after_subject)
             and any(t.is_alpha for t in token.doc[token.i + 1:sent.end])
-            and not any(finite(t) or form(t) for t in sent if t.i != token.i))
+            and not any(certamente_verbo(t) or form(t) for t in sent if t.i != token.i))
 
 
 def event_tense(token):
@@ -597,7 +598,7 @@ def event_tense(token):
     # Forma só verbal e finita no léxico (“Abri”, “Procuro”, “escorrem”): prevalece sobre a
     # etiqueta do modelo (nome, adjetivo ou até infinitivo). Só no início da frase, na raiz ou
     # no verbo pendurado na raiz nominal, onde o modelo erra; o léxico não lista todo substantivo.
-    only_finite = bool(lex & FINITE) and not lex & (NONVERB | NONFINITE)
+    only_finite = so_verbo_no_lexico(token)
     if value is not None or not lex & FINITE or (verb_form and "Fin" not in verb_form and not only_finite):
         return None
     first = next((t for t in token.sent if t.is_alpha), None)
@@ -606,7 +607,7 @@ def event_tense(token):
     if not exclusive and not sole_verb(token):
         if not any(c.dep_ in {"obj", "iobj"} for c in token.children):
             return None
-        if not (finite(token) or token.pos_ == "VERB"):
+        if not (certamente_verbo(token) or token.pos_ == "VERB"):
             return None
     if lex & PRESENT and not lex & (PAST | FUTURE):
         return "present"
@@ -847,7 +848,7 @@ def events(block, offset, doc, nlp, sentence_base, trace=None):
                         "subject": subject_key(token), "subject_gn": subject_features(token), "anchored": anchored(token),
                         "person": ("".join(token.morph.get("Person")), "".join(token.morph.get("Number"))),
                         "sentence": sentence_base + index})
-        if len(out) > before_count or any(finite(t) for t in sentence):
+        if len(out) > before_count or any(certamente_verbo(t) for t in sentence):
             verbal += 1
     events.verbal = verbal
     return out

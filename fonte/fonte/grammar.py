@@ -11,7 +11,8 @@ from dataclasses import asdict
 import re
 
 from .analysis import TERMINACOES, explicar, finding, forma_de_fala, lista_ou_rotulo, verbo_de_fala
-from .lexicon import FINITE, NONVERB, finite, flags
+from .lexicon import FINITE, NONVERB, flags
+from .verbo import certamente_verbo, conjugado_pelo_modelo, ha_forma_verbal, so_verbo_no_lexico
 from .segments import classify
 
 PORQUE_PERGUNTA = explicar("Em pergunta, escreve-se separado: ‘Por que você saiu?’. Junto (‘porque’) é para responder "
@@ -82,15 +83,6 @@ class Lemmas:
     verbo finito pelo léxico, recupera o lema sem alterar o texto."""
     nlp = None
     cache = {}
-
-
-def verbal(token):
-    """Verbo conjugado pelo modelo ou, quando ele erra a classe, pelo léxico
-    (forma só verbal, sem leitura nominal): “É porque…”, “a fila só crescia”."""
-    if token.pos_ in {"VERB", "AUX"} and "Fin" in token.morph.get("VerbForm"):
-        return True
-    value = flags(token.text)
-    return bool(value & FINITE and not value & NONVERB)
 
 
 def verb_lemma(token):
@@ -254,7 +246,7 @@ def homophones(block, doc, emit):
         # O léxico confirma verbos que o modelo não marca no início da frase (“É porque…”).
         if (token.text == "porque" and "?" in doc.text[token.idx:token.sent.end_char]
                 and not etiqueta.search(doc.text[token.idx:token.sent.end_char])
-                and not any(verbal(t) for t in doc[token.sent.start:token.i])):
+                and not any(ha_forma_verbal(t) for t in doc[token.sent.start:token.i])):
             emit("homofonos", "Por que / porque", token.idx, token.idx + len(token.text), "probable_error", .85,
                  PORQUE_PERGUNTA, "por que")
         # “…, mais a fila não parava”: há verbo conjugado no mesmo trecho, antes
@@ -266,7 +258,7 @@ def homophones(block, doc, emit):
                 if t.is_punct or t.lower_ in {"que", "qual", "quem", "onde"}:
                     break
                 clause.append(t)
-            if any(verbal(t) for t in clause[2:]):
+            if any(ha_forma_verbal(t) for t in clause[2:]):
                 emit("homofonos", "Mas / mais", token.idx, token.idx + len(token.text), "probable_error", .8,
                      MAS_MAIS, cased(token.text, "mas"))
         # “Aonde ele está?” → “Onde”: ‘aonde’ exige verbo de movimento.
@@ -325,7 +317,7 @@ def agreement(block, doc, emit):
                       f"várias coisas depois: ‘{cased(verb.text, singular(verb.lower_))}’.", "verbo haver impessoal"),
              cased(verb.text, singular(verb.lower_)))
     for verb in doc:
-        if verb.pos_ not in {"VERB", "AUX"} or "Fin" not in verb.morph.get("VerbForm"):
+        if not conjugado_pelo_modelo(verb):
             continue
         head = verb.head if verb.dep_ in {"cop", "aux", "aux:pass"} else verb
         subject = next((c for c in head.children if c.dep_ in {"nsubj", "nsubj:pass"}), None)
@@ -348,7 +340,7 @@ def agreement(block, doc, emit):
             if t.is_punct or t.pos_ in {"CCONJ", "SCONJ"} or t.lower_ == "que":
                 break
             clause.append(t)
-        if any(t.pos_ in {"VERB", "AUX"} and "Fin" in t.morph.get("VerbForm") for t in clause):
+        if any(conjugado_pelo_modelo(t) for t in clause):
             continue
         # Plural em português termina em -s; um nome próprio marcado como plural não conta.
         if subject.pos_ == "NOUN" and number(subject) == "Plur" and subject.lower_.endswith("s") and verb_number == "Sing":
@@ -422,7 +414,7 @@ def regency(block, doc, emit):
         # “Ajudou ela a descer” → “ajudou-a”. Incisos de fala (“perguntou ela”) e
         # verbos sem objeto (“chegou ela”) têm o pronome como sujeito posposto.
         if (nxt.lower_ in {"ele", "ela", "eles", "elas"} and nxt.dep_ == "obj" and nxt.head == token
-                and token.pos_ == "VERB" and "Fin" in token.morph.get("VerbForm")
+                and token.pos_ == "VERB" and conjugado_pelo_modelo(token)
                 and not verbo_de_fala(token) and token.lemma_.casefold() not in INTRANSITIVE
                 and not block.text[:token.idx].rstrip().endswith(("—", "–"))):
             clitic = {"ele": "o", "ela": "a", "eles": "os", "elas": "as"}[nxt.lower_]
@@ -462,13 +454,13 @@ def relative_subject_comma(doc, emit):
             if comma.text != "," or k + 1 >= len(tokens):
                 continue
             verb = tokens[k + 1]
-            if not (finite(verb) or (flags(verb.text) & FINITE and verb.pos_ in {"VERB", "AUX"})) or verb_de_fala_form(verb):
+            if not (certamente_verbo(verb) or (flags(verb.text) & FINITE and verb.pos_ in {"VERB", "AUX"})) or verb_de_fala_form(verb):
                 continue
             start = next((j + 1 for j in range(k - 1, -1, -1) if tokens[j].is_punct), 0)
             segment = tokens[start:k]
             rel = next((j for j, t in enumerate(segment) if t.lower_ in RELATIVE_OPENERS), None)
             if (rel is None or rel < 2 or segment[0].pos_ != "DET" or segment[0].lower_ in {"todo", "toda"}
-                    or not any(finite(t) for t in segment[rel + 1:])):
+                    or not any(certamente_verbo(t) for t in segment[rel + 1:])):
                 continue
             noun = segment[rel - 1]
             plural = noun.lower_.endswith("s")
@@ -514,7 +506,7 @@ def elided_subject_plural(doc, emit):
 
 def subject_comma(block, doc, emit):
     for verb in doc:
-        if verb.pos_ not in {"VERB", "AUX"} or "Fin" not in verb.morph.get("VerbForm"):
+        if not conjugado_pelo_modelo(verb):
             continue
         head = verb.head if verb.dep_ in {"cop", "aux", "aux:pass"} else verb
         subject = next((c for c in head.children if c.dep_ in {"nsubj", "nsubj:pass"}), None)
@@ -563,20 +555,19 @@ def present_main(sentence, exclude):
     mais próximo, e não a raiz: numa frase com fala e narração, ou com outra oração no meio (“numa
     sala que, se soubesse antes, nunca teria aberto”), a subordinada se liga ao verbo vizinho."""
     from .temporal import event_tense
-    from .lexicon import NONFINITE, PAST, PRESENT
+    from .lexicon import PAST, PRESENT
     first, last = min(exclude), max(exclude)
 
     def only_finite(t):
-        value = flags(t.text)
-        return (bool(value & FINITE) and not value & (NONVERB | NONFINITE)
-                and t.pos_ not in {"NOUN", "PROPN", "PRON", "DET", "ADP", "CCONJ", "SCONJ", "NUM"})
+        # Forma só verbal no léxico, sem etiqueta nominal do modelo (combinação própria desta regra).
+        return so_verbo_no_lexico(t) and t.pos_ not in {"NOUN", "PROPN", "PRON", "DET", "ADP", "CCONJ", "SCONJ", "NUM"}
 
     def crosses_dash(t):
         lo, hi = (t.i, first) if t.i < first else (last, t.i)
         return any(x.text in {"—", "–"} for x in sentence.doc[lo:hi])
 
     verbs = [t for t in sentence if t.i not in exclude and t.is_alpha and not crosses_dash(t)
-             and ((t.pos_ in {"VERB", "AUX"} and "Fin" in t.morph.get("VerbForm"))
+             and (conjugado_pelo_modelo(t)
                   or event_tense(t) is not None or only_finite(t))]
     if not verbs:
         return None
@@ -664,7 +655,7 @@ def truncated(block, doc, emit):
     stripped = text.rstrip()
     words = re.findall(r"[^\W\d_]+", stripped)
     if (len(words) >= 4 and stripped[-1:].isalnum() and not stripped.endswith(FINAL_PUNCTUATION)
-            and any(finite(t) for t in doc) and not lista_ou_rotulo(stripped)):
+            and any(certamente_verbo(t) for t in doc) and not lista_ou_rotulo(stripped)):
         last = re.search(r"[^\W\d_]+$", stripped)
         if last:
             emit("frase_cortada", "Pontuação final ausente", last.start(), last.end(), "probable_error", .8,
@@ -674,7 +665,7 @@ def truncated(block, doc, emit):
         rest = re.split(r"[.!?…]", text[match.start(1):], maxsplit=1)[0]
         clause = doc.char_span(match.start(1), match.start(1) + len(rest), alignment_mode="contract")
         if (before and complement_verb(before[-1]) and clause is not None
-                and any(finite(t) for t in clause if t.i != clause.start)):
+                and any(certamente_verbo(t) for t in clause if t.i != clause.start)):
             emit("frase_cortada", "Maiúscula após reticências", match.start(1), match.end(1), "editorial_attention", .65,
                  explicar("As reticências fazem uma pausa, mas a frase continua: o ‘que’ completa o que veio antes (‘eu "
                           "prometi… que voltaria’), então fica com letra minúscula.", "maiúscula após reticências"), "que")
@@ -696,7 +687,7 @@ def locutions(block, doc, emit):
         stop = re.search(r"[,;.!?…—]", text[match.end():])
         span = doc.char_span(match.end(), match.end() + (stop.start() if stop else len(text) - match.end()),
                              alignment_mode="contract")
-        if span is None or any(finite(t) or t.pos_ in {"VERB", "AUX"} for t in span):
+        if span is None or any(certamente_verbo(t) or t.pos_ in {"VERB", "AUX"} for t in span):
             continue
         emit("locucoes", "Locução", match.start(1), match.end(1), "probable_error", .75,
              explicar("‘Embora’ pede um verbo depois (‘embora chovesse’). Antes de um nome sozinho, usa-se ‘apesar de’ "

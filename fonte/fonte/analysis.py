@@ -5,7 +5,8 @@ import hashlib
 import re
 
 from .reader import Block
-from .lexicon import FINITE, FUTURE, NONFINITE, NONVERB, PAST, PRESENT, after_article, finite, flags, indicative_tense, model_finite
+from .lexicon import FINITE, FUTURE, NONFINITE, NONVERB, PAST, PRESENT, flags
+from .verbo import RELATIVOS, certamente_verbo, indicative_tense, model_finite, pode_ser_verbo
 
 SPEECH = set("dizer informar perguntar responder murmurar gritar sussurrar comentar retrucar afirmar falar exclamar replicar declarar indagar confessar explicar acrescentar argumentar insistir ordenar pedir protestar avisar pensar refletir ponderar admitir lembrar concluir continuar completar interromper balbuciar resmungar cochichar implorar vociferar anunciar observar sugerir repetir garantir negar confirmar questionar reclamar ironizar brincar saudar chamar ler recitar citar ditar cantar declamar terminar".split())
 
@@ -45,7 +46,7 @@ def elipse_de_complemento(sent, previous):
     base = PREPOSICOES.get(words[0].lower_)
     if base is None:
         return False
-    verb = next((t for t in previous if finite(t)), None)
+    verb = next((t for t in previous if certamente_verbo(t)), None)
     return verb is not None and any(PREPOSICOES.get(t.lower_) == base and t.i > verb.i for t in previous)
 
 
@@ -64,54 +65,6 @@ def fragmento_suspenso(sent, limite=5):
         return False
     words = re.findall(r"[^\W\d_]+", text[marks[-1].end():])
     return 0 < len(words) <= limite
-
-
-def verbo_finito_possivel(token):
-    """Validação independente antes de afirmar que um segmento não tem verbo finito.
-
-    `finite` decide pela análise sintática, que erra em homógrafos e em verbos ligados como
-    complemento. Aqui basta uma fonte com apoio: o modelo e o léxico concordarem na forma finita
-    (“por onde pousa”); o léxico só conhecer a forma como verbo finito (“havia”, “estão”); ou a
-    forma, finita no léxico, ocupar a posição do verbo logo depois do grupo nominal que abre a
-    frase (“A garra segura o menino”). Com discordância entre as fontes, a frase não é dada como
-    sem verbo.
-    """
-    if finite(token):
-        return True
-    lex = flags(token.text)
-    if not token.is_alpha or not lex & FINITE or after_article(token):
-        return False
-    if model_finite(token) or not lex & (NONVERB | NONFINITE):
-        return True
-    from .temporal import sole_verb
-    return sole_verb(token) or posicao_de_verbo(token)
-
-
-# Entre o relativo e o verbo da relativa cabem negação, clíticos e pronome sujeito.
-ANTES_DO_VERBO = {"não", "nunca", "já", "se", "me", "te", "lhe", "lhes", "nos", "vos", "ele", "ela", "eles", "elas"}
-GRAMATICAIS = {"DET", "PRON", "ADP", "ADV", "CCONJ", "SCONJ", "NUM", "PUNCT"}
-
-
-def posicao_de_verbo(token):
-    """Homógrafo nome/verbo, só no presente pelo léxico, num lugar que pede verbo: logo depois de
-    um relativo (a relativa “por onde pousa” precisa de verbo) ou entre um nome e o início do
-    complemento, concordando em número com esse nome (“… seu braço causa coceira”)."""
-    lex = flags(token.text)
-    if not lex & PRESENT or lex & (PAST | FUTURE | NONFINITE) or token.pos_ in GRAMATICAIS:
-        return False
-    doc = token.doc
-    walk = token.i - 1
-    while walk >= token.sent.start and doc[walk].lower_ in ANTES_DO_VERBO:
-        walk -= 1
-    if walk >= token.sent.start and doc[walk].lower_ in RELATIVOS | {"quem"}:
-        return True
-    if token.i == token.sent.start or token.i + 1 >= token.sent.end:
-        return False
-    previous, following = doc[token.i - 1], doc[token.i + 1]
-    if previous.pos_ not in {"NOUN", "PROPN"} or following.pos_ not in {"DET", "NOUN", "PRON"}:
-        return False
-    plural = "Plur" in previous.morph.get("Number")
-    return token.lower_.endswith("m") if plural else not token.lower_.endswith(("m", "s"))
 
 
 # Abertura que contrapõe ou retoma o que veio antes (“Por outro lado, uma saída lenta.”): frase
@@ -149,7 +102,6 @@ def fragmento_deliberado(sent, previous=None):
 SUBORDINANTES = {"quando", "enquanto", "porque", "embora", "conquanto", "caso", "porquanto"}
 # “Enquanto isso, …”, “quando muito”: locuções adverbiais, não subordinação.
 LOCUCAO_ADVERBIAL = {"isso", "isto", "aquilo", "assim", "muito", "pouco", "possível", "necessário"}
-RELATIVOS = {"que", "onde", "cujo", "cuja", "cujos", "cujas"}
 ARTIGOS = {"o", "a", "os", "as", "um", "uma", "uns", "umas"}
 # Palavras que pedem continuação: fragmento terminado nelas foi cortado.
 PEDEM_CONTINUACAO = set(PREPOSICOES) | ARTIGOS | {"e", "ou", "mas", "que", "se", "nem"}
@@ -179,7 +131,7 @@ def fecha_oracao_dependente(verb):
     """O verbo é o primeiro da oração aberta por um relativo ou subordinante anterior (“o porão em
     que dormem”, “a casa onde moram”): pertence a essa oração, não ao predicado que vem depois."""
     for token in reversed(list(verb.sent[:verb.i - verb.sent.start])):
-        if verbo_finito_possivel(token):
+        if pode_ser_verbo(token):
             return False
         if token.lower_ in ABREM_ORACAO or "Rel" in token.morph.get("PronType") or token.dep_ == "mark":
             return True
@@ -202,7 +154,7 @@ def aspas_de_destaque(text, closing, nlp):
     if (not before or before[-1] in ".!?…:—–\"“”«»" or not 0 < len(words) <= 3
             or re.search(r"[,.;:!?…]", content)):
         return False
-    return not any(verbo_finito_possivel(t) for t in nlp(content))
+    return not any(pode_ser_verbo(t) for t in nlp(content))
 
 
 def _concorda(palavra, token):
@@ -248,7 +200,7 @@ def classificar_fragmento(sent, previous=None, following=None):
     devagar, depois mais depressa”); frase nominal com núcleo sem artigo ou vizinha de
     outro fragmento é descrição fragmentada. O resto fica `uncertain`.
     """
-    if any(finite(t) for t in sent):
+    if any(certamente_verbo(t) for t in sent):
         return "complete_clause"
     words = [t for t in sent if t.is_alpha]
     if not words:
@@ -276,7 +228,7 @@ def classificar_fragmento(sent, previous=None, following=None):
     if nua and not nucleo and not first.endswith("s"):
         return "likely_literary_fragment"
     vizinhos = [s for s in (previous, following) if s is not None]
-    if any(not any(finite(t) for t in s) for s in vizinhos):
+    if any(not any(certamente_verbo(t) for t in s) for s in vizinhos):
         return "likely_literary_fragment"
     return "uncertain"
 
@@ -490,7 +442,7 @@ def analyze(blocks: list[Block], nlp, tense="auto", protect_italics=True, min_wo
         for index, sent in enumerate(sents):
             words = [t for t in sent if t.is_alpha]
             before, previous = previous, sent
-            if ("estrutura" in active and len(words) >= min_words and not any(verbo_finito_possivel(t) for t in sent)
+            if ("estrutura" in active and len(words) >= min_words and not any(pode_ser_verbo(t) for t in sent)
                     and not para_verbal(sent) and not elipse_de_complemento(sent, before)
                     and not fragmento_suspenso(sent)):
                 # Segunda leitura só dos candidatos, sem espaços da máscara e
@@ -498,7 +450,7 @@ def analyze(blocks: list[Block], nlp, tense="auto", protect_italics=True, min_wo
                 clean = sent.text.strip()
                 if clean:
                     second = nlp(clean[0].lower() + clean[1:])
-                    if any(verbo_finito_possivel(t) for t in second):
+                    if any(pode_ser_verbo(t) for t in second):
                         continue
                 following = sents[index + 1] if index + 1 < len(sents) else None
                 classe = classificar_fragmento(sent, before, following)
@@ -528,18 +480,18 @@ def analyze(blocks: list[Block], nlp, tense="auto", protect_italics=True, min_wo
                     and sent.text.rstrip().endswith(".")):
                 root = sent.root
                 opener = words[0].lower_
-                verbs = [t for t in sent if finite(t)]
+                verbs = [t for t in sent if certamente_verbo(t)]
                 # O modelo erra a árvore nessas frases; a forma confirma. Abertura por subordinante:
                 # sem vírgula e com um só verbo finito (“Quando o trem chegou, a menina…” tem a
                 # principal depois da vírgula). O subordinante precisa estar ligado à raiz.
                 marks = {c.lower_ for c in root.children if c.dep_ in {"mark", "advmod"}}
-                subordinate_root = (abertura is not None and finite(root) and len(verbs) == 1
+                subordinate_root = (abertura is not None and certamente_verbo(root) and len(verbs) == 1
                                     and "," not in sent.text
                                     and bool(set(abertura.casefold().split()) & marks))
                 # O modelo às vezes pendura no verbo da subordinada o nome que a antecede (“O homem
                 # que … enquanto todos conversavam”): dois sujeitos, o primeiro antes da conjunção.
                 conj = next((c for c in root.children if c.dep_ in {"mark", "advmod"} and c.lower_ in SUBORDINANTES
-                             and c.i < root.i), None) if finite(root) else None
+                             and c.i < root.i), None) if certamente_verbo(root) else None
                 hanging = conj is not None and len([c for c in root.children if c.dep_ == "nsubj"]) >= 2 and any(
                     c.dep_ == "nsubj" and c.pos_ in {"NOUN", "PROPN"} and c.i < conj.i for c in root.children)
                 if verbs and (subordinate_root or hanging):
@@ -565,7 +517,7 @@ def analyze(blocks: list[Block], nlp, tense="auto", protect_italics=True, min_wo
                 continue
             start = position+1+match.end()
             remaining = [t for t in doc if t.idx >= start and not t.is_space]
-            first_verb = next((t for t in remaining[:18] if finite(t)), None)
+            first_verb = next((t for t in remaining[:18] if certamente_verbo(t)), None)
             if first_verb is not None and not verbo_de_fala(first_verb):
                 results.append(finding(block, "Pontuação de diálogo", "Verificar",
                     position, first_verb.idx+len(first_verb.text),
@@ -583,7 +535,7 @@ def analyze(blocks: list[Block], nlp, tense="auto", protect_italics=True, min_wo
         # percebido”). Na locução verbal só o primeiro é finito; os outros ficam no infinitivo,
         # gerúndio ou particípio (“tinha sido”, “vai ter”, “estava sendo”).
         for head in (doc if "residuo_edicao" in active else []):
-            auxiliaries = [c for c in head.children if c.dep_ in {"aux", "aux:pass", "cop"} and finite(c)]
+            auxiliaries = [c for c in head.children if c.dep_ in {"aux", "aux:pass", "cop"} and certamente_verbo(c)]
             for first, second in zip(auxiliaries, auxiliaries[1:]):
                 # Verbos de orações diferentes (“o porão em que dormem é…”) não formam locução.
                 if second.i == first.i + 1 and first.lower_ != second.lower_ and not fecha_oracao_dependente(first):

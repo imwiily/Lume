@@ -2,7 +2,8 @@ import unittest
 import spacy
 from spacy.tokens import Doc
 from fonte.analysis import analyze
-from fonte.lexicon import flags, finite
+from fonte.lexicon import flags
+from fonte.verbo import certamente_verbo as finite
 from fonte.reader import Block
 
 

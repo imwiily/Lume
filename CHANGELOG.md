@@ -85,6 +85,19 @@ do Lume passa a ser interromper o editor só com boa razão e deixar o manuscrit
 - **Regra `tratamento` retirada** por decisão do autor (nasceu de um caso isolado). A chave
   continua aceita nas configurações salvas, sem efeito.
 
+Estabilização do FONTE, Fase 2a: núcleo de identificação verbal (`fonte/fonte/verbo.py`), sem
+mudar nenhum alerta.
+- **Três operações distintas:**
+  - `certamente_verbo`, usada para alertar sobre um verbo;
+  - `pode_ser_verbo`, usada para não afirmar “sem verbo” na dúvida;
+  - `ha_forma_verbal`, usada como guarda.
+- **Ingredientes comuns:** leitura do modelo, forma conjugada pelo modelo, forma só verbal no
+  léxico e filtros nominais.
+- **Fim das definições espalhadas:** `lexicon.finite`, `analysis.verbo_finito_possivel` e
+  `grammar.verbal` deixam de existir fora do núcleo, e as verificações diretas de `"Fin"` passam
+  pelo núcleo.
+- **Resultado:** os 29 conjuntos de comparação são idênticos a 9f0f6d8 e byte a byte iguais à Fase 1.
+
 Estabilização do FONTE, Fases 0 e 1 ([plano](.agent/plans/fonte-estabilizacao.md)), sem mudar
 nenhum alerta:
 

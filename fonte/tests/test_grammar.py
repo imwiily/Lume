@@ -253,7 +253,8 @@ class TenseFalseAlarmTests(unittest.TestCase):
         # Parse com substantivo anterior que não é sujeito: só a leitura de
         # adjetivo concordante (minúscula, mesmo gênero e número) é nominal.
         from spacy.tokens import Doc
-        from fonte.lexicon import flags, nominal_context
+        from fonte.lexicon import flags
+        from fonte.verbo import nominal_context
 
         def nominal(words, gender, index=2):
             morph = f"Gender={gender}|Number=Sing"

@@ -5,7 +5,7 @@ sustentam referências; parágrafos seguintes só ajudam a revisão humana.
 """
 import re
 from ..analysis import explicar, forma_de_fala, verbo_de_fala
-from ..lexicon import model_finite
+from ..verbo import model_finite
 from ..segments import classify, spans
 from .common import alert, evidence
 

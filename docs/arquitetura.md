@@ -9,6 +9,7 @@ Os manuscritos são somente lidos. A sequência Linguístico → Morfossintátic
 | `Lume/` | Interface SwiftUI, relatórios, decisões e seleção do motor |
 | `fonte/fonte/reader.py`, `pages.py`, `contracts.py`, `pipeline.py` | Leitura de DOCX e Pages, índices Unicode, contratos e execução sequencial |
 | `linguistic.py`, `analysis.py`, `temporal.py`, `editorial/` | Regras linguísticas, temporais e editoriais |
+| `verbo.py` | Núcleo de identificação verbal com três operações distintas: `certamente_verbo` (para alertar sobre um verbo), `pode_ser_verbo` (para se abster antes de dizer “sem verbo”) e `ha_forma_verbal` (guarda de presença). Os módulos de regras usam este núcleo; o léxico (`lexicon.py`) só fornece os dados |
 | `grammar.py` | Crase, homófonos, concordância, regência, vírgula entre sujeito e verbo, correlação de tempos, frase cortada e locuções (etapa Morfossintática) |
 | `languagetool.py` | Corretor gramatical LanguageTool local: filtros, falas e servidor embutido |
 | `coerencia_ia.py` | Coerência com IA: projeto incremental do Coerencia (`coerencia/`) na etapa Coerência global |
