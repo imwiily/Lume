@@ -2,6 +2,7 @@
 from copy import deepcopy
 from time import perf_counter
 from .contracts import Manuscript, check_destination, standardize
+from . import deduplicacao
 from .settings import GRAMMAR_RULES, validate
 
 STAGES = (
@@ -64,10 +65,7 @@ def run(blocks, model_loader, *, settings=None, tense="auto", mode="ambas",
             from .languagetool import check
             extra, extra_warnings = check(blocks, port, options["italic_thoughts"], settings=options,
                                           avancar=lambda f, t: avancar(f, t, "parágrafos"))
-            # A regra específica do FONTE explica melhor o mesmo trecho.
-            covered = [(f["paragraph"], f["start"], f["end"]) for f in out]
-            out.extend(f for f in extra if not any(
-                p == f["paragraph"] and s < f["end"] and f["start"] < e for p, s, e in covered))
+            out.extend(deduplicacao.languagetool_sob_regras_linguisticas(extra, out))
             warnings.extend(extra_warnings)
         else:
             warnings.append("Revisão linguística sem o corretor gramatical local (LanguageTool): ortografia geral e boa parte da concordância não foram verificadas. As regras do FONTE cobrem apenas classes específicas.")
@@ -101,19 +99,9 @@ def run(blocks, model_loader, *, settings=None, tense="auto", mode="ambas",
                 # verificação antiga de tempo predominante está desligada.
                 meta["tempo"] = reference
             more = temporal(blocks, language_model, options, reference)
-            # Mesma mudança de tempo vista pelos dois lados: quando o verbo apontado pela relação está
-            # no tempo da narração e o outro já tem o alerta de tempo verbal, o desvio é o outro verbo;
-            # a relação repetiria o mesmo fenômeno sobre o verbo correto.
             narrative_form = {"presente": "present", "passado": "past"}.get(reference)
-            flagged = {(f["paragraph"], f["start"], f["end"]) for f in out if f["category"] == "Tempo verbal"}
-            more = [f for f in more if not (
-                narrative_form and f.get("temporal_evidence", {}).get("target_form") == narrative_form
-                and any((r.get("paragraph"), r.get("start"), r.get("end")) in flagged for r in f.get("related", [])))]
-            covered = [(f["paragraph"], f["start"], f["end"]) for f in more]
-            # A explicação específica substitui o alerta genérico sobre o mesmo verbo.
-            out = [f for f in out if not (f["category"] == "Tempo verbal" and
-                   any(p == f["paragraph"] and s <= f["start"] and f["end"] <= e
-                       for p, s, e in covered))]
+            more = deduplicacao.relacao_que_repete_tempo_verbal(more, out, narrative_form)
+            out = deduplicacao.tempo_verbal_sob_relacao(out, more)
             out.extend(more)
             meta["temporal_relations"] = ["conditional_future", "simultaneous_present",
                                           "ambiguous_simultaneity", "coordinated_past_present",
@@ -122,10 +110,7 @@ def run(blocks, model_loader, *, settings=None, tense="auto", mode="ambas",
                                           "local_narrative_tense_shift"]
         if any(rules[r] for r in GRAMMAR_RULES):
             from .grammar import analyze as grammar
-            # O mesmo trecho não recebe um segundo alerta do corretor geral.
-            reported = [(f["paragraph"], f["start"], f["end"]) for f in findings
-                        if f["source"].startswith("LanguageTool")]
-            out.extend(grammar(blocks, language_model, options, skip=reported))
+            out.extend(deduplicacao.gramatica_sob_languagetool(grammar(blocks, language_model, options), findings))
         return out
 
     def editorial():
@@ -218,14 +203,9 @@ def run(blocks, model_loader, *, settings=None, tense="auto", mode="ambas",
                 warnings.append(f"{title}: {len(rejected)} alerta(s) descartado(s) porque apontavam um trecho "
                                 f"que não existe no manuscrito (regra {rules_hit}). É um defeito do Lume, não "
                                 "do seu texto; o restante da análise foi mantido.")
-            seen = {f["id"]: f for f in findings}
-            for item in batch:
-                if item["id"] in seen:
-                    if item != seen[item["id"]]:
-                        raise ValueError("Identificador de ocorrência associado a resultados diferentes.")
-                    continue
-                findings.append(item); seen[item["id"]] = item
-                stage["finding_count"] += 1
+            novas = deduplicacao.mesmo_id(batch, findings)
+            findings.extend(novas)
+            stage["finding_count"] += len(novas)
             stage["duration_ms"] = round((perf_counter() - started) * 1000)
             emit("completed")
         except Exception as error:

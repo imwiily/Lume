@@ -17,6 +17,7 @@ import unicodedata
 import re
 
 from .analysis import explicar, finding
+from .deduplicacao import sobrepoe
 from .segments import classify
 from .settings import validate
 
@@ -299,7 +300,8 @@ def auditar(blocks, anteriores, avancar=None, *, tempo="passado", configuracao=N
                 descartes["fora_do_escopo"] += 1; continue
             if categoria == "tempo_verbal" and any(p not in escopo_tempo for p in papeis[block.number][inicio:fim]):
                 descartes["fora_do_escopo"] += 1; continue
-            if any(a.get("paragraph") == block.number and a["start"] < fim and inicio < a["end"] for a in anteriores):
+            # Deduplicação com as etapas anteriores: o trecho já apontado não recebe outro alerta.
+            if any(sobrepoe({"paragraph": block.number, "start": inicio, "end": fim}, a) for a in anteriores):
                 descartes["alerta_existente"] += 1; continue
             if any(p == block.number and s < fim and inicio < e for p, s, e in aceitos):
                 descartes["repetido"] += 1; continue

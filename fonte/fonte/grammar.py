@@ -676,8 +676,8 @@ CHECKS = (("crase", crase), ("homofonos", homophones), ("concordancia", agreemen
           ("correlacao_tempos", correlation), ("frase_cortada", truncated), ("locucoes", locutions))
 
 
-def analyze(blocks, nlp, settings, docs=None, skip=()):
-    """`skip` recebe intervalos (parágrafo, início, fim) já apontados por outra fonte."""
+def analyze(blocks, nlp, settings, docs=None):
+    """Sem deduplicação com outras fontes: ela fica em `deduplicacao` (Fase 6a)."""
     rules = settings["rules"]
     active = [(name, check) for name, check in CHECKS if rules.get(name)]
     if not active:
@@ -693,8 +693,6 @@ def analyze(blocks, nlp, settings, docs=None, skip=()):
 
         def emit(rule, category, start, end, severity, score, reason, suggestion=None, priority="Verificar"):
             if labels[start] not in SCOPES[rule] or (start, end) in seen:
-                return
-            if any(p == block.number and s < end and e > start for p, s, e in skip):
                 return
             seen.add((start, end))
             out.append(item(block, rule, category, start, end, reason, severity, score, suggestion, priority))

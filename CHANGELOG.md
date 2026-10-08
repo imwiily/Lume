@@ -85,6 +85,22 @@ do Lume passa a ser interromper o editor só com boa razão e deixar o manuscrit
 - **Regra `tratamento` retirada** por decisão do autor (nasceu de um caso isolado). A chave
   continua aceita nas configurações salvas, sem efeito.
 
+Estabilização do FONTE, Fase 6a: deduplicação entre detectores num só lugar
+(`deduplicacao.py`), sem mudar nenhum alerta.
+- **Mecanismos reunidos:**
+  - LanguageTool sob regra linguística;
+  - gramática sob LanguageTool;
+  - os dois cruzamentos entre tempo verbal e coerência temporal;
+  - mesmo ID entre etapas;
+  - Auditoria sobre alertas anteriores.
+
+  Cada um com o mesmo critério e a mesma precedência de antes; as supressões linguísticas ficam
+  nas regras.
+- **Código:** sai o parâmetro `skip` da gramática. A geração antiga de relações temporais e o ramo
+  de palavra dobrada de `analysis` ficam: testes e o relatório de referência dependem deles.
+- **Resultado:** os 29 conjuntos são iguais à Fase 5 em alertas, mensagens, metadados e avisos, e as
+  decisões herdadas também.
+
 Estabilização do FONTE, Fase 5: verbos de fala, pensamento e percepção numa só fonte
 (`elocucao.py`), sem mudar nenhum alerta.
 - **Categorias e perfis:** cada verbo tem uma categoria (elocução, pensamento, percepção ou só

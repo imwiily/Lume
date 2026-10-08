@@ -24,8 +24,10 @@ Restrições:
 - [x] Fase 2b — reconhecimento verbal (08/10; commit `184ffbc`).
 - [x] Fase 3 — núcleo de tempo e modo, só consolidação (08/10; commit `e0159ca`).
 - [x] Fase 4 — segmentação entre fala e narração, só consolidação (08/10; commit `f01bd9e`).
-- [x] Fase 5 — verbos de fala, pensamento e percepção, só consolidação (08/10). Aguarda o autor.
-- [ ] Fases 6–8.
+- [x] Fase 5 — verbos de fala, pensamento e percepção, só consolidação (08/10; commit `30549b0`).
+- [x] Fase 6a — deduplicação centralizada, sem mudança de comportamento (08/10). Aguarda o autor.
+- [ ] Fase 6b — deduplicação controlada: levantamento e estratégia prontos, aguardam aprovação.
+- [ ] Fases 7–8.
 - [ ] Pendente, fase com mudança de comportamento: `imperfeito` (problema 1 da Fase 3).
 
 ## Fontes de evidência usadas
@@ -1276,3 +1278,133 @@ imperfeito do subjuntivo. Fica para uma fase controlada com mudança de comporta
   Mudar a origem de um alerta pode perder decisões herdadas (`legacyContentKey`).
 - A maiúscula depois de inciso do LanguageTool usa `termina_em_travessao`; a do FONTE usa o
   caractere vizinho. Deduplicar exige saber qual é a leitura de cada um.
+
+### Fase 6a — deduplicação centralizada, sem mudança de comportamento (08/10/2026)
+
+**Dois fenômenos separados.** *Supressão linguística*: a regra decide que a evidência não basta
+(fica na regra). *Deduplicação*: duas fontes apontam o mesmo trecho e só uma ocorrência aparece
+(agora em `fonte/fonte/deduplicacao.py`).
+
+**Mecanismos de deduplicação** (descartes medidos nos textos A, B, C e X, com e sem LT):
+
+| Mecanismo (onde estava → agora) | Classes | Critério de equivalência | Prevalece | IDs e decisões | Estatística | Descartes reais |
+|---|---|---|---|---|---|---|
+| LT sob regra linguística (`pipeline.linguistic` → `languagetool_sob_regras_linguisticas`) | LT × espaçamento, pontuação duplicada, maiúscula, construção inválida, vocativo, “que” tônico, palavra dobrada | um caractere em comum no parágrafo, **qualquer fenômeno** | FONTE | o LT descartado nunca chega ao relatório: não tem ID nem decisão | a classe do LT perde a amostra | 0 |
+| Gramática sob LT (`grammar.analyze(skip=…)` → `gramatica_sob_languagetool`) | crase, homófonos, concordância, regência, vírgula, correlação, frase cortada, locuções × qualquer alerta do LT | um caractere em comum, **qualquer fenômeno** | LT | o alerta do FONTE existe sem o LT e some com ele: ID e chave de conteúdo mudam conforme o LT está ligado | a classe do FONTE perde a amostra quando o LT está ligado | 1 (B com LT: crase × `CRASE_CONFUSION`, mesmo trecho e mesma correção) |
+| Relação que repete o tempo verbal (`pipeline.morphosyntactic` → `relacao_que_repete_tempo_verbal`) | coerência temporal × tempo verbal | o outro verbo da relação tem exatamente o trecho do alerta de tempo verbal e o verbo apontado está no tempo da narração | tempo verbal | nenhum | — | 0 |
+| Tempo verbal sob relação (`pipeline.morphosyntactic` → `tempo_verbal_sob_relacao`) | tempo verbal × coerência temporal | o alerta de tempo verbal está contido no trecho da relação | relação | nenhum | `narrative_tense` perde a amostra | 2 (A, com e sem LT) |
+| Mesmo ID entre etapas (`pipeline.run` → `mesmo_id`) | todas | ID igual e resultado idêntico (resultado diferente interrompe) | o primeiro | nenhum | — | 0 |
+| Auditoria sobre alertas anteriores (`auditoria_ia`, agora com `sobrepoe`) | Auditoria × todas | um caractere em comum | etapas anteriores | o descarte fica contado em `alerta_existente` | — | não medido (sem API) |
+
+**Precedências internas de um mesmo detector** (ficam no detector):
+- `temporal.PRECEDENCE`: no mesmo trecho, vence a relação mais específica; as relações antigas só
+  ficam onde nenhuma da lista apontou. Descartes reais: 0.
+- `grammar`: no mesmo trecho exato, vence a primeira regra na ordem de `CHECKS`. Descartes reais: 0.
+- Auditoria (`repetido`) e repetição: um alerta por trecho dentro do próprio detector.
+
+**Supressões linguísticas (inalteradas, não são deduplicação):**
+- **LT:** categorias e tipos ignorados (estilo, registro, regionalismo); 2 regras ignoradas; e
+  filtros por regra:
+  - espaço depois de reticências;
+  - maiúscula depois de vírgula em vocativo ou dois-pontos;
+  - auxiliar com gerúndio;
+  - “todos” + particípio;
+  - parônimo antes de gerúndio;
+  - vírgula em locução e “além de” integrado;
+  - palavra repetida em onomatopeia;
+  - grafia de interjeição, palavra cortada, nome ou itálico;
+  - crase depois de verbo de fala;
+  - maiúscula depois de travessão.
+
+  Também reduz a confiança de palavra recorrente e de sugestão distante.
+- **FONTE:** escopo de cada regra (`SCOPES`), listas e rótulos, e os filtros de cada regra.
+- **Não são remoção:** o destino `diagnostico` da Política (fica no relatório) e o descarte de
+  trecho inexistente (`ocorrencias_descartadas`, validação).
+
+**Código obsoleto:**
+- **Removido:** o parâmetro `skip` de `grammar.analyze`. O filtro passou para depois da regra, o
+  que é equivalente: um trecho igual a um descartado também tocaria o mesmo alerta do LT.
+- **Mantido, porque não é morto:**
+  - a geração antiga de relações temporais (`conditional_future`, `simultaneous_present`,
+    `ambiguous_simultaneity`, `coordinated_past_present`). Não apareceu nos 29 conjuntos, mas
+    `test_temporal`, `test_diagnostic`, o relatório de referência `examples/Temporal` e a
+    verificação do motor empacotado (`packaging/lume_engine.py`, `conditional_future`) a exigem.
+    Retirá-la mudaria resultados.
+  - o ramo de palavra dobrada em `analysis.analyze`. A pipeline não o usa, mas a chamada direta
+    (sem `enabled_rules`) usa, e `test_fonte` o exige.
+
+**Evidências:**
+- **29 conjuntos:** idênticos a `9f0f6d8` (código 0) e iguais à Fase 5 em alertas, mensagens,
+  metadados e avisos.
+- **Herança real igual:** A 28 e 28; C 15 e 17.
+- **Testes:**
+  - FONTE 483: novo `test_deduplicacao.py`, com 13 testes que cobrem intervalos, o critério atual
+    de cada mecanismo, limitações registradas, LT ligado no mesmo trecho e em outro, LT desligado,
+    LT indisponível e fonte única;
+  - pacotes 45, contrato Python, Coerencia 25;
+  - Swift: contrato, decisões por livro, mesa, falsos positivos, encerramento e correções;
+  - build do app.
+
+**Constatações:**
+1. Hoje a coincidência de trecho basta: nenhum mecanismo entre fontes compara o fenômeno.
+2. A precedência é invertida entre etapas: na linguística vence o FONTE; na morfossintática, o LT.
+3. Com o LT ligado, um alerta próprio do FONTE some e outro do LT aparece no lugar. As decisões
+   tomadas numa leitura sem o LT não passam para a leitura com o LT, e vice-versa.
+4. Nos relatórios finais, quase não há sobreposição visível: só repetição próxima × tempo verbal
+   (fenômenos diferentes, mantidos separados) e repetição × repetição (o mesmo detector).
+5. O LT indisponível, quando pedido, interrompe a análise sem relatório. Com o LT desligado, o
+   FONTE funciona sozinho.
+
+### Fase 6b — levantamento e estratégia (aguarda aprovação; nada executado)
+
+**Duplicatas reais encontradas:**
+- **Crase × `CRASE_CONFUSION`** (B com LT, 1 caso):
+  - mesmo trecho, mesma correção (tirar o acento antes de verbo), mesmo fenômeno;
+  - hoje vence o LT.
+- **Tempo verbal × relação temporal** (A, 2 casos):
+  - o mesmo desvio de tempo do mesmo verbo; a relação explica melhor;
+  - mecanismo interno do FONTE, já correto.
+- **Outras sobreposições LT × FONTE:** nenhuma nos 4 textos. Elas só existem hoje como risco (os
+  dois mecanismos descartam qualquer fenômeno no trecho).
+
+**Proposta:**
+1. **Equivalência por família, explícita e pequena.** Só são duplicatas as regras do LT e do FONTE
+   da mesma família, no mesmo trecho (ou um contido no outro), com correção compatível ou sem
+   correção:
+   - crase;
+   - pontuação duplicada;
+   - espaçamento;
+   - maiúscula no início de frase;
+   - palavra dobrada.
+
+   Fora disso, os dois alertas ficam. Isso muda o comportamento: fenômenos diferentes no mesmo
+   trecho voltariam a aparecer, embora nos 4 textos não haja nenhum.
+2. **Ocorrência principal por família:** o FONTE, nas famílias em que a regra própria é específica
+   e funciona igual sem o LT. Argumento central: o ID fica o mesmo com e sem o LT. No LT, a crase
+   cai em `languagetool:gramatica` (60% em 30 decisões, misturando todos os fenômenos do LT); não há
+   medida específica de crase de nenhum dos lados. Sem família definida, nenhuma precedência.
+3. **Identidade e decisões:**
+   - o principal guarda seu ID e passa a levar `detectores` (as fontes que o apontaram) e
+     `absorvidos`, com ID, regra, classe, origem, categoria e trecho de cada ocorrência
+     representada (campo novo e opcional; relatórios antigos não têm);
+   - no app, depois da chave de conteúdo e da chave antiga, o alerta sem decisão herda a decisão de
+     um absorvido, pela chave de conteúdo dele;
+   - se os absorvidos tiverem decisões diferentes, nada é herdado e o alerta mostra que há decisões
+     divergentes, para escolha explícita;
+   - não há transferência entre famílias diferentes.
+4. **Métricas:**
+   - a classe do principal não muda (crase continua crase);
+   - o absorvido não soma amostra à própria classe nem à do principal, e o registro de detectores
+     permite medir depois;
+   - recalibração possível, registrada à parte: `languagetool:gramatica` mistura fenômenos e pode
+     conter casos de crase.
+5. **LT: categoria, confiança e severidade:**
+   - gravar a categoria e o tipo originais (`languagetool: {regra, categoria, tipo}`);
+   - classe e confiança como estão, para não perder as medições;
+   - **severidade sem mudança nesta fase.** Hoje todo alerta do LT sai “provável erro”, inclusive
+     espaçamento e parênteses sem par. Rebaixar para “atenção editorial” muda rótulo, cor e filtro
+     no app. Não muda destino, IDs nem herança. Impedimento: nenhuma classe do LT atinge o limiar
+     hoje, mas a mudança impediria a ortografia do LT de ser impeditiva no futuro, porque a regra
+     exige severidade de erro. Precisa de aprovação separada.
+6. **LT indisponível:** manter a interrupção explícita, ou seguir só com o FONTE e um aviso. É
+   decisão do autor.
