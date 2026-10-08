@@ -20,6 +20,7 @@ Restrições:
 - [x] Fase 0 — linha de base e comparação (07/10).
 - [x] Fase 1 — identidade, regra e classe (07/10). Parada para revisão do autor.
 - [x] Fase 2a — núcleo verbal, sem mudança de comportamento (07/10). Aguarda o autor.
+- [x] Preparação da Fase 2b: evidência independente congelada e protocolo (07/10). Aguarda o autor.
 - [ ] Fases 2b–8.
 
 ## Fontes de evidência usadas
@@ -783,3 +784,100 @@ documentadas para a Fase 2b):
 - Swift: contrato (relatório novo e antigo), decisões por livro, mesa, falsos positivos,
   encerramento;
 - build Debug.
+
+
+### Preparação da Fase 2b — evidência independente e protocolo (07/10/2026)
+
+**Material.** Fica fora do Git, em `~/Lume-evidencia/`, com `MANIFESTO.md` e
+`CONGELAMENTO-SHA256.txt`.
+- **Fontes:** domínio público, Project Gutenberg, com autores diferentes em cada conjunto.
+
+  | Conjunto | Obras | Narração |
+  |---|---|---|
+  | desenvolvimento | Machado de Assis, *Dom Casmurro* e *Memórias Póstumas*; Lima Barreto, *Policarpo Quaresma* | 1ª pessoa e comentário no presente; 3ª pessoa com diálogos |
+  | validação | José de Alencar, *Cinco minutos*; Aluísio Azevedo, *O Cortiço* | 1ª pessoa epistolar; 3ª pessoa com fala popular |
+
+- **Grafia:** as edições estão na grafia original; nenhuma edição atualizada estava acessível.
+  - Critério, sem alterar os textos: só frases em que toda palavra minúscula existe no léxico
+    contemporâneo do FONTE.
+  - A grafia histórica nunca é tratada como erro.
+- **Amostra:** `scripts/amostrar_verbos.py`, com a semente `fase2b`; 25 formas por estrato e por
+  conjunto (150 + 150). Estratos: homógrafo nome/verbo, infinitivo ou futuro do subjuntivo, início
+  de frase, discordância entre operações, controle verbal, controle não verbal.
+- **Anotação cega,** com justificativa por item:
+
+  | Conjunto | Finitos | Não finitos | Não verbais | Ambíguos |
+  |---|---:|---:|---:|---:|
+  | desenvolvimento | 48 | 32 | 70 | 1 |
+  | validação | 53 | 41 | 56 | 3 |
+
+  - `finito`: inclui o imperativo e o subjuntivo;
+  - `nao_finito`: infinitivo, gerúndio ou particípio verbal;
+  - `nao_verbal`.
+- **Frases construídas:** 20, só no desenvolvimento, marcadas como tal (`desenvolvimento-construido.json`).
+  Trazem os exemplos do autor (segura, causa, coceira, começa, cantar) e ambiguidades genuínas
+  (vira, Leve, Grito).
+- A, B, C e o texto de terceiros continuam como regressão histórica, **não** como validação.
+
+**Ferramentas** (no repositório, sem efeito no motor):
+- `scripts/amostrar_verbos.py`;
+- `scripts/avaliar_verbo.py`, que mede as três operações e as três situações dos finitos e recusa
+  listar erros da validação;
+- `tests/test_evidencia_verbo.py` (4). O teste da recusa achou um defeito no avaliador (anotação
+  vazia não acionava o bloqueio), já corrigido.
+
+**Linha de base** (motor `7407ab5`; ambíguos fora das métricas):
+
+| Métrica | Desenvolvimento (textos publicados) | Desenvolvimento + construídos | Validação (agregado) |
+|---|---|---|---|
+| `certamente_verbo`: precisão | 0,978 (n = 45; 1 falso positivo) | 0,980 (n = 49) | 0,979 (n = 47; 1 falso positivo) |
+| `certamente_verbo`: cobertura dos finitos | 0,917 (n = 48) | 0,828 (n = 58) | 0,885 (n = 52) |
+| `pode_ser_verbo`: cobertura dos finitos | 0,958 | 0,931 | 0,962 |
+| `pode_ser_verbo`: taxa em não verbais | 0,101 (n = 69) | 0,133 | 0,109 (n = 55) |
+| `ha_forma_verbal`: cobertura dos finitos | 0,958 | 0,897 | 0,904 |
+| `ha_forma_verbal`: taxa em não verbais | 0,145 | 0,160 | 0,091 |
+| Finitos: confirmados / não confirmados / modelo errou a classe | 44 / 3 / 1 | 48 / 5 / 5 | 46 / 2 / 4 |
+
+O invariante “certo implica possível” vale nos dois conjuntos.
+
+**Critérios de aprovação de cada mudança da Fase 2b.** Com n ≈ 50, um item vale cerca de 2 pontos
+percentuais, então os critérios são em itens, não em porcentagem.
+
+1. **Validação** (agregada, no máximo 3 consultas, cada uma registrada aqui):
+   - `certamente_verbo`: nenhum falso positivo novo (≤ 1); a cobertura pode subir.
+   - `pode_ser_verbo`: nenhum finito perdido (cobertura ≥ 0,962); a taxa em não verbais não sobe
+     mais de 1 item.
+   - `ha_forma_verbal`: taxa em não verbais ≤ 0,091 e cobertura ≥ 0,904.
+   - O invariante “certo implica possível” continua valendo.
+2. **Desenvolvimento:** a mudança corrige uma classe de erro com mais de um item. Exceção por frase
+   é proibida.
+3. **Regressão** (`comparar_relatorios.py`, 29 conjuntos):
+   - toda mudança de alerta é listada e justificada pela classe corrigida;
+   - nenhuma classe com n ≥ 20 decisões reais perde precisão (alerta decidido como erro que some
+     conta como perda; alerta decidido como falso positivo ou estilo que some conta como ganho);
+   - IDs dos alertas que continuam ficam iguais, e a herança real de decisões não cai.
+4. **Ambíguos:** nenhuma mudança é justificada por item ambíguo.
+5. **Reversão:** commit próprio por mudança, com as dependências registradas.
+
+**Primeiras divergências** (só desenvolvimento; registradas, nada corrigido):
+- **`ha_forma_verbal` confia na etiqueta do modelo.** No desenvolvimento, 14,5% dos não verbais
+  passam como “há forma verbal”: substantivos, interjeições e pronomes que o modelo marcou como
+  VERB (“vida”, “prima”, “romance”, “chorão”, “Oh”, “Tu”, “perdão”, “coitadinha”, “Eis”, “era”
+  em “Uma nova era”, “coceira”). Como é uma guarda, o erro deixa as regras **mais caladas**, e não
+  mais barulhentas. O custo são alertas perdidos (homófonos).
+- **`certamente_verbo` com falso positivo:** “*Vão* temor!” (adjetivo, que o modelo leu como AUX).
+  Um em 45.
+- **`certamente_verbo` não confirma verbos reais:** “Basta”, “vale (a pena)”, “Preciso” (o modelo
+  leu como nome próprio no início de citação), “alcançar” (futuro do subjuntivo) e, nos
+  construídos, “segura”, “causa”, “começa”, “cantar”, “Canto”, “Olho”.
+  - **Ausência de confirmação, e não confirmação de ausência:** ainda assim é ela que sustenta os
+    alertas de tempo verbal.
+  - **Três situações:** “segura” e “causa” têm a classe errada no modelo (ADJ); “Canto” e “Olho”
+    também (NOUN); “começa”, “Basta” e “vale” estão como VERB no modelo, mas os filtros do núcleo
+    não confirmam (causa a investigar na 2b).
+- **`pode_ser_verbo` descarta finitos:** futuro do subjuntivo igual ao infinitivo (“alcançar”,
+  “cantar”), porque o léxico também marca a forma como não finita; e a 1ª pessoa no início de
+  frase lida como nome (“Preciso”, “Canto”). Aqui o erro custa caro: a estrutura poderia dizer
+  “sem verbo”.
+- **Consistência:** a validação mostra o mesmo padrão em números agregados (precisão 0,979;
+  4 finitos com a classe errada pelo modelo).
