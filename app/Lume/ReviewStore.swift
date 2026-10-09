@@ -1057,15 +1057,17 @@ final class ReviewStore: ObservableObject {
             let plan = await Task.detached(priority: .userInitiated) {
                 StorageCleanup.plan(support: support, temporary: temporary, keepReport: keepReport, keepLog: keepLog)
             }.value
+            // Relatórios antigos que ficam por causa das decisões guardam texto do manuscrito: avisar sempre.
+            let preserved = plan.preserved == 0 ? "" : " \(plan.preserved) \(plan.preserved == 1 ? "relatório antigo fica" : "relatórios antigos ficam") porque \(plan.preserved == 1 ? "guarda" : "guardam") decisões que o relatório mais recente do livro não tem; \(plan.preserved == 1 ? "ele contém" : "eles contêm") trechos do manuscrito e \(plan.preserved == 1 ? "serve" : "servem") à medição da precisão."
             guard !plan.isEmpty else {
                 isBusy = false; jobLabel = ""
-                status = "Nenhum resíduo de leituras antigas para limpar."
+                status = "Nenhum resíduo de leituras antigas para limpar." + preserved
                 return
             }
             let size = ByteCountFormatter.string(fromByteCount: plan.bytes, countStyle: .file)
             let alert = NSAlert()
             alert.messageText = "Liberar \(size)?"
-            alert.informativeText = "Serão apagados \(plan.summary). Eles guardam texto de leituras passadas.\n\nFicam o relatório aberto, o mais recente de cada livro, os falsos positivos extraídos, suas decisões, os encerramentos de revisão, o histórico e as cópias de segurança das correções, os projetos com IA e os motores."
+            alert.informativeText = "Serão apagados \(plan.summary). Eles guardam texto de leituras passadas.\n\nFicam o relatório aberto, o mais recente de cada livro, os falsos positivos extraídos, suas decisões, os encerramentos de revisão, o histórico e as cópias de segurança das correções, os projetos com IA e os motores." + (preserved.isEmpty ? "" : "\n\n" + preserved.trimmingCharacters(in: .whitespaces))
             alert.alertStyle = .warning
             alert.addButton(withTitle: "Apagar")
             alert.addButton(withTitle: "Cancelar")
@@ -1078,7 +1080,7 @@ final class ReviewStore: ObservableObject {
             let result = await Task.detached(priority: .userInitiated) { plan.apply() }.value
             isBusy = false; jobLabel = ""
             let freed = ByteCountFormatter.string(fromByteCount: result.freed, countStyle: .file)
-            status = result.failures == 0 ? "\(freed) liberados. Decisões e cópias de segurança preservadas."
+            status = result.failures == 0 ? "\(freed) liberados. Decisões e cópias de segurança preservadas." + preserved
                 : "\(freed) liberados; \(result.failures) itens não puderam ser apagados."
         }
     }

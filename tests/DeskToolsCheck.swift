@@ -44,7 +44,8 @@ struct DeskToolsCheck {
         try copies()
         try carried()
         try cleanup()
-        print("Mesa de leitura validada: cópias, decisões na reanálise e limpeza de resíduos.")
+        try cleanupKeepsDecisionHistory()
+        print("Mesa de leitura validada: cópias, decisões na reanálise, limpeza de resíduos e histórico de decisões.")
     }
 
     // MARK: Cópias
@@ -165,5 +166,60 @@ struct DeskToolsCheck {
         let again = StorageCleanup.plan(support: support, temporary: temporary,
                                         keepReport: open.deletingLastPathComponent(), keepLog: currentLog)
         try require(again.isEmpty, "Depois da limpeza não sobra resíduo: \(again.removals)")
+    }
+
+    /// Relatório antigo com decisão que o mais recente do livro não tem fica (medição); os demais saem.
+    static func cleanupKeepsDecisionHistory() throws {
+        let manager = FileManager.default
+        let root = manager.temporaryDirectory.resolvingSymlinksInPath()
+            .appendingPathComponent("lume-historico-" + UUID().uuidString, isDirectory: true)
+        defer { try? manager.removeItem(at: root) }
+        let support = root.appendingPathComponent("FONTE", isDirectory: true)
+        func write(_ path: String, _ text: String, age: TimeInterval = 0) throws {
+            let url = support.appendingPathComponent(path)
+            try manager.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try Data(text.utf8).write(to: url)
+            try manager.setAttributes([.modificationDate: Date().addingTimeInterval(-age)], ofItemAtPath: url.path)
+        }
+        func report(_ job: String, sha: String, _ ids: [String], age: TimeInterval) throws {
+            let findings = ids.map { #"{"id": "\#($0)"}"# }.joined(separator: ", ")
+            try write("Relatorios/\(job)/relatorio.json",
+                      #"{"document": "Livro.pages", "sha256": "\#(sha)", "findings": [\#(findings)]}"#, age: age)
+        }
+        func decisions(_ sha: String, _ values: [String: String]) throws {
+            let body = values.map { #""\#($0.key)": "\#($0.value)""# }.joined(separator: ", ")
+            try write("Decisoes/\(sha).json",
+                      #"{"schema_version": 1, "sha256": "\#(sha)", "document": "Livro.pages", "decisions": {\#(body)}}"#)
+        }
+        // Mais recente (texto editado, outro SHA): "comum" decidido; "sem-marca" ainda aparece, sem decisão.
+        try report("novo", sha: "s3", ["comum", "sem-marca"], age: 100)
+        try decisions("s3", ["comum": "Erro confirmado"])
+        // (1) alerta decidido sumiu do mais recente ("retirado") ou não tem decisão no arquivo dele: fica.
+        try report("com-historico", sha: "s2", ["comum", "retirado", "sem-marca"], age: 200)
+        try decisions("s2", ["comum": "Erro confirmado", "retirado": "Estilo do autor", "sem-marca": "Falso positivo"])
+        // (2) decisões todas representadas (uma pendente; as outras num relatório que já fica): sai.
+        try report("representado", sha: "s1", ["comum", "pendente", "retirado"], age: 300)
+        try decisions("s1", ["comum": "Erro confirmado", "pendente": "Pendente", "retirado": "Estilo do autor"])
+        // (1b) só "sem-marca" decidido, presente no mais recente sem decisão: fica pela mesma razão,
+        // salvo quando um relatório mais novo já mantido o carrega (aqui, "com-historico").
+        try report("so-sem-marca", sha: "s4", ["sem-marca"], age: 250)
+        try decisions("s4", ["sem-marca": "Falso positivo"])
+        // (3) sem decisões: sai, como antes.
+        try report("sem-decisoes", sha: "s0", ["antigo"], age: 400)
+
+        let plan = StorageCleanup.plan(support: support, temporary: root.appendingPathComponent("tmp"),
+                                       keepReport: nil, keepLog: nil)
+        let removed = Set(plan.removals.map(\.lastPathComponent))
+        try require(removed == ["representado", "so-sem-marca", "sem-decisoes"], "Plano com histórico: \(removed.sorted())")
+        try require(plan.preserved == 1 && plan.reports == 3, "Contagens: \(plan.preserved) mantidos, \(plan.reports) apagados.")
+        _ = plan.apply()
+        for kept in ["Relatorios/novo/relatorio.json", "Relatorios/com-historico/relatorio.json",
+                     "Decisoes/s1.json", "Decisoes/s2.json", "Decisoes/s3.json"] {
+            try require(manager.fileExists(atPath: support.appendingPathComponent(kept).path), "Não deveria apagar \(kept).")
+        }
+        // Uma segunda limpeza não apaga o relatório mantido: o resultado é estável.
+        let again = StorageCleanup.plan(support: support, temporary: root.appendingPathComponent("tmp"),
+                                        keepReport: nil, keepLog: nil)
+        try require(again.isEmpty && again.preserved == 1, "Segunda limpeza: \(again.removals)")
     }
 }

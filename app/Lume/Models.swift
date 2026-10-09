@@ -599,12 +599,21 @@ struct StorageCleanup: Sendable {
     var logs = 0
     var configurations = 0
     var temporaries = 0
+    /// Relatórios antigos mantidos porque só eles dão sentido (regra, classe, trecho) a decisões já tomadas.
+    var preserved = 0
     var isEmpty: Bool { removals.isEmpty }
 
-    private struct ReportHeader: Decodable { let document: String }
+    private struct ReportHeader: Decodable {
+        struct Item: Decodable { let id: String }
+        let document: String
+        let sha256: String?
+        let findings: [Item]?
+    }
 
     /// Mantém `keepReport` (a pasta do relatório aberto), o relatório mais recente de cada livro e
-    /// os `falsos-positivos.json` extraídos; `keepLog` é o registro da sessão.
+    /// os `falsos-positivos.json` extraídos; `keepLog` é o registro da sessão. Mantém também o
+    /// relatório antigo com um alerta decidido que nenhum relatório mantido do livro mede (mesmo ID,
+    /// decidido no arquivo do próprio SHA): sem ele, a decisão sai de `scripts/medir_precisao.py`.
     static func plan(support: URL, temporary: URL, keepReport: URL?, keepLog: URL?) -> StorageCleanup {
         let manager = FileManager.default
         var plan = StorageCleanup()
@@ -616,17 +625,37 @@ struct StorageCleanup: Sendable {
 
         let jobs = contents(support.appendingPathComponent("Relatorios", isDirectory: true)).filter(isDirectory)
         var newest: [String: (folder: URL, date: Date)] = [:]
-        var readable = Set<URL>()
+        var readable: [URL: (book: String, date: Date, sha: String?, ids: Set<String>)] = [:]
         for job in jobs {
             let report = job.appendingPathComponent("relatorio.json")
             guard let data = try? Data(contentsOf: report, options: .mappedIfSafe),
                   let header = try? JSONDecoder().decode(ReportHeader.self, from: data) else { continue }
-            readable.insert(job)
             let date = (try? report.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate ?? .distantPast
             let book = BookMemory.bookName(header.document)
+            readable[job] = (book, date, header.sha256, Set((header.findings ?? []).map(\.id)))
             if newest[book].map({ date > $0.date }) ?? true { newest[book] = (job, date) }
         }
-        let kept = Set(newest.values.map(\.folder))
+        var kept = Set(newest.values.map(\.folder))
+        // Alertas decididos de um relatório: a medição só os encontra no arquivo de decisões do mesmo SHA.
+        func decided(_ info: (book: String, date: Date, sha: String?, ids: Set<String>)) -> Set<String> {
+            guard let sha = info.sha,
+                  let data = try? Data(contentsOf: support.appendingPathComponent("Decisoes/\(sha).json")),
+                  let file = try? JSONDecoder().decode(DecisionFile.self, from: data) else { return [] }
+            return Set(file.decisions.filter { $0.value != ReviewDecision.pending.rawValue }.keys).intersection(info.ids)
+        }
+        // Decisões já medidas pelos relatórios mantidos de cada livro.
+        var represented: [String: Set<String>] = [:]
+        for job in jobs where kept.contains(job) || same(job, keepReport) {
+            if let info = readable[job] { represented[info.book, default: []].formUnion(decided(info)) }
+        }
+        // Do mais novo ao mais antigo: um relatório mais antigo com as mesmas decisões não fica.
+        let older = readable.filter { !kept.contains($0.key) && !same($0.key, keepReport) }.sorted { $0.value.date > $1.value.date }
+        for (job, info) in older {
+            let decided = decided(info)
+            guard !decided.isSubset(of: represented[info.book] ?? []) else { continue }
+            kept.insert(job); plan.preserved += 1
+            represented[info.book, default: []].formUnion(decided)
+        }
         for job in jobs where !kept.contains(job) && !same(job, keepReport) {
             let items = contents(job)
             let extra = items.filter { $0.lastPathComponent != falsePositivesName }
@@ -635,7 +664,7 @@ struct StorageCleanup: Sendable {
             } else {
                 extra.forEach { plan.add($0) }
             }
-            if !extra.isEmpty || readable.contains(job) { plan.reports += 1 }
+            if !extra.isEmpty || readable[job] != nil { plan.reports += 1 }
         }
 
         for log in contents(support.appendingPathComponent("Registros", isDirectory: true)) where !same(log, keepLog) {

@@ -17,6 +17,9 @@ estável de detecção, resultado das Fases 0 a 8 da estabilização (`.agent/pl
   decisões reais, 85% de precisão nas pendências pela Política v2 (582 decisões de um autor). As
   limitações aceitas estão em `docs/validacao.md`.
 - **Montagem:** passa a rodar também `DeduplicationCheck` e `PartialAnalysisCheck`.
+- **Limpar resíduos preserva o histórico de decisões:** um relatório antigo fica quando tem um
+  alerta decidido que o relatório mais recente do livro não mede. Esses relatórios guardam trechos
+  do manuscrito; o painel, a confirmação e a linha de estado dizem quantos ficaram.
 
 Ferramentas da mesa de leitura (só interface; o motor e os contratos não mudam).
 

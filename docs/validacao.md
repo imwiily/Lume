@@ -58,10 +58,19 @@ Git). Motor nos fontes; nenhuma chamada à API; validação verbal reservada nã
 - **Testes:** FONTE 503, pacotes 46, contrato Python, Coerencia 25, 8 verificações Swift,
   `xcodebuild` Release.
 
+- **Histórico de decisões e “Limpar resíduos”** (aprovado pelo autor): a decisão só tem sentido
+  junto do relatório que a gerou. A limpeza passa a manter o relatório antigo que tem um alerta
+  decidido (no arquivo de decisões do mesmo SHA) que nenhum relatório mantido do livro mede; entre
+  relatórios antigos com as mesmas decisões, fica só o mais novo. **Retenção explícita:** esses
+  relatórios guardam trechos do manuscrito; o painel Armazenamento, o diálogo de confirmação e a
+  linha de estado dizem quantos ficaram e por quê. Numa cópia da pasta real: 63 → 39 relatórios;
+  `medir_precisao.py` igual antes e depois (650 decisões únicas, mesmas classes, sem duplicidade);
+  os 13 relatórios mais recentes e os 31 arquivos de decisões ficam; uma segunda limpeza não apaga
+  nada. A limpeza anterior deixaria 15 relatórios e tiraria 564 decisões da medição.
+  Testes: `DeskToolsCheck` (decisão de alerta que sumiu ou sem decisão no relatório mais recente →
+  fica; decisões representadas → sai; sem decisões → sai; estabilidade).
+
 Limitações aceitas nesta versão:
-- o histórico de decisões precisa do relatório que as gerou; “Limpar resíduos” apaga relatórios
-  antigos e, com eles, a medição das decisões de alertas que não existem mais (solução proposta no
-  plano, ainda não aprovada);
 - estrutura (fragmento) abaixo de 50% em menos de 20 decisões; gramática do LT com categorias
   misturadas (Política v3, separada);
 - pontuação final ausente sem validação até as 19 decisões pendentes;
