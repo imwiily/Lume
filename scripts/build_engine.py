@@ -55,6 +55,25 @@ def own_packages_only(runtime):
                              + ', '.join(extra[:5]) + '. Instale o pacote em modo editável compat.')
 
 
+# Nunca seguem no motor: ambientes virtuais, repositórios, credenciais e as pastas de dados do Lume
+# (Application Support/FONTE e Coerencia/Projetos guardam trechos de manuscritos e decisões).
+PRIVADOS = {'.venv', 'pyvenv.cfg', '.git', '.env', '.netrc', 'id_rsa', 'id_ed25519', 'Projetos', 'Relatorios',
+            'Decisoes', 'Livros', 'Encerramentos', 'Edicoes', 'Copias', 'Configuracoes', 'Registros'}
+CHAVE_API = re.compile(rb'sk-ant-[A-Za-z0-9_-]{20,}')
+
+
+def private_files(root):
+    """Caminhos do pacote que não podem ser distribuídos; vazio quando o motor está limpo."""
+    found = []
+    for path in sorted(Path(root).rglob('*')):
+        relative = path.relative_to(root)
+        if PRIVADOS & set(relative.parts) or path.suffix == '.p12':
+            found.append(str(relative))
+        elif path.is_file() and not path.is_symlink() and CHAVE_API.search(path.read_bytes()):
+            found.append(str(relative) + ' (chave de API)')
+    return found
+
+
 def freeze_command(work):
     command = [sys.executable, '-m', 'PyInstaller', '--noconfirm', '--clean', '--onedir', '--noupx',
                '--name', 'lume-engine',
@@ -188,6 +207,9 @@ def main():
     freeze = subprocess.check_output([sys.executable, '-m', 'pip', 'freeze'], text=True)
     (package / 'dependencias.txt').write_text(freeze)
     licencas(package, grammar)
+    leaked = private_files(package)
+    if leaked:
+        raise SystemExit('O motor leva arquivos privados: ' + ', '.join(leaked[:5]))
     manifest = {'package_schema': 1, 'api_version': 1, 'report_schema': 1, 'decision_schema': 1,
                 'engine_version': health['engine_version'], 'platform': 'darwin', 'architecture': 'arm64',
                 'minimum_os': minimum_os(package), 'executable': 'runtime/lume-engine', 'files': inventory(package)}
