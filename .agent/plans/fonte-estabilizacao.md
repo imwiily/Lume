@@ -16,10 +16,10 @@ Restrições:
 
 - [x] Etapa 1 — inventário (07/10, sem alterar código).
 - [x] Etapa 2 — auditoria arquitetural (07/10, sem alterar código).
-- [x] Etapa 3 — plano de estabilização (07/10; aguarda aprovação, nada implementado).
+- [x] Etapa 3 — plano de estabilização (07/10; aprovado pelo autor com as decisões D1–D8).
 - [x] Fase 0 — linha de base e comparação (07/10).
-- [x] Fase 1 — identidade, regra e classe (07/10). Parada para revisão do autor.
-- [x] Fase 2a — núcleo verbal, sem mudança de comportamento (07/10). Aguarda o autor.
+- [x] Fase 1 — identidade, regra e classe (07/10; aprovada pelo autor).
+- [x] Fase 2a — núcleo verbal, sem mudança de comportamento (07/10; aprovada pelo autor).
 - [x] Preparação da Fase 2b: evidência independente congelada e protocolo (07/10; commit `b935ebf`).
 - [x] Fase 2b — reconhecimento verbal (08/10; commit `184ffbc`).
 - [x] Fase 3 — núcleo de tempo e modo, só consolidação (08/10; commit `e0159ca`).
@@ -29,12 +29,13 @@ Restrições:
 - [x] Fase 6b — deduplicação por família com preservação das decisões (08/10; commit `50860e4`).
 - [x] Fase 6b — categoria original do LanguageTool (08/10; commit `1ef184d`).
 - [x] Fase 6b — LanguageTool indisponível: análise parcial (08/10; commit `c5339e1`).
-- [x] Fase 7a — parecer definitivo das regras e plano de implementação (08/10). Aguarda o autor;
-  nenhuma regra alterada.
-- [x] Fase 7a — commit `3218e49`.
-- [x] Fase 7b — implementação (08–09/10; commits `5f40df7` a `061fb6f`). Aguarda o autor.
-- [ ] Fases 7–8.
-- [ ] Pendente, fase com mudança de comportamento: `imperfeito` (problema 1 da Fase 3).
+- [x] Fase 7a — parecer definitivo das regras e plano de implementação (08/10; commit `3218e49`;
+  aprovada pelo autor; nenhuma regra alterada).
+- [x] Fase 7b — implementação (08–09/10; commits `5f40df7` a `061fb6f`, registro em `4882ab1`).
+  Aguarda o autor.
+- [x] `imperfeito` (problema 1 da Fase 3): corrigido na Fase 7b, grupo 5 (`5303db5`); aguarda o autor
+  junto com a Fase 7b.
+- [ ] Fase 8 — auditoria final e congelamento (não iniciada).
 
 ## Fontes de evidência usadas
 
