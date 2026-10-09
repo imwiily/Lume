@@ -4,6 +4,20 @@ As seções antigas descrevem a cobertura e os resultados de cada entrega, não 
 
 ## Em desenvolvimento
 
+**FONTE 1.5.0 — Estabilização linguística** (proposta; aguarda a aprovação do autor). Baseline
+estável de detecção, resultado das Fases 0 a 8 da estabilização (`.agent/plans/fonte-estabilizacao.md`):
+- **Núcleos compartilhados:** identificação verbal com três perguntas (`verbo.py`), tempo e modo
+  (`tempo.py`), segmentação entre fala e narração (`segments.py`), verbos de fala (`elocucao.py`)
+  e deduplicação por família de fenômeno, com a ocorrência absorvida registrada (`deduplicacao.py`).
+- **Identidade:** todo alerta traz `rule` e `classe`; IDs e herança de decisões preservados.
+- **LanguageTool:** categoria original registrada; indisponível vira análise parcial, não falha.
+- **Regras revisadas:** alarmes falsos demonstrados corrigidos por classe; estilo, registro e
+  exemplos isolados retirados (as chaves continuam aceitas); uma relação temporal desativada.
+- **Validação final:** 29 conjuntos de regressão idênticos à Fase 7b; nenhum impeditivo; nas
+  decisões reais, 85% de precisão nas pendências pela Política v2 (582 decisões de um autor). As
+  limitações aceitas estão em `docs/validacao.md`.
+- **Montagem:** passa a rodar também `DeduplicationCheck` e `PartialAnalysisCheck`.
+
 Ferramentas da mesa de leitura (só interface; o motor e os contratos não mudam).
 
 - **Copiar contexto:** copia o título do capítulo e todos os parágrafos mostrados na página.
