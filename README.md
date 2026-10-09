@@ -34,7 +34,9 @@ Instruções para agentes de código estão em [AGENTS.md](AGENTS.md) e nos `AGE
 
 Extraia `Lume.app.zip` e copie `Lume.app` para Aplicativos. Feche a versão anterior antes de abrir a nova. Python, modelo de linguagem, LanguageTool e Java já vêm dentro do app.
 
-A assinatura é local (ad hoc), sem notarização para distribuição pública. Se **Motor** mostrar uma versão anterior, use **Restaurar embutido**. Versões, créditos e licenças ficam em **Lume → Sobre o Lume**. Relatórios, decisões e preferências ficam em `~/Library/Application Support/FONTE/`.
+Requer Mac com Apple Silicon e **macOS 27 ou posterior**. O motor embutido usa o Python e as bibliotecas (OpenSSL, xz) do Homebrew desta máquina de montagem, compiladas para o macOS 27; a montagem declara como mínimo o maior requisito entre os binários do motor e recusa um app que anuncie menos. Só o macOS 27.0.1 foi verificado.
+
+A assinatura é local (ad hoc), sem Developer ID nem notarização: o macOS bloqueia a primeira abertura de um app baixado, e é preciso liberá-lo em Ajustes do Sistema → Privacidade e Segurança. Uma distribuição pública convencional exige assinatura Developer ID (conta Apple Developer) e notarização. Se **Motor** mostrar uma versão anterior, use **Restaurar embutido**. Versões, créditos e licenças ficam em **Lume → Sobre o Lume**. Relatórios, decisões e preferências ficam em `~/Library/Application Support/FONTE/`.
 
 ## Coerência com IA (Claude)
 

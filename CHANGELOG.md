@@ -7,6 +7,16 @@ As seções antigas descrevem a cobertura e os resultados de cada entrega, não 
 O Lume 1.7 embute o FONTE 1.5.0 (tag `fonte-v1.5.0`) e a Política editorial v2. O Coerencia não
 mudou.
 
+**Requisito de sistema e conteúdo do motor (montagem).**
+- **macOS 27 ou posterior.** O manifesto do motor registrava como mínimo o macOS de quem montou, e o
+  app anunciava o macOS 13. Agora o mínimo é o maior `minos` entre os binários do motor (27.0, pelas
+  bibliotecas OpenSSL e xz do Homebrew); o app passa a exigir o mesmo, e a montagem recusa um app que
+  anuncie menos. Só o macOS 27.0.1 foi verificado.
+- **Pasta do Coerencia fora do motor.** O congelamento rodava na raiz do repositório, onde `coerencia/`
+  vira pacote de namespace, e o motor levava a pasta inteira: `.venv`, testes e
+  `Projetos/` (dados locais da Coerência com IA). O congelamento agora roda fora da raiz, e a montagem recusa um motor com
+  arquivos fora de `fonte/fonte` e `coerencia/coerencia`.
+
 **FONTE 1.5.0 — Estabilização linguística.** Baseline
 estável de detecção, resultado das Fases 0 a 8 da estabilização (`.agent/plans/fonte-estabilizacao.md`):
 - **Núcleos compartilhados:** identificação verbal com três perguntas (`verbo.py`), tempo e modo
