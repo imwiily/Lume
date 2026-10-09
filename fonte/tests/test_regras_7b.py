@@ -135,3 +135,25 @@ class VerbosDeFala(unittest.TestCase):
                          [("Maiúscula após reticências", "Que")])
         # “sentou” é de sentar; o radical de “sentir” não vale contra o lema do modelo.
         self.assertEqual(self.rodar("Ela sentou… Que a noite passasse logo, pensava.", "frase_cortada"), [])
+
+
+class AspasComoNarracao(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        import spacy
+        cls.nlp = spacy.load("pt_core_news_sm", disable=["ner"])
+
+    def dialogo(self, texto, **opcoes):
+        from fonte.pipeline import run
+        from fonte.settings import validate
+        regras = {r: r == "pontuacao_dialogo" for r in validate({})["rules"]}
+        achados, _, _ = run(blocos(texto), lambda: self.nlp, settings=validate({"rules": regras, **opcoes}), tense="passado")
+        return [f["excerpt"] for f in achados if f["category"] == "Pontuação de diálogo"]
+
+    def test_quotes_as_speech_keep_the_check(self):
+        texto = "“Já volto”, ela abriu a porta e saiu."
+        self.assertTrue(self.dialogo(texto))
+        self.assertTrue(self.dialogo(texto, quotes_role="pensamento"))
+
+    def test_quotes_as_narration_have_no_speech_tag_to_check(self):
+        self.assertEqual(self.dialogo("“Já volto”, ela abriu a porta e saiu.", quotes_role="narracao"), [])
