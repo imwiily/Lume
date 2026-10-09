@@ -19,10 +19,11 @@ if [ ! -x fonte/.venv/bin/python ]; then
 fi
 fonte_python="$PWD/fonte/.venv/bin/python"
 "$fonte_python" -c 'import platform; assert platform.machine() == "arm64", "Use um ambiente Python arm64 nativo"'
-# Reinstala do zero: um upgrade não apaga módulos que saíram do código, e o cache
-# fonte/build (gerado pelo setuptools) pode reintroduzir cópias antigas.
+# Reinstala do zero, em modo editável: o Python importa sempre os fontes de fonte/, nunca uma cópia
+# antiga. O modo compat põe fonte/ no sys.path, para a pasta de mesmo nome na raiz não ser lida
+# como pacote de namespace. O cache fonte/build pode reintroduzir cópias antigas.
 rm -rf fonte/build
-"$fonte_python" -m pip install --upgrade --force-reinstall --no-deps ./fonte
+"$fonte_python" -m pip install --upgrade --force-reinstall --no-deps -e ./fonte --config-settings editable_mode=compat
 # Coerência com IA (Claude): instalada em modo editável; o motor congelado usa os fontes de coerencia.
 "$fonte_python" -m pip install -e coerencia
 # Caches copiados com datas futuras podem fazer setuptools reutilizar código antigo.
