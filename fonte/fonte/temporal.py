@@ -296,6 +296,10 @@ def temporal_alert(block, offset, anchor, target, subtype, reason, severity, con
     return result
 
 
+# Relações desativadas (Fase 7b): a implementação fica, mas não são emitidas na análise.
+# `coordinated_past_present` acertou 2 de 7 decisões reais; a geração nova cobre a sequência.
+DESATIVADAS = frozenset({"coordinated_past_present"})
+
 # Precedência entre alertas do mesmo verbo: o mais específico prevalece.
 PRECEDENCE = ("conditional_tense_mismatch", "modal_mood_mismatch", "coordinated_tense_mismatch", "past_present_past",
               "same_subject_narrative_shift", "local_narrative_tense_shift")
@@ -990,7 +994,8 @@ def accents(block, offset, doc, expected_tense):
     return out
 
 
-def analyze(blocks, nlp, settings, expected_tense="auto", trace=None):
+def analyze(blocks, nlp, settings, expected_tense="auto", trace=None, desativadas=DESATIVADAS):
+    """`desativadas`: relações que não são emitidas (padrão: `DESATIVADAS`)."""
     roles = classify(blocks, settings)
     jobs = []
     allowed = set(settings["tense_scopes"] if settings["rules"]["coerencia_temporal"] else [])
@@ -1028,6 +1033,7 @@ def analyze(blocks, nlp, settings, expected_tense="auto", trace=None):
         if settings["rules"]["acentuacao_contextual"] and role == "narracao":
             out.extend(accents(block, start, doc, expected_tense))
     out.extend(sequence(evts, trace))
+    out = [f for f in out if f.get("relation") not in desativadas]
     # Um alerta por verbo: o mais específico prevalece (PRECEDENCE); relações antigas só ficam
     # onde nenhum detector da lista apontou o mesmo trecho.
     rank = {name: i for i, name in enumerate(PRECEDENCE)}

@@ -120,7 +120,7 @@ def run(blocks, model_loader, *, settings=None, tense="auto", mode="ambas",
             out = deduplicacao.tempo_verbal_sob_relacao(out, more)
             out.extend(more)
             meta["temporal_relations"] = ["conditional_future", "simultaneous_present",
-                                          "ambiguous_simultaneity", "coordinated_past_present",
+                                          "ambiguous_simultaneity",
                                           "conditional_tense_mismatch", "coordinated_tense_mismatch",
                                           "past_present_past", "same_subject_narrative_shift",
                                           "local_narrative_tense_shift"]
