@@ -46,9 +46,11 @@ CATEGORIAS = {
     "pontuacao": ("Pontuação", None, "linguistica", "editorial_attention"),
     "tempo_verbal": ("Tempo verbal", "tempo_verbal", "linguistica", "editorial_attention"),
     "estrutura_frase": ("Estrutura da frase", "estrutura", "linguistica", "editorial_attention"),
-    "repeticao": ("Repetição", "palavra_proxima", "editorial", "editorial_attention"),
+    # A Auditoria só aceita a palavra dobrada como repetição (DOBRADA): segue `palavra_consecutiva`.
+    "repeticao": ("Repetição", "palavra_consecutiva", "editorial", "editorial_attention"),
     "dialogo": ("Pontuação de diálogo", "pontuacao_dialogo", "editorial", "editorial_attention"),
-    "referencia": ("Referência ambígua", "referente_contextual", "editorial", "editorial_attention"),
+    # `referente_contextual` foi retirada (Fase 7b); a categoria da Auditoria não depende dela.
+    "referencia": ("Referência ambígua", None, "editorial", "editorial_attention"),
     "continuidade_local": ("Continuidade na cena", None, "editorial", "possible_inconsistency"),
 }
 # Palavra dobrada por acidente (“o o”, “que que”): a única repetição que o auditor pode apontar.

@@ -24,12 +24,13 @@ def health():
         assert any(f['text'][f['start']:f['end']] == 'observa' for f in findings), 'Análise de teste falhou'
         from fonte.editorial import analyze as editorial
         from fonte.reader import Block
-        editorial_findings, _ = editorial([Block(1, 'Não trabalha amanhã nem nos três dias seguintes. Foi afastado por três dias.')])
-        assert any(f['rule'] == 'duracao_suspensao' for f in editorial_findings), 'Análise editorial ausente'
+        duplicada = [Block(1, 'A porta rangeu no corredor escuro.'), Block(2, 'A porta rangeu no corredor escuro.')]
+        editorial_findings, _ = editorial(duplicada)
+        assert any(f['rule'] == 'frase_duplicada' for f in editorial_findings), 'Análise editorial ausente'
         from fonte.settings import validate as search_settings
-        settings = search_settings({'rules': {'duracao_suspensao': False}})
-        filtered, _ = editorial([Block(1, 'Não trabalha amanhã nem nos três dias seguintes. Foi afastado por três dias.')], settings=settings)
-        assert not any(f['rule'] == 'duracao_suspensao' for f in filtered), 'Filtro editorial falhou'
+        settings = search_settings({'rules': {'frase_duplicada': False}})
+        filtered, _ = editorial(duplicada, settings=settings)
+        assert not any(f['rule'] == 'frase_duplicada' for f in filtered), 'Filtro editorial falhou'
         from fonte.pipeline import run
         from fonte.settings import NEW_RULES, validate
         options = validate({})

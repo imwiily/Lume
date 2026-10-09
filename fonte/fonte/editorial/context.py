@@ -10,9 +10,9 @@ from ..verbo import model_finite
 from ..segments import TRAVESSOES, classify, spans
 from .common import alert, evidence
 
-RULES = {'dialogo_contextual', 'referente_contextual', 'gerundismo'}
+# Gerundismo e “o objeto” depois de enumeração foram retirados na Fase 7b (registro; exemplo isolado).
+RULES = {'dialogo_contextual'}
 CUT = re.compile(r'\s*(?:\*{3}|—{3}|no dia seguinte\b|dias depois\b|na manhã seguinte\b)', re.I)
-GERUND = re.compile(r'\b(?:vou|vai|vamos|vão|vais|irei|irá|iremos|irão)\s+(?:poder\s+)?estar\s+[^\W\d_]+(?:ando|endo|indo)\b', re.I)
 
 
 def window(blocks, index):
@@ -73,16 +73,7 @@ def analyze(blocks, nlp, settings, *, docs=None):
             }
             if category == 'Ação narrativa após fala':
                 item['category_code'] = 'narrative_action_after_speech'
-            elif rule == 'referente_contextual':
-                item['category_code'] = 'ambiguous_reference'
             out.append(item)
-
-        if settings['rules']['gerundismo']:
-            for start, end, _ in spans(roles, ['narracao', 'dialogo', 'pensamento']):
-                for match in GERUND.finditer(block.text[start:end]):
-                    emit('gerundismo', 'Perífrase verbal possivelmente excessiva', start + match.start(), start + match.end(),
-                         explicar('Vários verbos em sequência (como ‘vou estar fazendo’). Pode ser escolha de voz ou de '
-                                  'ritmo; não é erro. O alerta só mostra onde a construção aparece.', 'gerundismo'))
 
         if settings['rules']['dialogo_contextual'] and settings['dialogue_dashes']:
             for start, end, role in spans(roles, ['narracao']):
@@ -120,24 +111,4 @@ def analyze(blocks, nlp, settings, *, docs=None):
                                       'minúscula. Nomes próprios ficam sempre com maiúscula.',
                                       'pontuação de diálogo com travessão'))
 
-        if settings['rules']['referente_contextual']:
-            for target in doc:
-                if target.lower_ != 'objeto' or target.dep_ != 'obj' or target.i == 0 or doc[target.i - 1].lower_ != 'o':
-                    continue
-                # Só enumerações recentes, com pelo menos dois núcleos coordenados.
-                candidates = []
-                for prior in context[:context.index(block) + 1]:
-                    for token in by_number[prior.number]:
-                        if prior.number == block.number and token.idx >= target.idx:
-                            continue
-                        if token.pos_ == 'NOUN' and token.dep_ == 'conj' and token.head.pos_ == 'NOUN':
-                            candidates.extend([evidence(prior, token.head.idx, token.head.idx + len(token.head.text)),
-                                               evidence(prior, token.idx, token.idx + len(token.text))])
-                unique = {(e['paragraph'], e['start']): e for e in candidates}
-                if len(unique) >= 2:
-                    emit('referente_contextual', 'Objeto com antecedente possivelmente ambíguo',
-                         target.idx, target.idx + len(target.text),
-                         explicar('Antes de “o objeto” foram citadas várias coisas. Qual delas é “o objeto”? Confira se a '
-                                  'cena deixa isso claro.', 'referência ambígua'),
-                         list(unique.values()), 'author_query')
     return out

@@ -109,11 +109,12 @@ As contagens correspondem aos alertas efetivamente emitidos por cada etapa. A re
 Linguístico cobre padrões determinísticos, pontuação, repetições e o LanguageTool embutido
 (ortografia e gramática, também em falas). Morfossintático cobre o tempo verbal da narração
 informado, relações entre orações, acentuação contextual e as regras de `grammar.py` (crase,
-homófonos, concordância, regência, vírgula entre sujeito e verbo, correlação de tempos, frase
-cortada e locuções). Editorial usa contexto
-local: diálogos, repetições, gerundismo e referentes próximos, com abstenção quando há
-candidatos concorrentes. Coerência Global cobre variações de nomes e prazos e, com a
-Coerência com IA ligada, contradições narrativas. Suspeitas não viram erros confirmados nem
+homófonos, concordância, pronome reto como objeto, vírgula entre sujeito e verbo, correlação de
+tempos, frase cortada e locuções). Editorial usa contexto local: diálogos, frases repetidas e, com o
+original, pronomes perto de cortes. Coerência Global cobre variações de nomes e, com a Coerência
+com IA ligada, contradições narrativas. Repetição próxima, gerundismo, regência coloquial, prazos
+de uma cena e referentes literais foram retirados na estabilização (Fase 7b); as chaves continuam
+aceitas nas configurações antigas. Suspeitas não viram erros confirmados nem
 correções automáticas. Nada disso equivale a uma revisão gramatical completa.
 
 `done`, `total` e `unit` opcionais nos eventos `running` indicam o andamento dentro da etapa

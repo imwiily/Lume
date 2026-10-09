@@ -10,18 +10,6 @@ STOP = set("a o as os um uma uns umas de da do das dos em no na nos nas por para
 SENTENCE = re.compile(r"[^.!?…\n]+[.!?…]*")
 
 
-def expressive(text, lower, upper, first, second):
-    """Repetição entre frases com o mesmo início (“Ainda conseguia… Ainda conseguia…”)
-    ou eco numa frase curta (“Depois, outro. E outro.”) é recurso de estilo."""
-    sentences = [s for s in SENTENCE.finditer(text, lower, upper)]
-    one = next((s for s in sentences if s.start() <= first.start() < s.end()), None)
-    two = next((s for s in sentences if s.start() <= second.start() < s.end()), None)
-    if one is None or two is None or one.start() == two.start():
-        return False
-    before = lambda s, m: [w.casefold() for w in WORDS.findall(text[s.start():m.start()])]
-    return before(one, first) == before(two, second) or len(WORDS.findall(two[0])) <= 3
-
-
 # Pronomes átonos que, depois do hífen (ênclise), têm a mesma forma do artigo ou da preposição seguinte.
 ENCLITICOS_HOMOGRAFOS = {"a", "o", "as", "os"}
 # O que pode vir entre o pronome “se” e o verbo dele (“se se lhes não conta”).
@@ -79,28 +67,20 @@ def analyze(blocks, settings=None):
                                      'frase repetida'),
                             'alta' if ratio==1 else 'baixa',[evidence(old,start,end)]))
                     recent.append((key,block,sentence.start(),sentence.end(),scope));recent=recent[-8:]
-            if not options['rules']['palavra_proxima'] and not options['rules']['palavra_consecutiva']:
+            if not options['rules']['palavra_consecutiva']:
                 continue
             units=[(lower,upper)] if options['repetition_boundary']=='trecho' else [(s.start(),s.end()) for s in SENTENCE.finditer(block.text,lower,upper)]
             for start,end in units:
-                tokens=list(WORDS.finditer(block.text,start,end));seen={};emitted=set()
+                tokens=list(WORDS.finditer(block.text,start,end));seen={}
                 for i,token in enumerate(tokens):
                     key=token[0].casefold();previous=seen.get(key)
                     if previous is not None:
-                        first=tokens[previous];distance=i-previous
-                        if (distance==1 and options['rules']['palavra_consecutiva']
-                                and block.text[first.end():token.start()].isspace() and flags(key)
+                        first=tokens[previous]
+                        # A repetição próxima (estilo) foi retirada na Fase 7b; só a dobra conta.
+                        if (i-previous==1 and block.text[first.end():token.start()].isspace() and flags(key)
                                 and not dobra_legitima(block.text, first, token, tokens[i + 1:])):
                             out.append(alert(block,'palavra_consecutiva','Palavra repetida',first.start(),token.end(),
                                 explicar('A mesma palavra aparece duas vezes seguidas. Confira se é de propósito ou digitação.',
                                          'palavra repetida'),'média'))
-                        elif (options['rules']['palavra_proxima'] and key not in STOP and len(key)>=4
-                              and not token[0][0].isupper() and 1<distance<=options['word_distance'] and key not in emitted):
-                            between=block.text[first.end():token.start()].strip().casefold()
-                            if between not in {'a','por'} and not expressive(block.text,lower,upper,first,token):
-                                out.append(alert(block,'palavra_proxima','Possível repetição próxima',first.start(),token.end(),
-                                    explicar(f'“{token[0]}” aparece duas vezes em pouco espaço. Pode ser necessário ou de '
-                                             'propósito; o alerta só mostra a repetição.', 'repetição próxima'),'baixa'))
-                                emitted.add(key)
                     seen[key]=i
     return out

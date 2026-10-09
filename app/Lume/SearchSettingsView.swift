@@ -99,13 +99,8 @@ struct SearchSettingsView: View {
         VStack(alignment: .leading, spacing: 12) {
             heading("Onde procurar")
             group {
-                subheading("Repetições de palavras e frases")
+                subheading("Palavras dobradas e frases repetidas")
                 ForEach(scopes, id: \.0) { key, label in Toggle(label, isOn: scopeBinding(key, tense: false)) }
-                Stepper("Distância máxima: \(store.searchSettings.wordDistance) palavras", value: $store.searchSettings.wordDistance, in: 2...40)
-                Picker("Limite para palavras", selection: $store.searchSettings.repetitionBoundary) {
-                    Text("Mesmo trecho").tag("trecho")
-                    Text("Mesma frase").tag("frase")
-                }.pickerStyle(.menu)
                 Toggle("Comparar frases também entre parágrafos próximos", isOn: $store.searchSettings.duplicateAcrossParagraphs)
                 Picker("Frases repetidas", selection: $store.searchSettings.duplicateSimilarity) {
                     Text("Mesmas palavras").tag(1.0)
@@ -117,7 +112,7 @@ struct SearchSettingsView: View {
             group {
                 subheading("Mudanças de tempo verbal")
                 ForEach(scopes, id: \.0) { key, label in Toggle(label, isOn: scopeBinding(key, tense: true)) }
-                note("Estrutura e pontuação são verificadas na narração. Continuidade e referências usam o contexto; variações de nomes usam o documento inteiro. O corretor gramatical local mantém suas próprias proteções.")
+                note("Estrutura e pontuação são verificadas na narração. Variações de nomes usam o documento inteiro. O corretor gramatical local mantém suas próprias proteções.")
             }
         }.font(LumeFont.ui(13))
     }

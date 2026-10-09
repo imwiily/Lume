@@ -1,40 +1,9 @@
-"""Heurísticas deliberadamente estreitas; não resolvem correferência."""
+"""Pronomes perto de trechos cortados em relação ao original (`pronome_apos_corte`). A regra de
+proximidade de referentes foi retirada na Fase 7b (exemplo isolado). Não resolve correferência."""
 from difflib import SequenceMatcher
 import re
 from ..analysis import explicar
 from .common import WORDS, alert, evidence, normalized
-
-PRONOUN = re.compile(r"(?:^|[.!?…]\s+)(Eles|Elas|Isso|Aquilo)\b")
-PLURAL = re.compile(r"\b(?:os|as|uns|umas|dois|duas|três|seus|suas|aqueles|aquelas)\s+[^\W\d_]+|\b[^\W\d_]+\s+e\s+[^\W\d_]+", re.I)
-
-
-def analyze(blocks, original=None):
-    out = []
-    for i, block in enumerate(blocks):
-        if block.heading:
-            continue
-        for match in PRONOUN.finditer(block.text):
-            # Só a construção de proximidade, sem supor que todo pronome exige
-            # antecedente textual. Não usa o final de um capítulo anterior.
-            tail = block.text[match.end():]
-            if match[1] not in ("Eles", "Elas") or not re.match(r"\s+(?:estavam|estão|ficaram)\s+(?:tão|muito|bem)\s+perto\b", tail, re.I):
-                continue
-            previous = []
-            for old in reversed(blocks[max(0, i-3):i]):
-                if old.heading or old.chapter != block.chapter:
-                    break
-                previous.insert(0, old)
-            context = " ".join(b.text for b in previous) + " " + block.text[:match.start(1)]
-            if not PLURAL.search(context):
-                out.append(alert(block, "referente_proximidade", "Possível referência pouco clara", match.start(1), match.end(),
-                    explicar("Este pronome no plural se refere a várias pessoas ou coisas, mas nos três parágrafos "
-                             "anteriores não aparece nada no plural a que ele possa se referir. Pode estar mais longe ou "
-                             "ficar implícito. Confira a quem ele se refere.", "referência do pronome"),
-                    "baixa", [evidence(b) for b in previous]))
-    if original:
-        out.extend(edit_scars(blocks, original))
-    return out
-
 
 def edit_scars(blocks, original):
     # Alinha palavras para tolerar parágrafos unidos/divididos na revisão.

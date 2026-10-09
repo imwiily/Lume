@@ -141,7 +141,7 @@ def run(blocks, model_loader, *, settings=None, tense="auto", mode="ambas",
             out.extend(extra); warnings.extend(extra_warnings)
         if editorial_mode:
             extra, extra_warnings = legacy(blocks, previous, selected(
-                ["palavra_proxima", "frase_duplicada", "referente_proximidade", "pronome_apos_corte"]))
+                ["frase_duplicada", "pronome_apos_corte"]))
             out.extend(extra); warnings.extend(extra_warnings)
             from .editorial.context import analyze as contextual, RULES as CONTEXT_RULES
             if any(rules[r] for r in CONTEXT_RULES):
@@ -151,7 +151,7 @@ def run(blocks, model_loader, *, settings=None, tense="auto", mode="ambas",
     def global_coherence():
         from .editorial import analyze as legacy
         out, extra_warnings = legacy(blocks, settings=selected(
-            ["variacao_nome", "duracao_suspensao", "adiamento_amanha"]))
+            ["variacao_nome"]))
         warnings.extend(extra_warnings)
         if coerencia:
             from .coerencia_ia import analisar as coerencia_ia
@@ -181,12 +181,11 @@ def run(blocks, model_loader, *, settings=None, tense="auto", mode="ambas",
             ((rules["tempo_verbal"] or rules["coerencia_temporal"]) and options["tense_scopes"])), morphosyntactic,
          "Tempo predominante, estrutura, quatro relações temporais locais, acentuação verbal contextual, crase, homófonos, concordância, regência, vírgula entre sujeito e verbo, correlação de tempos, frase cortada e locuções. Cobertura parcial; homógrafos permanecem dúvidas."),
         ((linguistic_mode and rules["pontuacao_dialogo"]) or (editorial_mode and (
-            any(rules[r] for r in ("palavra_proxima", "frase_duplicada", "referente_proximidade",
-                                  "dialogo_contextual", "referente_contextual", "gerundismo")) or
+            any(rules[r] for r in ("frase_duplicada", "dialogo_contextual")) or
             (rules["pronome_apos_corte"] and previous))), editorial,
-         "Diálogo, repetições, gerundismo e referências em janelas curtas."),
-        (bool(coerencia) or (editorial_mode and any(rules[r] for r in ("variacao_nome", "duracao_suspensao", "adiamento_amanha"))), global_coherence,
-         "Variações de nomes e prazos; contradições narrativas com a Coerência com IA, quando ligada. Cobertura parcial."),
+         "Diálogo, frases repetidas e pronomes perto de cortes, em janelas curtas."),
+        (bool(coerencia) or (editorial_mode and rules["variacao_nome"]), global_coherence,
+         "Variações de nomes; contradições narrativas com a Coerência com IA, quando ligada. Cobertura parcial."),
         (bool(auditoria), audit,
          "Problemas que as etapas anteriores deixaram passar, com a API do Claude; só quando ligada e confirmada. Cobertura parcial."),
     ]

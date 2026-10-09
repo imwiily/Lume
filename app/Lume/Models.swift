@@ -808,13 +808,16 @@ struct ChapterMarker: Decodable {
 struct SearchRule: Identifiable {
     let id: String
     let title: String
-    static let newIDs: Set<String> = ["construcao_invalida", "pontuacao_duplicada", "espacamento", "virgula_que_nao", "que_tonico_interrogativo", "coerencia_temporal", "acentuacao_contextual", "vocativo", "capitalizacao_contextual", "dialogo_contextual", "referente_contextual", "gerundismo",
+    static let newIDs: Set<String> = ["construcao_invalida", "pontuacao_duplicada", "espacamento", "virgula_que_nao", "que_tonico_interrogativo", "coerencia_temporal", "acentuacao_contextual", "vocativo", "capitalizacao_contextual", "dialogo_contextual",
                                           "crase", "homofonos", "concordancia", "regencia", "virgula_sujeito_verbo",
                                           "correlacao_tempos", "frase_cortada", "locucoes", "residuo_edicao"]
-    /// Regras retiradas do motor (memória narrativa heurística; `tratamento`, em 07/10/2026):
-    /// configurações antigas que as mencionam continuam abrindo, e essas chaves são descartadas.
+    /// Regras retiradas do motor (memória narrativa heurística; `tratamento`, em 07/10/2026; estilo,
+    /// registro e exemplos isolados na estabilização, Fase 7b): configurações antigas que as mencionam
+    /// continuam abrindo, e essas chaves são descartadas.
     static let retiredIDs: Set<String> = ["memoria_narrativa", "conflito_habilidade", "conflito_objeto",
-                                          "conflito_cronologia", "coerencia_generica", "tratamento"]
+                                          "conflito_cronologia", "coerencia_generica", "tratamento",
+                                          "palavra_proxima", "gerundismo", "duracao_suspensao", "adiamento_amanha",
+                                          "referente_proximidade", "referente_contextual"]
     static let all: [SearchRule] = [
         .init(id: "construcao_invalida", title: "Construções inválidas conhecidas"),
         .init(id: "pontuacao_duplicada", title: "Pontuação duplicada"),
@@ -828,7 +831,7 @@ struct SearchRule: Identifiable {
         .init(id: "crase", title: "Crase ausente ou indevida"),
         .init(id: "homofonos", title: "Por que, há/a, onde/aonde, mal/mau, mas/mais"),
         .init(id: "concordancia", title: "Concordância verbal e nominal · narração"),
-        .init(id: "regencia", title: "Regência na norma culta · atenção editorial"),
+        .init(id: "regencia", title: "Pronome reto como objeto · norma-padrão, narração"),
         .init(id: "virgula_sujeito_verbo", title: "Vírgula entre sujeito e verbo · narração"),
         .init(id: "correlacao_tempos", title: "Correlação de tempos: antes que, embora, se + subjuntivo"),
         .init(id: "frase_cortada", title: "Frase cortada, sem pontuação final ou ‘Que’ após reticências"),
@@ -838,15 +841,9 @@ struct SearchRule: Identifiable {
         .init(id: "residuo_edicao", title: "Resíduo de edição: dois auxiliares seguidos · narração"),
         .init(id: "pontuacao_dialogo", title: "Ligação entre fala e narração"),
         .init(id: "dialogo_contextual", title: "Ações e retomadas de fala por travessão"),
-        .init(id: "referente_contextual", title: "Objeto após enumeração · contexto curto"),
-        .init(id: "gerundismo", title: "Perífrases verbais · atenção editorial"),
         .init(id: "palavra_consecutiva", title: "Palavras repetidas consecutivamente"),
-        .init(id: "palavra_proxima", title: "Palavras repetidas próximas"),
         .init(id: "frase_duplicada", title: "Frases repetidas"),
         .init(id: "variacao_nome", title: "Variações de nomes"),
-        .init(id: "duracao_suspensao", title: "Duração de suspensão ou afastamento"),
-        .init(id: "adiamento_amanha", title: "Adiamento para amanhã"),
-        .init(id: "referente_proximidade", title: "Referências de proximidade pouco claras"),
         .init(id: "pronome_apos_corte", title: "Pronomes após cortes · exige original")
     ]
 }

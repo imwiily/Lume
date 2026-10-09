@@ -3,21 +3,26 @@ from copy import deepcopy
 import json
 from pathlib import Path
 
+# Chaves da primeira versão das configurações (identificam ‘desativar todas’ nos arquivos antigos).
+LEGACY_RULES = ['tempo_verbal', 'estrutura', 'pontuacao_dialogo', 'palavra_consecutiva',
+                'palavra_proxima', 'frase_duplicada', 'variacao_nome', 'duracao_suspensao',
+                'adiamento_amanha', 'referente_proximidade', 'pronome_apos_corte']
 RULES = ['tempo_verbal', 'estrutura', 'pontuacao_dialogo', 'palavra_consecutiva',
-         'palavra_proxima', 'frase_duplicada', 'variacao_nome', 'duracao_suspensao',
-         'adiamento_amanha', 'referente_proximidade', 'pronome_apos_corte']
-LEGACY_RULES = RULES[:]
+         'frase_duplicada', 'variacao_nome', 'pronome_apos_corte']
 NEW_RULES = ['construcao_invalida', 'pontuacao_duplicada', 'espacamento', 'virgula_que_nao',
              'que_tonico_interrogativo', 'coerencia_temporal', 'acentuacao_contextual',
-             'vocativo', 'capitalizacao_contextual', 'dialogo_contextual',
-             'referente_contextual', 'gerundismo']
+             'vocativo', 'capitalizacao_contextual', 'dialogo_contextual']
 RULES += NEW_RULES
 # Regras da memória narrativa heurística, removida em 29/09/2026. Configurações
 # antigas que as mencionam continuam válidas; essas chaves são ignoradas.
 RETIRED_RULES = ['memoria_narrativa', 'conflito_habilidade', 'conflito_objeto', 'conflito_cronologia',
                  'coerencia_generica',
                  # Retirada em 07/10/2026 por decisão do autor: nasceu de um caso isolado.
-                 'tratamento']
+                 'tratamento',
+                 # Retiradas na estabilização (Fase 7b): estilo ou registro (repetição próxima,
+                 # gerundismo) e regras literais de exemplo isolado (prazos de uma cena, referentes).
+                 'palavra_proxima', 'gerundismo', 'duracao_suspensao', 'adiamento_amanha',
+                 'referente_proximidade', 'referente_contextual']
 # Classes gramaticais com apoio sintático (fonte/grammar.py). Ligadas por padrão,
 # como as anteriores; ‘desativar todas’ de configurações antigas continua valendo.
 GRAMMAR_RULES = ['crase', 'homofonos', 'concordancia', 'regencia', 'virgula_sujeito_verbo',

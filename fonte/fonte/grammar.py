@@ -62,11 +62,6 @@ INVARIABLE = {"cinza", "rosa", "laranja", "vinho", "creme", "gelo", "salmão", "
 INTRANSITIVE = {"ser", "estar", "ficar", "parecer", "permanecer", "continuar", "tornar", "virar", "chegar", "sair",
                 "entrar", "voltar", "vir", "ir", "partir", "surgir", "aparecer", "nascer", "morrer", "cair", "correr",
                 "sorrir", "rir", "acordar", "dormir", "existir", "acontecer", "restar", "sobrar", "faltar"}
-NON_PLACE = {"hora", "horas", "tempo", "momento", "instante", "silêncio", "minuto", "minutos", "segundo",
-             "segundos", "dia", "dias", "semana", "semanas", "mês", "meses", "ano", "anos", "lugar", "vez",
-             "cima", "conclusão", "acordo", "consenso", "paz", "vão", "forma", "estado", "condição", "ponto",
-             "meio", "fim", "começo", "início", "final", "noite", "manhã", "tarde", "madrugada",
-             "época", "idade", "primeiro", "último", "prantos", "lágrimas"}
 
 
 def item(block, rule, category, start, end, reason, severity, score, suggestion=None, priority="Verificar"):
@@ -414,15 +409,8 @@ def regency(block, doc, emit):
         nxt = doc[token.i + 1] if token.i + 1 < len(doc) else None
         if nxt is None:
             continue
-        if token.lemma_.casefold() == "chegar" and token.pos_ == "VERB" and nxt.lower_ in {"em", "no", "na", "nos", "nas", "num", "numa"}:
-            noun = next((t for t in doc[nxt.i + 1:min(nxt.i + 4, len(doc))] if t.pos_ in {"NOUN", "PROPN"}), None)
-            if noun is None or noun.lower_ in NON_PLACE or any(t.is_punct for t in doc[nxt.i:noun.i]):
-                continue
-            # Questão de registro, não erro: sem sugestão, para não trocar a voz do autor.
-            emit("regencia", "Regência verbal", token.idx, nxt.idx + len(nxt.text), "editorial_attention", .6,
-                 explicar("Na escrita mais formal, quem chega, chega ‘a’ algum lugar: ‘chegar à estação’. ‘Chegar em "
-                          "casa’ é amplamente usado no Brasil; mude só se o texto pedir um registro normativo mais formal.",
-                          "regência do verbo chegar"), priority="Explorar")
+        # “Chegar em” e “pedir para que” foram retirados na Fase 7b: registro do português brasileiro,
+        # não erro. Fica o pronome reto como objeto, desvio da norma-padrão, só na narração.
         # “Ajudou ela a descer” → “ajudou-a”. Incisos de fala (“perguntou ela”) e
         # verbos sem objeto (“chegou ela”) têm o pronome como sujeito posposto.
         if (nxt.lower_ in {"ele", "ela", "eles", "elas"} and nxt.dep_ == "obj" and nxt.head == token
@@ -434,12 +422,6 @@ def regency(block, doc, emit):
                  explicar(f"Na escrita formal, ‘{token.text} {nxt.text}’ vira ‘{token.text}-{clitic}’ (ou ‘{clitic} "
                           f"{token.lower_}’). A forma com ‘{nxt.text}’ é comum na fala; mude só se quiser um tom mais formal.",
                           "pronome oblíquo como objeto direto"))
-        if token.lemma_.casefold() == "pedir" and token.pos_ == "VERB" and nxt.lower_ == "para" \
-                and token.i + 2 < len(doc) and doc[token.i + 2].lower_ == "que":
-            emit("regencia", "Regência verbal", token.idx, doc[token.i + 2].idx + 3, "editorial_attention", .7,
-                 explicar("Na escrita formal, usa-se ‘pediu que’, sem o ‘para’. ‘Pedir para que’ é comum na fala.",
-                          "regência do verbo pedir"),
-                 token.text + " que")
 
 
 RELATIVE_OPENERS = {"que", "onde", "cujo", "cuja", "cujos", "cujas"}

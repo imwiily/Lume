@@ -69,30 +69,31 @@ class SearchSettingsTests(unittest.TestCase):
         b=Block(1,'— Eu preciso da chave — disse, pegando a chave.')
         self.assertEqual(repetitions([b]),[])
 
+    # Desde a Fase 7b, estas configurações são conferidas com a palavra dobrada: a repetição próxima,
+    # usada antes como exemplo, foi retirada.
     def test_quotes_as_thoughts(self):
-        b=Block(1,'“Era melhor eu me preparar melhor.”')
+        b=Block(1,'“Ele saiu saiu de casa cedo.”')
         opts=options(quotes_role='pensamento',repetition_scopes=['narracao'])
         self.assertEqual(repetitions([b],opts),[])
         opts['repetition_scopes']=['pensamento']
         self.assertTrue(repetitions([b],opts))
 
     def test_italic_setting(self):
-        text='Era melhor eu me preparar melhor.';b=Block(1,text,italic=[(0,len(text))])
+        text='Ele saiu saiu de casa cedo.';b=Block(1,text,italic=[(0,len(text))])
         self.assertEqual(repetitions([b],options(repetition_scopes=['narracao'])),[])
         self.assertTrue(repetitions([b],options(repetition_scopes=['narracao'],italic_thoughts=False)))
 
     def test_dashes_disabled(self):
-        b=Block(1,'— Era melhor eu me preparar melhor.')
+        b=Block(1,'— Ele saiu saiu de casa cedo.')
         self.assertFalse(repetitions([b],options(repetition_scopes=['narracao'])))
         self.assertTrue(repetitions([b],options(repetition_scopes=['narracao'],dialogue_dashes=False)))
 
-    def test_distance_and_sentence_boundary(self):
-        b=Block(1,'Era melhor eu me preparar melhor.')
-        self.assertFalse(repetitions([b],options(word_distance=2)))
-        self.assertTrue(repetitions([b],options(word_distance=8)))
-        b=Block(1,'Eu vi a porta. Aquela porta estava aberta.')
-        self.assertFalse(repetitions([b],options(repetition_boundary='frase')))
-        self.assertTrue(repetitions([b],options(repetition_boundary='trecho')))
+    def test_distance_and_boundary_are_still_accepted(self):
+        # Só a repetição próxima (retirada na Fase 7b) usava a distância e o limite; as opções
+        # continuam válidas nas configurações salvas, sem efeito sobre a palavra dobrada.
+        b=Block(1,'Ele saiu saiu de casa cedo.')
+        for opts in (options(word_distance=2), options(word_distance=40), options(repetition_boundary='frase')):
+            self.assertEqual(len(repetitions([b],opts)),1)
 
     def test_duplicate_scope_and_exact_similar(self):
         bs=[Block(1,'Eu abri a pequena porta da casa antiga.'),Block(2,'Eu abri a pequena porta da casa vazia.')]
@@ -121,8 +122,8 @@ class SearchSettingsTests(unittest.TestCase):
     def test_cli_selective_without_model(self):
         with tempfile.TemporaryDirectory() as td:
             root=Path(td);path=root/'book.docx';d=Document()
-            d.add_paragraph('Capítulo um');d.add_paragraph('Era melhor eu me preparar melhor.');d.save(path)
-            cfg=options();cfg['rules']={r:r=='palavra_proxima' for r in cfg['rules']}
+            d.add_paragraph('Capítulo um');d.add_paragraph('Ele saiu saiu de casa cedo.');d.save(path)
+            cfg=options();cfg['rules']={r:r=='palavra_consecutiva' for r in cfg['rules']}
             config=root/'busca.json';config.write_text(json.dumps(cfg))
             before=path.read_bytes()
             with patch('fonte.cli.load_model',side_effect=AssertionError('Não carregar modelo quando regras linguísticas desligadas')):
