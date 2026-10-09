@@ -28,7 +28,10 @@ Restrições:
 - [x] Fase 6a — deduplicação centralizada, sem mudança de comportamento (08/10; commit `02888c9`).
 - [x] Fase 6b — deduplicação por família com preservação das decisões (08/10; commit `50860e4`).
 - [x] Fase 6b — categoria original do LanguageTool (08/10; commit `1ef184d`).
-- [x] Fase 6b — LanguageTool indisponível: análise parcial (08/10). Aguarda o autor.
+- [x] Fase 6b — LanguageTool indisponível: análise parcial (08/10; commit `c5339e1`).
+- [x] Fase 7a — parecer definitivo das regras e plano de implementação (08/10). Aguarda o autor;
+  nenhuma regra alterada.
+- [ ] Fase 7b — implementação aprovada.
 - [ ] Fases 7–8.
 - [ ] Pendente, fase com mudança de comportamento: `imperfeito` (problema 1 da Fase 3).
 
@@ -1565,3 +1568,281 @@ código Swift atual.
 - Swift: as 7 verificações e a nova `PartialAnalysisCheck`, que cobre o relatório, a etapa, o
   encerramento separado, o registro e a compatibilidade.
 - Build do app.
+
+### Fase 7a — parecer definitivo das regras (08/10/2026; nenhuma regra alterada)
+
+**Pergunta central:** o fenômeno é relevante, generalizável e detectável com precisão suficiente?
+
+#### Evidências, em quatro categorias separadas
+1. **Funcionamento** (corpus de desenvolvimento, 3.978 palavras, escrito junto com as regras):
+   - 97% de precisão nas pendências, 0 alarmes falsos na fila;
+   - 9 alarmes fora da fila (6 de tempo verbal, 2 de repetição, 1 de estrutura);
+   - mede o funcionamento, não o uso real.
+2. **Regressão:** os 29 conjuntos da Fase 6b (`build/fase6b3`) são a nova linha de comparação.
+3. **Generalização em textos independentes:** os 3 romances de desenvolvimento do
+   `~/Lume-evidencia`, com cerca de 202 mil palavras de prosa editada; a validação ficou intocada.
+   - **Método:** FONTE sem o LanguageTool; contagem por regra e leitura de amostras.
+   - **Confusores, que limitam a leitura:**
+     - grafia anterior a 1943 (“della”, “póde”, “sahir”): desorganiza o modelo e o léxico e infla
+       concordância, crase dativa, variação de nome, homófonos e acentuação;
+     - falas com “--”, que a segmentação não reconhece: falas analisadas como narração, o que infla
+       tempo verbal e coerência temporal;
+     - narrador do século XIX que comenta no presente.
+   - **Uso:** só para **classes de alarme falso** que não dependem desses confusores. Não serve
+     como medida de precisão.
+4. **Decisões reais:** `medir_precisao.py`, com 650 decisões únicas em 6 livros. São as mesmas da
+   Política v2; não houve decisões novas. Com menos de 20 decisões, o número é só indicação.
+
+Disparos reais = relatórios de A, B, C e X da Fase 6b (com o LT). “Indep.” = os 3 romances.
+Núcleos: V verbo, T tempo, S segmentação, E elocução, D deduplicação, L léxico, M modelo spaCy.
+
+#### Veredictos individuais
+
+| Regra (subtipos) | Fenômeno | Nat. | Implementação · núcleos | Decisões (precisão) | Disparos A/B/C/X | Indep. (amostra) | Alarmes falsos conhecidos | Risco de FN | Sobreposição FONTE · LT | Custo | Destino v2 | Veredicto |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `tempo_verbal` | verbo fora do tempo da narração | E | geral + exceções · V T S E M | 416 (90%); média 408 (91%), baixa 8 (0%) | 12/0/6/16 | inflado pelos confusores | comentário do narrador, verdade geral | médio | coerência temporal (dedup interna) · nenhuma | alto (exceções) | pendência (média), observação (baixa) | **Manter** |
+| `estrutura`: fragmento | frase sem verbo finito | E | pilha de exceções · V M | 28 (29%); média 18 (39%), baixa 10 (10%) | 0/1/4/1 | 9 a 48 por livro; suspensões e elipses de fala | fragmento deliberado, elipse de diálogo, verbo não reconhecido | baixo | — · — | alto | pendência (média), observação (baixa) | **Restringir** |
+| `estrutura`: subordinada sem principal | “Quando as luzes se apagam.” | E | árvore · V M | 1 (100%) | 0/0/1/0 | 0 a 2 | — | — | — · — | baixo | observação | **Manter** |
+| `residuo_edicao` | dois auxiliares finitos seguidos | O | árvore · M | 2 (50%) | 0 | 1 | — | — | — · — | baixo | pendência | **Manter** |
+| `pontuacao_dialogo` | aspas + vírgula + verbo que não é de fala | E | fechamentos da leitura antiga · S E V | 9 (78%) | 0 | 9 (0/5) | título entre aspas com mais de 3 palavras; “disse-me”; `quotes_role = narracao` ignorado | médio | `dialogo_contextual` (travessão) · — | médio | pendência | **Refatorar** |
+| `dialogo_contextual` (ação depois da fala; retomada) | pontuação do inciso de travessão | O/E | segmentação + perfil de fala · S E M | 32 (91%) | 0 | 0 (“--” não é travessão) | — | médio | — · — | médio | pendência | **Manter** |
+| `palavra_consecutiva` | palavra dobrada | O | regex + léxico | 1 (0%, estilo) | 0 | 30: 15 “-a a” depois de ênclise, 4 “se se”, 1 abreviatura | ênclise + preposição “a”; “se se”; abreviaturas | baixo | — · família palavra duplicada (D) | baixo | pendência | **Restringir** |
+| `palavra_proxima` | repetição a até 8 palavras | R | contagem | 43 (23%; 33 de estilo) | 19/12/4/15 | cerca de 1.000 | repetição expressiva | — | — · — | baixo | observação | **Retirar** (D5) |
+| `frase_duplicada` | frase repetida | E | igualdade/semelhança | 0 | 0 | 0 | — | — | — · — | baixo | pendência/observação | **Manter** |
+| `variacao_nome` (nome a uma letra; grafia oscilante) | o mesmo nome escrito de dois jeitos | E | distância + léxico · L | 2 (0%, ambas intencionais) | 0/0/2/4 | 220 (com a grafia antiga) | verbo com ênclise tratado como termo composto (“disse-me”); grafia fora do léxico | baixo | — · — | baixo | pendência | **Restringir** (ênclise) e **sem evidência** de precisão |
+| `duracao_suspensao`, `adiamento_amanha` | prazos de uma cena | E | 2 regex (exemplo isolado) | 0 | 0 | 0 | — | alto | Coerência com IA · — | baixo | pendência | **Retirar** |
+| `referente_proximidade` | “Eles … tão perto” sem plural antes | E | 1 regex (exemplo isolado) | 0 | 0 | 0 | — | — | IA · — | baixo | observação | **Retirar** |
+| `referente_contextual` | só “o objeto” depois de enumeração | E | palavra literal | 0 | 0 | 0 | — | — | IA · — | baixo | observação | **Retirar** |
+| `pronome_apos_corte` | pronome perto de trecho cortado | E | diff com `--original` | 0 | não executado | não executado | — | — | — · — | baixo | observação | **Sem evidência** (fica como está) |
+| `construcao_invalida` | “além de disso” | O | 1 regex | 1 (100%) | 0 | 0 | — | — | — · LT (locuções) | mínimo | pendência | **Manter** |
+| `pontuacao_duplicada` (`,,` `;;` · “Dois pontos finais”) | sinal repetido | O | regex | 12 (92%), **todas** em “Dois pontos finais” | 0 | 5 | — | baixo | — · família (D) | mínimo | pendência | **Manter** |
+| `espacamento` | espaço duplo; antes de `,;` | O | regex | 1 (100%) | 0 | 0 | — | — | — · família (D) | mínimo | pendência | **Manter** |
+| `virgula_que_nao` | “que, não” | O | regex + 3 exceções | 1 (100%) | 0 | 2 (0/2) | conectivo conclusivo (“pelo que, não…”, “assim que, não…”) | — | — · — | baixo | pendência | **Restringir** |
+| `que_tonico_interrogativo` | “que?” → “quê?” | O | regex | 4 (100%) | 0 | 26 (4/4 pela norma atual) | — | — | — · — | mínimo | pendência | **Manter** |
+| `coerencia_temporal`: geração nova (4) e condicional | tempos incompatíveis entre orações e na sequência | E | árvore + eventos · V T M | alta 12 (100%); subtipos novos 16 (94%) | 11 em A; 2 em X | inflado pelos confusores | — | médio | `tempo_verbal` (D interna) · — | alto | pendência | **Manter** |
+| `coerencia_temporal`: `coordinated_past_present` (geração antiga) | presente coordenado a passado | E | árvore · T M | 7 (29%: 2 erros, 4 FP) | 0 | 61 | comentário do narrador, pergunta, verdade geral | — | geração nova · — | médio | pendência | **Desativar** |
+| `coerencia_temporal`: `ambiguous_simultaneity`, `conditional_future`, `simultaneous_present` (geração antiga) | “enquanto” e hipótese | E | árvore · T M | 4 (100%) | 0 | 0 a 3 | — | — | — · — | baixo | pendência | **Manter** |
+| `acentuacao_contextual` | “caiam” → “caíam” no passado | O | léxico + raiz + sujeito · L T | 2 (50%) | 0 | 3 (3/3, grafia antiga) | — | — | — · LT (ortografia) | baixo | pendência | **Manter** |
+| `vocativo` | chamamento sem vírgula | O | 3 regex + léxico | 0 | 0 | 4 (1/4) | verbo no início da pergunta + “você” (“Quer você…?”) | — | — · — | médio | pendência | **Restringir** |
+| `capitalizacao_contextual` | pronome minúsculo depois de `?` ou `!` | O | regex | 0 | 0 | 6 (≈0/4) | depois de interjeição ou vocativo exclamativo (“Ah! tu…”), aceito pela norma | — | — · família maiúscula (D) | baixo | pendência | **Restringir** |
+| `gerundismo` | “vou estar fazendo” | R | regex | 1 (0%, estilo) | 1/0/0/0 | 0 | — (a mensagem diz que não é erro) | — | — · — | baixo | observação | **Retirar** |
+| `crase`: locução fixa, horas, “à” + verbo/masculino | crase objetiva | O | regex + léxico · V | 0 próprias; 1 em B (agora principal) | 0/1/0/0 | 3 em locução | — | médio | — · família crase (D) | baixo | pendência | **Manter** |
+| `crase`: “Crase ausente” (dativo) | objeto indireto feminino | O | árvore + lista `DATIVE` · M | 0 | 0 | 13 (1/6) | objeto direto lido como indireto (“contou ao filho a história”); verbo fora do léxico | médio | — · — | médio | pendência | **Restringir** |
+| `homofonos` (por que/porque, há/a, mas/mais, mal/mau, onde/aonde, locuções) | grafia de homófonos | O | regex + listas de exceção | 0 | 0 | 55 (por que/porque e “embaixo” corretos pela norma atual; há/a só falha com a grafia antiga) | — | médio | — · LT (`POR_QUE_PORQUE`) | médio (listas) | pendência | **Manter** (manutenção sem mudança) |
+| `concordancia`: verbal, haver impessoal, sujeito oculto | concordância | O | árvore + guardas · V M | 5 (100%, verbal, 2 livros) | 0/0/1/0 | 160 (≈2/12, grafia antiga) | sujeito escolhido pelo modelo | médio | — · LT (concordância) | médio | pendência | **Manter** (mensagem com “parece”) |
+| `concordancia`: nominal | adjetivo × nome | O | árvore · M | 0 | 0 | 23 (0/4) | linhas de sumário; cor composta (“azul ferrete”) | — | — · LT | baixo | pendência | **Sem evidência**; restringir as duas classes |
+| `regencia`: pronome reto como objeto | “ajudou ela” | norma-padrão | árvore + perfil de fala · E M | 2 (100%) | 0 | 0 | — | — | — · — | baixo | pendência | **Restringir**: atenção editorial, sem afirmar erro (D5) |
+| `regencia`: “chegar em”, “pedir para que” | regência coloquial | R | árvore + listas | 2 (50%: 1 erro, 1 estilo; 16 marcações brutas de estilo) | 1/0/0/0 | 1 | uso brasileiro aceito | — | — · — | baixo | pendência | **Retirar** |
+| `virgula_sujeito_verbo` | vírgula entre sujeito e verbo | O | árvore + forma · V E M | 2 (50%) | 0/0/1/0 | 58 (≈4/6) | infinitivo coordenado; gerúndio em inciso | médio | — · — | médio | pendência | **Sem evidência** (fica como está) |
+| `correlacao_tempos` | imperfeito do subjuntivo + principal no presente | E | conectores + terminação · T | 7 (86%, 1 livro) | 0/0/5/0 | 36 (0 a 2/4) | principal impessoal ou genérica (“é possível que…”, “o que se chama”) | — | — · — | médio | pendência | **Sem evidência**; anotar a classe impessoal |
+| `frase_cortada`: preposição final | frase termina em preposição | O | lista fechada | 1 (100%) | 0 | 3 (0/3, todas com “...”) | interrupção deliberada com “...” (o “…” já é aceito) | — | — · — | baixo | pendência | **Refatorar** (“...” igual a “…”) |
+| `frase_cortada`: “cada” depois de verbo | “conta cada.” | O | caso especial | 0 | 0 | 0 | — | — | — · — | baixo | pendência | **Manter** (sem mudança agora) |
+| `frase_cortada`: “Que” depois de reticências | “prometi… Que voltaria” | O | perfil `PEDEM_QUE` · E | 1 (100%) | 0/0/1/0 | 0 | radical de outro verbo (“sentou”) pode disparar | — | — · — | baixo | pendência | **Manter** |
+| `frase_cortada`: pontuação final ausente | parágrafo sem ponto | O | regex + `lista_ou_rotulo` | 1 (100%) | **19 sem decisão**/1/1/1 | 18 (sumário, verso, título) | título, sumário, verso, epígrafe | — | — · — | baixo | pendência | **Sem evidência** (aguarda a D6) |
+| `locucoes`: “embora” + nome | conjunção sem oração | O | regex | 1 (100%) | 0/0/1/0 | 0 | — | — | — · — | baixo | pendência | **Manter** |
+| `locucoes`: “ao invés de” | “ao invés de” = “ao contrário de” | norma-padrão | regex | 1 (100%) | 0/0/1/0 | 0 | uso contemporâneo amplo | — | — · LT (estilo, desligado) | baixo | pendência | **Sem evidência** (fica; a decisão real foi “erro”) |
+
+Contagem:
+- 32 chaves configuráveis. O inventário falava em 30; contando à parte `residuo_edicao` e as
+  subpartes, são 41 linhas.
+- **Manter:** 18. **Restringir:** 8. **Refatorar:** 2. **Desativar:** 1. **Retirar:** 6 (7 regras;
+  as duas de prazo estão numa linha). **Sem evidência:** 6.
+- `variacao_nome` está contada em Restringir.
+
+#### Questões prioritárias
+
+**1. `imperfeito`:**
+- **Quem usa:** um único consumidor, `temporal.past_plane`. Ele decide se um passado numa narração
+  no presente é anterior (sem alerta) ou incerto (observação).
+- **Por que o defeito está latente:** `past_plane` só é consultado quando `tempo_narrativo` (ou
+  `passado_so_no_lexico`) já disse “passado”, e o condicional e o imperfeito do subjuntivo dão
+  `None` ali. Verificado com “faria”, “viajaria”, “fosse”, “tivesse” e “cantasse”.
+- **Nos textos reais:**
+  - **C (narrado no presente):** dois casos chegam lá, e os dois são imperfeitos legítimos
+    (“queria”, “ia”). Nenhum alerta muda.
+  - **A, B e X:** narrados no passado; não usam `past_plane`.
+- **Defeito inverso:** a terminação do condicional (`-ria`) também pega imperfeitos de verbos em
+  `-er` (“queria”), resolvidos hoje pelo léxico.
+- **Correção proposta:**
+  - `imperfeito` passa a excluir o condicional (terminação + léxico sem leitura de passado, a
+    mesma regra de `tempo_estrito`) e o imperfeito do subjuntivo (`imperfeito_do_subjuntivo` e
+    `Mood=Sub`);
+  - os testes de `LimitacoesRegistradas` mudam de propósito;
+  - impacto esperado: nenhum alerta nos 29 conjuntos (conferir);
+  - risco: “queria”/“ia” lidos pelo modelo como condicional, protegidos pelo léxico.
+
+**2. Verbos de fala** (por consumidor):
+
+| Consumidor | Uso do perfil | Erro do radical (aceitar a mais) | Erro de cobertura (formas que faltam) |
+|---|---|---|---|
+| pontuação de diálogo | suprime | conservador (perde alerta) | **gera alarme falso** (“disse-me”, “dissera”) |
+| diálogo contextual, ação depois da fala | suprime | conservador | gera alarme falso (mesmas formas) |
+| diálogo contextual, retomada | condição | **gera alerta** (substantivo logo depois do travessão: “Grito…”) | perde alerta |
+| pronome reto, vírgula sujeito-verbo, crase do LT | suprimem | conservador | gera alarme falso |
+| frase cortada, “Que” | condição | **gera alerta** (“sentou… Que”, “contem… Que”) | perde alerta |
+
+- **Alcance nos textos reais:** nenhuma palavra só nominal é aceita pelo radical em A, B, C ou X;
+  “disse-me” e “dissera” não aparecem (a ênclise é rara no PB atual); só há um “dissesse”, em A.
+- **Nos textos independentes:** a ênclise é frequente e gera alarmes falsos.
+- **Proposta (fase comportamental):** reconhecer as formas irregulares com ênclise e no
+  mais-que-perfeito, e conferir o léxico nos dois consumidores que geram alerta. **Não** ampliar
+  categorias nem unir perfis.
+
+**3. Segmentação** (as 7 divergências da Fase 4):
+- **Afeta precisão:** só a 3 (`quotes_role = narracao` ignorado pela pontuação de diálogo, que
+  continua tratando aspas como fala). Ocorre só para quem configura aspas como narração.
+- **Aceitáveis:** 1, 2, 5, 6 e 7. A leitura antiga só decide os fechamentos de aspas; o hífen de
+  diálogo de X é lido pela atual. A divergência 4 (aspa que reabre) não aparece nos textos reais.
+- **Nova limitação:** “--” como travessão não é reconhecido por nenhuma das leituras.
+  - Ausente nos textos reais; comum em texto digitado sem conversão.
+  - Fica **fora do escopo** da Fase 7, registrada para a segmentação.
+
+**4. Pontuação final ausente:**
+- Nenhuma reformulação até as decisões da D6. Os 19 casos de A não são usados como confirmados.
+- Os textos independentes mostram classes de alarme falso **sem** usar A: linhas de sumário,
+  verso, título de capítulo não marcado.
+- Depois da D6, medir as candidatas (linha curta em maiúsculas, linha sem verbo finito do núcleo,
+  bloco de sumário) contra as decisões.
+
+**5. Registro:**
+- **Erro objetivo:** palavra dobrada, crase de locução, “que” tônico, concordância.
+- **Desvio da norma-padrão comum no PB:** pronome reto como objeto, “ao invés de”. Ficam como
+  atenção editorial, sem dizer que é erro. Pronome reto só na narração (já é).
+- **Escolha de registro:** “chegar em”, “pedir para que”, gerundismo. **Retirar.**
+- **Estilo:** repetição próxima. **Retirar** (D5; 77% das decisões são “estilo”).
+
+**6. Regras de exemplo isolado:**
+- **Retirar:** `referente_proximidade`, `referente_contextual`, `duracao_suspensao`,
+  `adiamento_amanha`. Literais, sem disparos nem decisões; o fenômeno é da Coerência com IA.
+- **Manter:** `construcao_invalida`, “embora” + nome, “Que” depois de reticências. Objetivas, com
+  decisões reais corretas e custo mínimo.
+- **Restringir:** `virgula_que_nao`, pela classe dos conectivos conclusivos, sem condição literal.
+
+#### LanguageTool (proposta; nada alterado)
+- **Diagnóstico:**
+  - `languagetool:gramatica` (60% em 30) mistura gramática, tipografia, pontuação e sem categoria.
+    Seis dos sete alertas atuais não são gramática.
+  - Nas decisões, o desempenho por regra varia:
+    - `SPACE_AFTER_PUNCTUATION` 4/6;
+    - `VERB_COMMA_CONJUNCTION` 1/5;
+    - `AUXILIARY_VERB_INFINITIVE` 0/2;
+    - concordâncias 3/3.
+  - Severidade forçada em “provável erro”.
+- **Estratégia em três passos, com aprovação separada:**
+  1. **Medir sem mudar** (pronto para executar):
+     - redistribuir as decisões históricas por categoria do LT. O ID da regra está na origem, e a
+       categoria de cada regra se obtém do próprio LT 6.6;
+     - relatório numérico por categoria;
+     - nada muda nos relatórios nem na Política.
+  2. **Classe interpretada, versionada:**
+     - para relatórios novos, `languagetool:ortografia` (`misspelling`), `languagetool:gramatica`
+       (`grammar`), `languagetool:tipografia` (`typographical`, `whitespace`, `PUNCTUATION`) e
+       `languagetool:outros` (`uncategorized`, `MISC`);
+     - relatórios antigos continuam com a classe deduzida de sempre;
+     - as medições novas vêm do passo 1, decisão por decisão, sem somar classes;
+     - exige a Política v3. Os IDs não mudam (a classe não entra no ID), e as decisões e a herança
+       também não (a chave de conteúdo não usa classe).
+  3. **Severidade pela interpretação:**
+     - tipografia e outros → “atenção editorial”;
+     - ortografia e gramática continuam “provável erro” só se a medição da nova classe sustentar;
+       senão, “atenção editorial”;
+     - efeito: rótulo, cor e filtro no app;
+     - sem efeito em IDs, decisões e destino (o destino não usa a severidade);
+     - o impedimento exige severidade de erro: rebaixar impede o LT de ser impeditivo no futuro.
+       Isso fica explícito na aprovação.
+
+#### Pendências funcionais registradas (sem mudar a interface)
+1. **Conflitos:** resolução explícita de decisões históricas conflitantes, com uma ação para
+   marcar o conflito como resolvido. Hoje o registro é cumulativo.
+2. **Código de saída da CLI** na análise parcial: hoje é 0. Propor um código próprio e tratá-lo no
+   app, que precisa continuar abrindo o relatório.
+3. **Encerramento completo × parcial:** já separados por registro. Falta mostrar no app quando
+   existe um encerramento completo para o mesmo texto enquanto se olha uma análise parcial, e
+   vice-versa.
+
+#### Plano de implementação da Fase 7b (por prioridade)
+
+**P1 — alto impacto em alarmes falsos**
+
+| # | Problema | Solução | Risco | Impacto esperado | Evidência | Testes | Decisões anteriores |
+|---|---|---|---|---|---|---|---|
+| 1 | `palavra_consecutiva` alerta “-a a” e “se se” | não alertar quando a primeira palavra é pronome ligado por hífen ao verbo (ênclise) e a segunda é preposição; nem em “se se” (conjunção + pronome) | baixo (“a a” sem hífen continua) | os 30 disparos independentes caem para cerca de 10; 0 nos reais | 15 + 4 de 30 | positivos “o o”, “para para”; negativos de ênclise, “se se”, abreviatura | IDs iguais nos que ficam |
+| 2 | `coordinated_past_present` (2 de 7) | não emitir mais (a função fica para os testes de caracterização) | baixo: nenhum disparo real hoje | média de `coerencia_temporal` mais limpa | 7 decisões; 61 independentes | testes atuais desse subtipo mudam de propósito | decisões antigas ficam nos relatórios antigos |
+| 3 | `frase_cortada` alerta preposição antes de “...” | tratar “...” como “…” | mínimo | 3 a menos nos independentes | 3/3 | “de...” e “de…” iguais | — |
+| 4 | “Crase ausente” (dativo) | só alertar quando o verbo está no léxico como verbo, o complemento tem `dep_ = obl/iobj` confirmado e não há outro objeto direto feminino; senão, nada | médio (perde verdadeiros) | 1/6 nos independentes | corpus 8/9 | corpus atual mais negativos de objeto direto | — |
+| 5 | `estrutura` (fragmento) com 39% e 10% | rebaixar o fragmento para confiança baixa (vira observação pela Política atual, sem mudar a Política) | baixo | menos interrupções; a classe `sentence_structure\|baixa` continua sendo medida | 28 decisões | destino conferido | os IDs não mudam (a confiança não entra no ID) |
+
+**P2 — erros estruturais de classificação**
+- **`imperfeito`:** como na questão 1; nenhum alerta deve mudar.
+- **Perfil de fala:**
+  - formas irregulares com ênclise (“disse-me”) e no mais-que-perfeito (“dissera”);
+  - conferência no léxico nos dois consumidores que geram alerta (retomada e “Que”);
+  - sem ampliar categorias;
+  - evidência: amostras independentes e testes de cada consumidor.
+- **`pontuacao_dialogo`:**
+  - respeitar `quotes_role = narracao`;
+  - não tratar como fala aspas de título com mais de 3 palavras depois de um nome e antes da
+    vírgula, só com evidência estrutural.
+
+**P3 — regras redundantes ou de exemplo isolado (retirar)**
+- **Quais:** `referente_proximidade`, `referente_contextual`, `duracao_suspensao`,
+  `adiamento_amanha`.
+- **Como:** vão para `RETIRED_RULES`, com o app aceitando as chaves.
+- **Compatibilidade:** relatórios antigos continuam legíveis e as decisões ficam.
+
+**P4 — regras estilísticas ou de registro**
+- **Retirar:** `palavra_proxima`, `gerundismo`, `regencia` “chegar em” e `regencia` “pedir para
+  que”. As duas de regência viram subpartes retiradas, e `regencia` fica com o pronome reto.
+- **Pronome reto:** mensagem de norma-padrão, sem afirmar erro.
+- **Configurações antigas:** aceitas.
+
+**P5 — regras frágeis (restringir)**
+- `vocativo`: não aceitar como nome um verbo do léxico em início de pergunta.
+- `capitalizacao_contextual`: não alertar depois de interjeição (“Ah!”, “Oh!”) nem de vocativo
+  exclamativo.
+- `virgula_que_nao`: não alertar com conectivo conclusivo antes (“pelo que”, “de modo que”,
+  “assim que”).
+- `concordancia` nominal: excluir linhas de sumário e cor composta.
+- `variacao_nome`: verbo com ênclise conferido no léxico.
+
+Cada uma precisa de positivos, negativos e substituição de nomes. Uma regra com 0 decisões não
+passa a ser considerada saudável por ter sido restringida.
+
+**P6 — manutenção sem mudar comportamento:**
+- listas de exceção de há/a e mas/mais nos núcleos;
+- mensagens com “parece” em concordância e crase;
+- a relação temporal registra `absorvidos` ao absorver o tempo verbal.
+
+**Fora do escopo (permanece):**
+- “--” como travessão; atribuição de falante; correferência;
+- palavras válidas trocadas; ortografia sem o LanguageTool;
+- pontuação final ausente até a D6;
+- a classe e a severidade do LT até a decisão separada;
+- o modelo de linguagem maior.
+
+**Comparação obrigatória na Fase 7b:**
+- **29 conjuntos**, com a justificativa de cada diferença;
+- **textos independentes** antes e depois, por classe de alarme falso;
+- **herança real**, que precisa ficar igual;
+- **corpus de desenvolvimento** sem perder nenhum verdadeiro que não seja explicado.
+
+**Regras recomendadas sem nenhuma alteração:**
+- `tempo_verbal`;
+- `dialogo_contextual`;
+- `estrutura` (subordinada sem principal);
+- `residuo_edicao`;
+- `frase_duplicada`;
+- `construcao_invalida`;
+- `pontuacao_duplicada`;
+- `espacamento`;
+- `que_tonico_interrogativo`;
+- `coerencia_temporal` (geração nova e os 3 subtipos antigos de bom desempenho);
+- `acentuacao_contextual`;
+- `crase` (locuções, horas, “à” + verbo/masculino);
+- `homofonos` (comportamento);
+- `concordancia` verbal (comportamento);
+- `frase_cortada` (“cada” e “Que”);
+- `locucoes` (as duas partes);
+- `virgula_sujeito_verbo`;
+- `correlacao_tempos`;
+- `pronome_apos_corte`.
