@@ -40,6 +40,8 @@ struct AnalysisStage: Decodable, Identifiable {
     var done: Int? = nil
     var total: Int? = nil
     var unit: String? = nil
+    /// Componente pedido que não executou nesta etapa (Fase 6b): “LanguageTool”.
+    var ausente: String? = nil
     var id: String { module }
     /// “420 de 1.274 parágrafos”, com separador de milhar em português.
     var progressText: String? {
@@ -54,7 +56,9 @@ struct AnalysisStage: Decodable, Identifiable {
     var statusText: String {
         switch state {
         case "running": return progressText.map { "Em andamento · " + $0 } ?? "Em andamento"
-        case "completed": return "\(finding_count) ocorrências · cobertura parcial"
+        case "completed":
+            if let ausente { return "\(finding_count) ocorrências · sem o \(ausente) (indisponível)" }
+            return "\(finding_count) ocorrências · cobertura parcial"
         case "skipped": return "Não selecionado"
         case "not_implemented": return "Ainda não disponível"
         case "failed": return "Interrompido"
@@ -194,6 +198,17 @@ struct TenseContradiction: Decodable, Equatable {
     let presente: Int
 }
 
+/// Análise que terminou sem um componente pedido (o LanguageTool indisponível, por exemplo).
+struct PartialAnalysis: Decodable, Equatable {
+    struct Missing: Decodable, Equatable {
+        let etapa: String
+        let componente: String
+        let motivo: String
+    }
+    let ausente: [Missing]
+    var components: [String] { ausente.map(\.componente) }
+}
+
 struct ReportMetadata: Decodable {
     let tempo: String
     let paragrafos: Int
@@ -207,8 +222,11 @@ struct ReportMetadata: Decodable {
     var politicaVersao: Int? = nil
     /// Achados fora da mesa (Auditoria de confiança baixa, categorias experimentais): só diagnóstico.
     var diagnostico: [Finding]? = nil
+    /// Presente só quando algum componente pedido não executou; relatórios completos e antigos não têm.
+    var analiseParcial: PartialAnalysis? = nil
     enum CodingKeys: String, CodingKey {
         case tempo, paragrafos, languagetool, chapters, stages, diagnostico
+        case analiseParcial = "analise_parcial"
         case politicaVersao = "politica_versao"
         case versaoFonte = "versao_fonte"
         case narrativeSummary = "narrative_summary"
@@ -281,6 +299,8 @@ struct ReviewClosure: Codable, Equatable {
     let openPendencies: Int
     let openObservations: Int
     let openBlocking: Int
+    /// Componentes ausentes da análise encerrada (nil: análise completa, como nos registros antigos).
+    var missing: [String]? = nil
     enum CodingKeys: String, CodingKey {
         case schemaVersion = "schema_version"
         case document, sha256
@@ -290,6 +310,7 @@ struct ReviewClosure: Codable, Equatable {
         case openPendencies = "pendencias_abertas"
         case openObservations = "observacoes_abertas"
         case openBlocking = "impeditivos_abertos"
+        case missing = "analise_parcial_sem"
     }
 
     /// Só registra quando nenhum impeditivo está aberto.
@@ -298,14 +319,20 @@ struct ReviewClosure: Codable, Equatable {
         schemaVersion = 1; document = report.document; sha256 = report.sha256; closedAt = date
         engineVersion = report.metadata.versaoFonte; policyVersion = report.metadata.politicaVersao
         openPendencies = tally.pendingOpen; openObservations = tally.observationsOpen; openBlocking = 0
+        missing = report.metadata.analiseParcial?.components
     }
 
-    /// Vale para o mesmo texto com a mesma política; um texto ou uma política novos pedem nova revisão.
+    var isPartial: Bool { !(missing ?? []).isEmpty }
+
+    /// Vale para o mesmo texto com a mesma política e o mesmo alcance: o encerramento de uma análise
+    /// completa não vale para uma parcial, nem o contrário.
     func applies(to report: EditorialReport) -> Bool {
         sha256 == report.sha256 && policyVersion == report.metadata.politicaVersao
+            && (missing ?? []) == (report.metadata.analiseParcial?.components ?? [])
     }
 
-    static func fileName(_ sha256: String) -> String { sha256 + ".json" }
+    /// A análise parcial tem registro próprio: encerrá-la nunca substitui o encerramento de uma completa.
+    static func fileName(_ sha256: String, partial: Bool = false) -> String { sha256 + (partial ? "-parcial" : "") + ".json" }
 
     func encoded() throws -> Data {
         let encoder = JSONEncoder()

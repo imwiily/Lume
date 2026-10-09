@@ -15,7 +15,7 @@ Os manuscritos são somente lidos. A sequência Linguístico → Morfossintátic
 | `deduplicacao.py` | Deduplicação entre detectores: FONTE × LanguageTool só por família de fenômeno, trecho em comum e mesma correção, com a ocorrência absorvida registrada na principal; tempo verbal × coerência temporal, mesmo ID entre etapas e Auditoria × anteriores. Não é supressão linguística, que fica em cada regra; a precedência interna de um detector fica nele |
 | `tempo.py` | Núcleo de tempo e modo: morfologia (terminações do condicional e do imperfeito do subjuntivo, imperfeito, mais-que-perfeito composto), duas classificações estritas com políticas distintas (`tempo_estrito` para as relações temporais; `tempo_narrativo` para a regra de tempo verbal) e a recuperação (`tempo_recuperado`, `passado_so_no_lexico`, `verbo_unico_da_frase`). Não decide incoerência: relações e planos temporais ficam em `temporal.py` |
 | `grammar.py` | Crase, homófonos, concordância, regência, vírgula entre sujeito e verbo, correlação de tempos, frase cortada e locuções (etapa Morfossintática) |
-| `languagetool.py` | Corretor gramatical LanguageTool local: filtros, falas e servidor embutido |
+| `languagetool.py` | Corretor gramatical LanguageTool local: filtros, falas e servidor embutido. Cada alerta guarda a regra, a categoria e o tipo originais (`languagetool`). Se o corretor pedido não inicia ou não responde, a análise do FONTE segue e o relatório fica marcado como parcial (ver “Análise parcial”) |
 | `coerencia_ia.py` | Coerência com IA: projeto incremental do Coerencia (`coerencia/`) na etapa Coerência global |
 | `packaging/` | Entrada portátil, inventário, instalação atômica e reversão |
 | `scripts/build_engine.py` | Motor PyInstaller com teste após relocação |
@@ -168,6 +168,18 @@ terminar ([visão](visao.md#ocorrência-pendência-e-encerramento)).
     absorvidas (pelo ID e pela chave de conteúdo, inclusive a antiga). Decisões divergentes não são
     escolhidas: viram conflito, mostrado no inspetor e gravado (`conflitos`) no arquivo de decisões
     e na memória do livro. A decisão do próprio alerta nunca é sobrescrita.
+- **Análise parcial** (LanguageTool pedido e indisponível):
+  - o FONTE roda normalmente, sem nenhum alerta do corretor (nem os de antes da falha);
+  - `metadata.analise_parcial.ausente` registra etapa, componente e motivo, e a etapa linguística
+    leva `ausente: "LanguageTool"`;
+  - `languagetool` passa a `false`, com `languagetool_pedido: true`, `languagetool_status:
+    "indisponivel"` e sem origem;
+  - o aviso, a CLI e o app dizem que a análise foi parcial: aviso na mesa e em Etapas e alcance, e
+    “análise parcial” no título;
+  - o encerramento de uma análise parcial tem registro próprio (`<sha256>-parcial.json`, com
+    `analise_parcial_sem`). Ele não vale para a análise completa, nem o contrário, e nunca
+    substitui um encerramento anterior;
+  - porta inválida continua sendo erro de configuração.
 - **Encerramento:** o app oferece **Encerrar revisão** quando nenhum impeditivo está sem decisão
   e registra observações e pendências abertas, data, versão do motor e versão da política. O
   estado se chama “Revisão concluída”, nunca “sem erros”.

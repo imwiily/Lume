@@ -899,7 +899,8 @@ final class ReviewStore: ObservableObject {
     // MARK: Encerramento
 
     private func closureURL(for report: EditorialReport) throws -> URL {
-        try supportDirectory("Encerramentos").appendingPathComponent(ReviewClosure.fileName(report.sha256))
+        try supportDirectory("Encerramentos").appendingPathComponent(
+            ReviewClosure.fileName(report.sha256, partial: report.metadata.analiseParcial != nil))
     }
 
     /// O encerramento só vale para o mesmo texto e a mesma política.
@@ -920,6 +921,9 @@ final class ReviewStore: ObservableObject {
         let alert = NSAlert()
         alert.messageText = "Encerrar revisão?"
         var lines = ["Nenhum impeditivo está sem decisão."]
+        if let partial = report.metadata.analiseParcial {
+            lines.append("Esta análise é parcial: \(partial.components.joined(separator: ", ")) não executou. O encerramento fica registrado como de uma análise parcial e não vale para uma análise completa.")
+        }
         if counts.pendingOpen > 0 || counts.observationsOpen > 0 {
             lines.append("Ficam sem decisão \(counts.pendingOpen) pendência(s) e \(counts.observationsOpen) observação(ões); isso fica registrado.")
         }

@@ -85,6 +85,15 @@ do Lume passa a ser interromper o editor só com boa razão e deixar o manuscrit
 - **Regra `tratamento` retirada** por decisão do autor (nasceu de um caso isolado). A chave
   continua aceita nas configurações salvas, sem efeito.
 
+Estabilização do FONTE, Fase 6b (LanguageTool indisponível): quando o corretor pedido não inicia
+ou não responde, a análise do FONTE continua, em vez de parar sem relatório.
+- **No relatório:** fica registrado como análise parcial, com a etapa, o componente e o motivo. Os
+  metadados não dizem que o corretor rodou.
+- **No app:** a mesa e Etapas e alcance avisam que a análise foi parcial, e o título também.
+- **Encerramento:** encerrar uma análise parcial gera um registro próprio, que não vale para a
+  análise completa e não substitui um encerramento anterior.
+- **Verificações:** `tests/PartialAnalysisCheck.swift` e `fonte/tests/test_languagetool_indisponivel.py`.
+
 Estabilização do FONTE, Fase 6b (LanguageTool): cada alerta do LanguageTool registra a regra, a
 categoria e o tipo originais (`languagetool`). Severidade, confiança, classe e destino não mudam. A
 revisão da severidade automática “provável erro” fica registrada para uma fase própria.

@@ -274,6 +274,11 @@ def recurring_unknown(blocks):
     return {w for w, n in counts.items() if n >= 3}
 
 
+class LanguageToolIndisponivel(ValueError):
+    """O corretor pedido não iniciou ou não respondeu. A análise do FONTE segue sem ele e o
+    relatório fica marcado como parcial (pipeline)."""
+
+
 def check(blocks, port=8081, protect_italics=True, settings=None, avancar=None):
     """`avancar(feitos, total)` é chamado ao longo da verificação, para o progresso na interface."""
     if not 1 <= port <= 65535:
@@ -304,7 +309,7 @@ def check(blocks, port=8081, protect_italics=True, settings=None, avancar=None):
                 payload = json.load(response)
             matches = payload["matches"]
         except (URLError, TimeoutError, ValueError, KeyError) as exc:
-            raise ValueError(f"Não foi possível concluir a análise pelo LanguageTool local na porta {port}. Confirme que o servidor está ativo. Nenhum relatório completo foi gerado.") from exc
+            raise LanguageToolIndisponivel(f"O LanguageTool local na porta {port} não respondeu. Confirme que o servidor está ativo.") from exc
         italics = block.italic if protect_italics else ()
         for match in matches:
             rule = match.get("rule", {})
@@ -444,7 +449,7 @@ def embedded(timeout=120):
     root = home()
     executable = java(root) if root else None
     if executable is None:
-        raise ValueError("O corretor gramatical embutido não foi encontrado neste motor.")
+        raise LanguageToolIndisponivel("O corretor gramatical embutido não foi encontrado neste motor.")
     port = free_port()
     command = [str(executable), "-Xms128m", "-Xmx1536m", "-Djava.awt.headless=true",
                "-cp", str(root / SERVER_JAR), "org.languagetool.server.HTTPServer", "--port", str(port)]
@@ -459,9 +464,9 @@ def embedded(timeout=120):
                 if process.poll() is not None:
                     log.seek(0)
                     detail = log.read().decode("utf-8", "replace")[-600:]
-                    raise ValueError("O corretor gramatical embutido não iniciou. " + detail.strip())
+                    raise LanguageToolIndisponivel("O corretor gramatical embutido não iniciou. " + detail.strip())
                 if time.monotonic() > deadline:
-                    raise ValueError("O corretor gramatical embutido não respondeu a tempo.")
+                    raise LanguageToolIndisponivel("O corretor gramatical embutido não respondeu a tempo.")
                 time.sleep(.25)
             yield port
         finally:

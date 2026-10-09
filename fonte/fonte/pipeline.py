@@ -15,8 +15,10 @@ STAGES = (
 
 
 def run(blocks, model_loader, *, settings=None, tense="auto", mode="ambas",
-        original=None, languagetool=False, port=8081, progress=None, coerencia=None, auditoria=None):
-    """`coerencia`: opções da Coerência com IA (pasta, documento, modelo, teto, esforco), que
+        original=None, languagetool=False, port=8081, progress=None, coerencia=None, auditoria=None,
+        languagetool_falha=None):
+    """`languagetool_falha`: motivo, quando o corretor pedido não pôde iniciar; a análise segue sem
+    ele, marcada como parcial (o mesmo vale se ele parar de responder). `coerencia`: opções da Coerência com IA (pasta, documento, modelo, teto, esforco), que
     verifica contradições narrativas na etapa Coerência global. `auditoria`: opções da
     Auditoria final com IA, que procura o que as etapas anteriores deixaram passar."""
     if mode not in ("linguistica", "editorial", "ambas"):
@@ -62,11 +64,25 @@ def run(blocks, model_loader, *, settings=None, tense="auto", mode="ambas",
                 item["layer"] = "linguistica"
             out.extend(repeated)
         if languagetool:
-            from .languagetool import check
-            extra, extra_warnings = check(blocks, port, options["italic_thoughts"], settings=options,
-                                          avancar=lambda f, t: avancar(f, t, "parágrafos"))
-            out.extend(extra)
-            warnings.extend(extra_warnings)
+            from .languagetool import LanguageToolIndisponivel, check
+            try:
+                if languagetool_falha:
+                    raise LanguageToolIndisponivel(languagetool_falha)
+                extra, extra_warnings = check(blocks, port, options["italic_thoughts"], settings=options,
+                                              avancar=lambda f, t: avancar(f, t, "parágrafos"))
+            except LanguageToolIndisponivel as falha:
+                # Sem nenhum alerta do corretor (nem os de antes da falha): a ausência é da etapa toda.
+                meta["languagetool_status"] = "indisponivel"
+                meta.setdefault("analise_parcial", {"ausente": []})["ausente"].append(
+                    {"etapa": "linguistic", "componente": "LanguageTool", "motivo": str(falha)})
+                atual["stage"]["ausente"] = "LanguageTool"
+                warnings.append(f"Análise parcial: o corretor gramatical local (LanguageTool) foi pedido, mas não "
+                                f"executou. {falha} Ortografia geral e boa parte da gramática não foram verificadas; "
+                                "as regras do FONTE rodaram normalmente. Analise de novo com o corretor disponível "
+                                "para uma leitura completa.")
+            else:
+                out.extend(extra)
+                warnings.extend(extra_warnings)
         else:
             warnings.append("Revisão linguística sem o corretor gramatical local (LanguageTool): ortografia geral e boa parte da concordância não foram verificadas. As regras do FONTE cobrem apenas classes específicas.")
         return out

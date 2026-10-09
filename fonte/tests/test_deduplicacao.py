@@ -6,7 +6,6 @@ seguem a Fase 6a. O LanguageTool é simulado.
 """
 import unittest
 from unittest.mock import patch
-from urllib.error import URLError
 
 from fonte import deduplicacao, grammar, pipeline
 from fonte.deduplicacao import (consolidar, contido, equivalentes, mesmo_id, relacao_que_repete_tempo_verbal, sobrepoe,
@@ -181,13 +180,6 @@ class Pipeline(unittest.TestCase):
         self.assertEqual([f["id"] for f in ligado], [f["id"] for f in desligado])
         self.assertTrue(any("sem o corretor gramatical local" in a for a in avisos))
         self.assertNotIn("absorvidos", desligado[0])
-
-    def test_languagetool_unavailable_stops_the_analysis(self):
-        # Comportamento atual: com o LT pedido e fora do ar, não há relatório parcial.
-        def fora(request, timeout):
-            raise URLError("recusado")
-        with self.assertRaisesRegex(ValueError, "LanguageTool local"):
-            self.rodar(fora)
 
 
 class FonteUnica(unittest.TestCase):

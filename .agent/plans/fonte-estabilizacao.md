@@ -26,8 +26,9 @@ Restrições:
 - [x] Fase 4 — segmentação entre fala e narração, só consolidação (08/10; commit `f01bd9e`).
 - [x] Fase 5 — verbos de fala, pensamento e percepção, só consolidação (08/10; commit `30549b0`).
 - [x] Fase 6a — deduplicação centralizada, sem mudança de comportamento (08/10; commit `02888c9`).
-- [x] Fase 6b — deduplicação por família com preservação das decisões (08/10). Aguarda o autor.
-- [ ] Fase 6b — campos originais do LanguageTool e tolerância à indisponibilidade (commits à parte).
+- [x] Fase 6b — deduplicação por família com preservação das decisões (08/10; commit `50860e4`).
+- [x] Fase 6b — categoria original do LanguageTool (08/10; commit `1ef184d`).
+- [x] Fase 6b — LanguageTool indisponível: análise parcial (08/10). Aguarda o autor.
 - [ ] Fases 7–8.
 - [ ] Pendente, fase com mudança de comportamento: `imperfeito` (problema 1 da Fase 3).
 
@@ -1511,3 +1512,56 @@ Os outros 28 conjuntos ficam idênticos. Herança real igual: A 28 e 28; C 15 e 
     (`misspelling`/`TYPOS`); a classe usa o nome da regra (`MORFOLOGIK`/`SPELLING`). Hoje coincidem.
 - **Testes:** FONTE 488 (`CategoriaOriginalTests`: o campo existe; severidade, confiança e classe
   ficam iguais depois do contrato e da política).
+
+### Fase 6b — execução, parte 3: LanguageTool indisponível (08/10/2026)
+
+**Antes:** com o corretor pedido e fora do ar (embutido que não inicia, servidor externo que não
+responde ou que cai no meio), a análise parava sem relatório.
+
+**Agora (D4):**
+- **Motor:**
+  - o FONTE segue sem o corretor. `LanguageToolIndisponivel` (subclasse de `ValueError`) separa a
+    indisponibilidade dos erros de configuração; porta inválida continua sendo erro;
+  - nenhum alerta do corretor entra, nem os de parágrafos anteriores à falha;
+  - `metadata.analise_parcial.ausente` (etapa, componente, motivo), `languagetool_status:
+    "indisponivel"` e `ausente` na etapa linguística;
+  - aviso “Análise parcial: …”, que diz o que não foi verificado.
+- **CLI:**
+  - a falha ao iniciar o embutido é passada à pipeline (`languagetool_falha`);
+  - os metadados dizem `languagetool: false`, `languagetool_pedido: true` e origem nula;
+  - a última linha diz “INDISPONÍVEL — análise parcial”; o código de saída é 0.
+- **App:**
+  - aviso de análise parcial na mesa e em Etapas e alcance;
+  - a etapa mostra “sem o LanguageTool (indisponível)”;
+  - o título leva “(análise parcial)”;
+  - o diálogo de encerramento avisa.
+- **Encerramento:**
+  - o de uma análise parcial vai para um registro próprio (`<sha256>-parcial.json`, com
+    `analise_parcial_sem`) e só vale para análise com o mesmo alcance;
+  - um encerramento completo anterior não é tocado nem passa a valer para a parcial;
+  - registros antigos, sem o campo, valem só para a análise completa;
+  - os critérios de encerramento não mudam.
+
+**Campos só na falha:** relatórios completos não ganham nenhum campo. Os 29 conjuntos são
+**idênticos** aos da parte 2, e a herança real é igual à linha de base (A 28 e 28; C 15 e 17), com o
+código Swift atual.
+
+**Teste real, sem simulação:**
+- CLI sobre o texto X com `--languagetool --porta-lt 9` (sem servidor);
+- código de saída 0, relatório parcial com motivo, e os mesmos 39 alertas da análise sem o LT;
+- o contrato Swift lê o relatório.
+
+**Testes:**
+- FONTE 493: `test_languagetool_indisponivel.py`, com 6 testes:
+  - servidor fora do ar;
+  - queda depois de alguns parágrafos;
+  - falha ao iniciar;
+  - servidor funcionando, sem marca de parcial;
+  - porta inválida;
+  - CLI com o embutido que não inicia.
+
+  O teste da 6a que fixava a interrupção saiu (mudança aprovada).
+- Pacotes 45, contrato Python, Coerencia 25.
+- Swift: as 7 verificações e a nova `PartialAnalysisCheck`, que cobre o relatório, a etapa, o
+  encerramento separado, o registro e a compatibilidade.
+- Build do app.

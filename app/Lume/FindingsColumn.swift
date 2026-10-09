@@ -70,6 +70,9 @@ struct FindingsColumn: View {
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
+                if let partial = store.report?.metadata.analiseParcial {
+                    PartialNotice(partial: partial)
+                }
                 if let contradiction = store.report?.metadata.tempoContradito {
                     TenseNotice(contradiction: contradiction)
                 }
@@ -157,6 +160,28 @@ struct FindingsColumn: View {
 
 /// A narração contradiz o tempo escolhido: os alertas de tempo verbal tratam a própria narração
 /// como desvio. Só informa; a nova análise é escolha do autor.
+/// Análise sem um componente pedido: fica visível na mesa enquanto o relatório estiver aberto.
+struct PartialNotice: View {
+    let partial: PartialAnalysis
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 9) {
+            Image(systemName: "exclamationmark.triangle").foregroundStyle(LumeTheme.error).padding(.top, 1)
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Análise parcial").font(LumeFont.ui(12, weight: .semibold))
+                ForEach(Array(partial.ausente.enumerated()), id: \.offset) { _, missing in
+                    Text("\(missing.componente) não executou: \(missing.motivo)")
+                        .font(LumeFont.ui(11)).foregroundStyle(LumeTheme.secondary).fixedSize(horizontal: false, vertical: true)
+                }
+                Text("Ortografia geral e boa parte da gramática não foram verificadas; as regras do FONTE rodaram normalmente. Analise de novo com o corretor disponível para uma leitura completa.")
+                    .font(LumeFont.ui(11)).foregroundStyle(LumeTheme.secondary).fixedSize(horizontal: false, vertical: true)
+            }
+        }.padding(10).frame(maxWidth: .infinity, alignment: .leading)
+            .background(RoundedRectangle(cornerRadius: LumeRadius.medium).stroke(LumeTheme.error.opacity(0.45)))
+            .accessibilityElement(children: .combine)
+    }
+}
+
 struct TenseNotice: View {
     let contradiction: TenseContradiction
 
@@ -258,8 +283,13 @@ struct ClosureStrip: View {
             }
             if let closure = store.closure {
                 VStack(alignment: .leading, spacing: 3) {
-                    Label("Revisão concluída", systemImage: "checkmark.seal").font(LumeFont.ui(12.5, weight: .semibold))
+                    Label(closure.isPartial ? "Revisão concluída · análise parcial" : "Revisão concluída",
+                          systemImage: "checkmark.seal").font(LumeFont.ui(12.5, weight: .semibold))
                         .foregroundStyle(LumeTheme.sage)
+                    if let missing = closure.missing, !missing.isEmpty {
+                        Text("Encerrada sobre uma análise sem \(missing.joined(separator: ", ")). Não equivale a uma análise completa.")
+                            .font(LumeFont.ui(11)).foregroundStyle(LumeTheme.error).fixedSize(horizontal: false, vertical: true)
+                    }
                     Text("Encerrada em \(closure.closedAt.formatted(date: .abbreviated, time: .shortened)), com \(closure.openPendencies) pendência(s) e \(closure.openObservations) observação(ões) sem decisão. O processo de revisão terminou; isso não indica que o texto não tem erros.")
                         .font(LumeFont.ui(11)).foregroundStyle(LumeTheme.secondary).fixedSize(horizontal: false, vertical: true)
                 }

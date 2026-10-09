@@ -171,6 +171,9 @@ struct CoverageSheet: View {
             }
             ScrollView {
                 VStack(alignment: .leading, spacing: 10) {
+                    if let partial = store.report?.metadata.analiseParcial {
+                        PartialNotice(partial: partial)
+                    }
                     if let memory = store.report?.metadata.narrativeSummary {
                         Panel(padding: 14) {
                             VStack(alignment: .leading, spacing: 4) {

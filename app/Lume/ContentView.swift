@@ -97,10 +97,11 @@ struct ContentView: View {
         if store.isAnalyzing { return "Lendo agora…" }
         if store.analysisFailed { return "Leitura interrompida" }
         guard store.report != nil else { return "Mesa de leitura" }
-        if store.closure != nil { return "Mesa de leitura · Revisão concluída" }
+        let partial = store.report?.metadata.analiseParcial != nil ? " (análise parcial)" : ""
+        if store.closure != nil { return "Mesa de leitura · Revisão concluída\(partial)" }
         let counts = store.tally
         let blocking = counts.blocking > 0 ? " · \(counts.blockingOpen) impeditivo(s) sem decisão" : ""
-        return "Mesa de leitura · \(counts.pendingOpen) de \(counts.pending) pendências sem decisão\(blocking)"
+        return "Mesa de leitura · \(counts.pendingOpen) de \(counts.pending) pendências sem decisão\(blocking)\(partial)"
     }
 
     // MARK: Barra
