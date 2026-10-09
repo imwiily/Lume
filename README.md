@@ -5,13 +5,13 @@
 O Lume lê manuscritos do Word (.docx) e do Pages (.pages) e aponta:
 - ortografia e gramática: LanguageTool embutido e regras próprias de crase, homófonos, concordância, regência, vírgula, correlação de tempos, frase cortada e locuções;
 - tempo verbal da narração (passado ou presente);
-- repetições, diálogos, variações de nomes e prazos.
+- palavra repetida em sequência, frase duplicada, diálogos e variações de nomes.
 
 Contradições narrativas são verificadas pela **Coerência com IA** (Claude), opcional. A **Auditoria final com IA** (Claude), também opcional, relê o livro depois das regras como controle de qualidade: só achados sólidos chegam ao editor. Sugestões e decisões ficam nos relatórios; o texto continua sendo do autor. A análise nunca altera o arquivo. Em documentos do Pages, o autor pode gravar a correção de um alerta no próprio arquivo (**Corrigir no manuscrito**): o Lume guarda antes uma cópia em `~/Library/Application Support/FONTE/Copias/`, usa o Pages para trocar só o trecho destacado e confere o resultado. Em **Editar parágrafo**, o autor reescreve o parágrafo do alerta e o Lume grava só a parte alterada.
 
 ![Início do Lume](docs/identidade/previa-inicio-claro.png)
 
-Versão atual: **Lume 1.6 · FONTE 1.4.0 · Coerencia 1.2.0** — novidades no [CHANGELOG](CHANGELOG.md).
+Versão atual: **Lume 1.7 · FONTE 1.5.0 · Coerencia 1.2.0** — novidades no [CHANGELOG](CHANGELOG.md).
 
 ## Estrutura
 
@@ -83,7 +83,7 @@ Para compilar só a interface e reaproveitar um motor já produzido nesta versã
 
 ```sh
 xcodebuild -project app/Lume.xcodeproj -scheme Lume -configuration Release -derivedDataPath build/nova-montagem/DerivedData ARCHS=arm64 build
-fonte/.venv/bin/python scripts/package_app.py --app build/nova-montagem/DerivedData/Build/Products/Release/Lume.app --engine /caminho/fonte-1.4.0.lumemotor --output build/nova-montagem/Pacote
+fonte/.venv/bin/python scripts/package_app.py --app build/nova-montagem/DerivedData/Build/Products/Release/Lume.app --engine /caminho/fonte-1.5.0.lumemotor --output build/nova-montagem/Pacote
 ```
 
 O empacotador:
@@ -118,7 +118,7 @@ PYTHONPATH=fonte fonte/.venv/bin/python tests/check_python_contract.py
 (cd coerencia && ../fonte/.venv/bin/python -m unittest discover -s tests)
 ```
 
-A montagem completa executa também os testes Swift: contrato, correção no manuscrito, extração de falsos positivos, decisões por livro, ferramentas da mesa e encerramento da revisão.
+A montagem completa executa também os testes Swift: contrato, correção no manuscrito, extração de falsos positivos, decisões por livro, ferramentas da mesa, encerramento da revisão, deduplicação e análise parcial.
 
 A avaliação cega mede a detecção em textos que o motor não conhece. Ela gera um DOCX por texto do corpus anotado em `fonte/tests/corpus/deteccao/` e conta erros encontrados e alarmes falsos por categoria. Ela é guarda contra regressões, não a meta: a métrica principal é a precisão das pendências nas decisões reais ([validação](docs/validacao.md#protocolo-de-métricas)).
 

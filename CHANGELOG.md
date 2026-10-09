@@ -2,9 +2,12 @@
 
 As seções antigas descrevem a cobertura e os resultados de cada entrega, não o estado atual. Nas seções anteriores à 1.0, caminhos citados são da antiga pasta `LumeMac/`; a correspondência com a estrutura atual está em [README.md](README.md#estrutura).
 
-## Em desenvolvimento
+## Lume 1.7 · FONTE 1.5.0 · Coerencia 1.2.0 — 09/10/2026
 
-**FONTE 1.5.0 — Estabilização linguística** (proposta; aguarda a aprovação do autor). Baseline
+O Lume 1.7 embute o FONTE 1.5.0 (tag `fonte-v1.5.0`) e a Política editorial v2. O Coerencia não
+mudou.
+
+**FONTE 1.5.0 — Estabilização linguística.** Baseline
 estável de detecção, resultado das Fases 0 a 8 da estabilização (`.agent/plans/fonte-estabilizacao.md`):
 - **Núcleos compartilhados:** identificação verbal com três perguntas (`verbo.py`), tempo e modo
   (`tempo.py`), segmentação entre fala e narração (`segments.py`), verbos de fala (`elocucao.py`)
@@ -12,10 +15,17 @@ estável de detecção, resultado das Fases 0 a 8 da estabilização (`.agent/pl
 - **Identidade:** todo alerta traz `rule` e `classe`; IDs e herança de decisões preservados.
 - **LanguageTool:** categoria original registrada; indisponível vira análise parcial, não falha.
 - **Regras revisadas:** alarmes falsos demonstrados corrigidos por classe; estilo, registro e
-  exemplos isolados retirados (as chaves continuam aceitas); uma relação temporal desativada.
-- **Validação final:** 29 conjuntos de regressão idênticos à Fase 7b; nenhum impeditivo; nas
-  decisões reais, 85% de precisão nas pendências pela Política v2 (582 decisões de um autor). As
-  limitações aceitas estão em `docs/validacao.md`.
+  exemplos isolados retirados: repetição próxima, gerundismo, prazos de uma cena, referentes
+  literais, “chegar em” e “pedir para que” (as chaves continuam aceitas); uma relação temporal
+  desativada.
+- **Política editorial v2:** cada classe vai para pendência, observação ou diagnóstico; nenhuma
+  classe é impeditiva nesta versão, e a revisão termina em “Revisão concluída”.
+- **Validação final:** 29 conjuntos de regressão idênticos à Fase 7b; nenhum impeditivo. As
+  decisões reais usadas na medição (650, de um autor) foram tomadas sobre versões anteriores e o
+  corpus de detecção foi escrito junto com as regras: nenhum dos dois mede a precisão desta versão
+  em livros novos. As limitações aceitas estão em `docs/validacao.md`.
+- **Exemplos:** os relatórios de `examples/` foram gerados de novo pelo FONTE 1.5.0; saíram só os
+  alertas das regras retiradas e da relação desativada, e os que ficaram mantêm os IDs.
 - **Montagem:** passa a rodar também `DeduplicationCheck` e `PartialAnalysisCheck`.
 - **Limpar resíduos preserva o histórico de decisões:** um relatório antigo fica quando tem um
   alerta decidido que o relatório mais recente do livro não mede. Esses relatórios guardam trechos
