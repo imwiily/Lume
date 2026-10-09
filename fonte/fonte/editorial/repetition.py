@@ -4,7 +4,7 @@ from ..analysis import explicar
 from .common import WORDS, alert, evidence, normalized
 from ..settings import validate
 from ..segments import classify, spans
-from ..lexicon import flags
+from ..lexicon import FINITE, flags
 
 STOP = set("a o as os um uma uns umas de da do das dos em no na nos nas por para pra com sem e ou mas que se eu tu ele ela eles elas nós vós você vocês me te lhe lhes meu minha seus suas seu sua isso isto esse essa este esta ao aos à às não sim já só mais muito como quando porque então era foi tinha havia estava ser estar ter faz fez fazer disse dizer é está são eram foram pelo pela pelos pelas comigo contigo consigo assim aqui ali tudo nada pouco cada qual onde este esta aquele aquela isto aquilo estou estamos obrigado obrigada".split())
 SENTENCE = re.compile(r"[^.!?…\n]+[.!?…]*")
@@ -20,6 +20,31 @@ def expressive(text, lower, upper, first, second):
         return False
     before = lambda s, m: [w.casefold() for w in WORDS.findall(text[s.start():m.start()])]
     return before(one, first) == before(two, second) or len(WORDS.findall(two[0])) <= 3
+
+
+# Pronomes átonos que, depois do hífen (ênclise), têm a mesma forma do artigo ou da preposição seguinte.
+ENCLITICOS_HOMOGRAFOS = {"a", "o", "as", "os"}
+# O que pode vir entre o pronome “se” e o verbo dele (“se se lhes não conta”).
+ANTES_DO_VERBO = {"me", "te", "lhe", "lhes", "nos", "vos", "o", "a", "os", "as", "não", "nunca", "já"}
+
+
+def dobra_legitima(text, first, second, following):
+    """A mesma forma duas vezes, mas com funções diferentes, sem erro de digitação:
+    - pronome enclítico seguido de artigo ou preposição homógrafos (“Alcancei-a a poucos passos”);
+    - conjunção “se” seguida do pronome “se”, que pede um verbo logo depois (“se se sabe”, “se se lhes
+      não conta”); sem verbo (“se se ele vier”), é dobra;
+    - letra isolada abreviada (“P. e E.”)."""
+    key = first[0].casefold()
+    if key in ENCLITICOS_HOMOGRAFOS and first.start() > 0 and text[first.start() - 1] == "-":
+        return True
+    if key == "se":
+        for word in following[:4]:
+            if flags(word[0]) & FINITE:
+                return True
+            if word[0].casefold() not in ANTES_DO_VERBO:
+                return False
+        return False
+    return len(key) == 1 and (text[second.end():second.end() + 1] == "." or text[first.end():first.end() + 1] == ".")
 
 
 def analyze(blocks, settings=None):
@@ -64,7 +89,8 @@ def analyze(blocks, settings=None):
                     if previous is not None:
                         first=tokens[previous];distance=i-previous
                         if (distance==1 and options['rules']['palavra_consecutiva']
-                                and block.text[first.end():token.start()].isspace() and flags(key)):
+                                and block.text[first.end():token.start()].isspace() and flags(key)
+                                and not dobra_legitima(block.text, first, token, tokens[i + 1:])):
                             out.append(alert(block,'palavra_consecutiva','Palavra repetida',first.start(),token.end(),
                                 explicar('A mesma palavra aparece duas vezes seguidas. Confira se é de propósito ou digitação.',
                                          'palavra repetida'),'média'))
