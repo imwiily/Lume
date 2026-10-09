@@ -44,6 +44,9 @@ RULES = {
     ],
 }
 
+# Interjeições: depois delas, a exclamação pode continuar a frase em minúscula.
+INTERJEICOES = "ah|oh|ó|ai|ui|eh|ei|olá|ufa|puxa|nossa|hein|ora|oba|opa|psiu|credo|oxalá|céus"
+
 # Chamamento inicial + pronome de tratamento ou proibição curta. Não tenta
 # decidir casos ambíguos como “Helena saiu” nem usa nomes de uma obra.
 NAME = r"[A-ZÀ-ÖØ-Þ][a-zà-öø-ÿ\u0300-\u036f]+"
@@ -79,9 +82,13 @@ def vocatives(block, start, text):
         primeira = name.split()[0]
         if primeira.casefold() in INTRODUCERS:
             continue
-        # “Achei você”: uma forma que o léxico só conhece como verbo não é chamamento.
+        # “Achei você”: uma forma que o léxico só conhece como verbo não é chamamento. Numa pergunta,
+        # o verbo homógrafo com o sujeito invertido (“Quer você sair?”, “Pode você esperar?”) também não.
         valor = flags(primeira)
         if valor & FINITE and not valor & NONVERB:
+            continue
+        fim = re.search(r"[.!?…]", text[match.end():])
+        if valor & FINITE and fim is not None and fim[0] == "?":
             continue
         yield vocative_item(block, start + match.start('name'), start + match.end('name'), name + ",",
                             explicar("O nome no começo parece chamar alguém (‘Pedro, não faça isso’). Quando se chama "
@@ -122,6 +129,14 @@ def analyze(blocks, settings):
                         # “que, não obstante o frio, ...” é um inciso possível.
                         if rule == "virgula_que_nao" and re.match(
                                 r"\s*(?:obstante\b|só\b|apenas\b|,)", text[match.end():], re.I):
+                            continue
+                        # Locução conclusiva (“pelo que, não…”, “de modo que, não…”): a vírgula fecha o conectivo.
+                        if rule == "virgula_que_nao" and re.search(
+                                r"\b(?:pelo|de\s+(?:modo|maneira|forma|sorte))\s+$", text[:match.start()], re.I):
+                            continue
+                        # Depois de interjeição (“Ah! tu…”, “Oh! você…”), a frase pode seguir em minúscula.
+                        if rule == "capitalizacao_contextual" and re.search(
+                                r"(?:^|[.!?…:;—–\"“«]\s*)(?:" + INTERJEICOES + r")[!?]$", text[:match.start()], re.I):
                             continue
                         suggestion = replacement
                         if rule == "capitalizacao_contextual":

@@ -157,3 +157,63 @@ class AspasComoNarracao(unittest.TestCase):
 
     def test_quotes_as_narration_have_no_speech_tag_to_check(self):
         self.assertEqual(self.dialogo("“Já volto”, ela abriu a porta e saiu.", quotes_role="narracao"), [])
+
+
+class RegrasFrageis(unittest.TestCase):
+    """Restrições da Fase 7b em regras sem decisões suficientes, cada uma por uma classe linguística."""
+
+    @classmethod
+    def setUpClass(cls):
+        import spacy
+        cls.nlp = spacy.load("pt_core_news_sm", disable=["ner"])
+
+    def linguisticas(self, texto, regra):
+        from fonte.linguistic import analyze
+        from fonte.settings import validate
+        regras = {r: r == regra for r in validate({})["rules"]}
+        return [f["text"][f["start"]:f["end"]].strip() for f in analyze(blocos(texto), validate({"rules": regras}))]
+
+    def test_vocative_vs_inverted_subject_question(self):
+        self.assertEqual(self.linguisticas("Marta você vem amanhã?", "vocativo"), ["Marta"])
+        self.assertEqual(self.linguisticas("Bento não faça isso.", "vocativo"), ["Bento"])
+        for texto in ["Quer você dar uma volta pela praça?", "Pode você esperar um instante?"]:
+            with self.subTest(texto=texto):
+                self.assertEqual(self.linguisticas(texto, "vocativo"), [])
+
+    def test_lowercase_after_interjection(self):
+        for texto in ["Ah! tu pensavas que eu esqueceria.", "Oh! você chegou cedo."]:
+            with self.subTest(texto=texto):
+                self.assertEqual(self.linguisticas(texto, "capitalizacao_contextual"), [])
+        self.assertEqual(self.linguisticas("Você vem? ele perguntou baixinho.", "capitalizacao_contextual"), ["ele"])
+        self.assertEqual(self.linguisticas("Que susto! ela disse depois.", "capitalizacao_contextual"), ["ela"])
+
+    def test_que_nao_after_conclusive_connective(self):
+        for texto in ["A chuva não parou, pelo que, não havendo barco, ficamos.",
+                      "Estava tudo pronto, de modo que, não restando nada, saímos."]:
+            with self.subTest(texto=texto):
+                self.assertEqual(self.linguisticas(texto, "virgula_que_nao"), [])
+        self.assertEqual(self.linguisticas("Ela disse que, não iria à festa.", "virgula_que_nao"), ["que, não"])
+
+    def concordancias(self, texto):
+        from fonte.grammar import analyze
+        from fonte.settings import validate
+        regras = {r: r == "concordancia" for r in validate({})["rules"]}
+        return [f["text"][f["start"]:f["end"]] for f in analyze(blocos(texto), self.nlp, validate({"rules": regras}))
+                if f["category"] == "Concordância nominal"]
+
+    def test_compound_colour_is_invariable(self):
+        for texto in ["O casaco tinha botões azul claro e golas largas.", "Vestia camisas verde garrafa no inverno."]:
+            with self.subTest(texto=texto):
+                self.assertEqual(self.concordancias(texto), [])
+        # Cor simples continua variando: “sapatos vermelho” segue apontado.
+        self.assertEqual(self.concordancias("Ela usava sapatos vermelho."), ["sapatos vermelho"])
+        self.assertEqual(self.concordancias("Os quadros antigo ficaram no porão."), ["quadros antigo"])
+
+    def test_enclitic_verb_is_not_a_work_term(self):
+        from fonte.editorial.entities import capitalization
+        termos = [f["text"][f["start"]:f["end"]] for f in capitalization(blocos(
+            "Ele chegou e, Disse-me o guarda, a porta abriu.", "Depois, disse-me ela, tudo mudou."))]
+        self.assertEqual(termos, [])
+        compostos = [f["text"][f["start"]:f["end"]] for f in capitalization(blocos(
+            "Ele viu a Mulher-Corvo no telhado.", "Contaram que a mulher-corvo voltou."))]
+        self.assertEqual(compostos, ["mulher-corvo"])

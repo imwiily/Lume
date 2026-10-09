@@ -57,6 +57,9 @@ COLLECTIVE = {"maioria", "parte", "metade", "grupo", "porção", "conjunto", "ba
               # Quantificadores partitivos (“um monte de pássaros pousaram”): as duas concordâncias.
               "monte", "montão", "punhado", "infinidade", "dezena", "centena", "milhar", "milhão"}
 EACH = {"nenhum", "nenhuma", "cada", "qualquer", "ninguém"}
+# Cores que formam cor composta com o termo seguinte (a composta não varia em número).
+CORES = {"azul", "verde", "amarelo", "amarela", "vermelho", "vermelha", "roxo", "roxa", "branco", "branca", "preto",
+         "preta", "marrom", "lilás", "bege", "dourado", "dourada", "prateado", "prateada"}
 INVARIABLE = {"cinza", "rosa", "laranja", "vinho", "creme", "gelo", "salmão", "musgo", "oliva", "turquesa",
               "anil", "caqui", "abóbora", "simples", "reles", "grátis", "vermelho-escuro", "azul-marinho"}
 INTRANSITIVE = {"ser", "estar", "ficar", "parecer", "permanecer", "continuar", "tornar", "virar", "chegar", "sair",
@@ -380,6 +383,10 @@ def agreement(block, doc, emit):
                           + ". Confira.", "concordância verbal"))
     for token in doc:
         if token.pos_ != "ADJ" or token.lower_ in INVARIABLE:
+            continue
+        # Cor composta (“vivos azul ferrete”, “camisas verde garrafa”, “olhos azul claro”): invariável.
+        following = doc[token.i + 1] if token.i + 1 < len(doc) else None
+        if token.lower_ in CORES and following is not None and following.is_alpha and following.pos_ in {"ADJ", "NOUN"}:
             continue
         noun = token.head
         # Adjetivo imediatamente posposto ao substantivo que qualifica. Dentro

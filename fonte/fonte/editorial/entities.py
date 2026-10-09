@@ -3,7 +3,7 @@ import re
 from .repetition import STOP
 from ..analysis import explicar
 from .common import WORDS, alert, evidence
-from ..lexicon import flags
+from ..lexicon import CLITIC, flags
 
 
 def one_edit(a, b):
@@ -73,7 +73,9 @@ def capitalization(blocks, ignored=()):
             if not before or before[-1] in SENTENCE_OPENERS or word.isupper() or len(word) < 3:
                 continue
             key = word.casefold()
-            if key in ignored or (flags(word) and "-" not in word):
+            # Palavra comum do léxico; com hífen, só se o hífen for de pronome enclítico (“disse-me”):
+            # composto com hífen (“Mulher-Corvo”) pode ser termo da obra.
+            if key in ignored or (flags(word) and ("-" not in word or CLITIC.search(word))):
                 continue
             forms[key][word[0].isupper()].append((block, match))
     out = []
