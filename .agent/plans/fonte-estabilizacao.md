@@ -32,10 +32,11 @@ Restrições:
 - [x] Fase 7a — parecer definitivo das regras e plano de implementação (08/10; commit `3218e49`;
   aprovada pelo autor; nenhuma regra alterada).
 - [x] Fase 7b — implementação (08–09/10; commits `5f40df7` a `061fb6f`, registro em `4882ab1`).
-  Aguarda o autor.
-- [x] `imperfeito` (problema 1 da Fase 3): corrigido na Fase 7b, grupo 5 (`5303db5`); aguarda o autor
-  junto com a Fase 7b.
-- [ ] Fase 8 — auditoria final e congelamento (não iniciada).
+  Aprovada pelo autor em 09/10.
+- [x] `imperfeito` (problema 1 da Fase 3): corrigido na Fase 7b, grupo 5 (`5303db5`); aprovado junto
+  com a Fase 7b.
+- [x] Fase 8 — auditoria cruzada, validação final e preparação do FONTE 1.5.0 (09/10). Veredicto:
+  apto. Aguarda a aprovação final do autor; sem tag, release ou push.
 
 ## Fontes de evidência usadas
 
@@ -1950,3 +1951,184 @@ oitocentista).
 - as pendências funcionais da Fase 7a (resolução de conflitos, código de saída parcial,
   encerramento completo × parcial);
 - versão do baseline.
+
+### Fase 8 — auditoria cruzada e validação final (09/10/2026)
+
+**Pergunta:** existe algum defeito relevante, demonstrado e não resolvido que impeça considerar o
+FONTE uma base estável? Nenhuma regra, exceção ou detector mudou nesta fase.
+
+**Método:**
+- motor nos fontes do HEAD (`ff92811`; o código do motor é o mesmo de `061fb6f`);
+- saídas em `build/f8/` (fora do Git): `final/` (29 conjuntos e os 3 textos independentes de
+  desenvolvimento), `precisao/`, `testes/` e `testes-1.5.0/`;
+- os `.docx` dos textos independentes foram refeitos dos `.txt` congelados (parágrafos por linha em
+  branco, espaços colapsados) e conferidos: os três relatórios são idênticos aos de `build/f7b/g10`;
+- a validação do `~/Lume-evidencia` não foi usada: as **duas consultas reservadas** da validação
+  verbal continuam disponíveis.
+
+#### Auditoria cruzada
+
+| # | Achado | Evidência | Classe |
+|---|---|---|---|
+| 1 | Ramo de palavra dobrada em `analysis.analyze` sem as distinções do grupo 1 da 7b | Só roda sem `enabled_rules` (chamada direta). `search.linguistic` sempre passa listas sem `palavra_consecutiva`; a pipeline usa `editorial/repetition`. Chamadores diretos: testes (`test_fonte`, `test_lexical_review`, `test_clitic_feedback`) e a sonda de saúde do motor (`packaging/lume_engine.py`), que só confere o tempo verbal. Nenhum relatório passa por ele. | B: divergência sem efeito funcional; não removido (`test_repeat_narrative_only` depende dele, e a remoção não traz ganho ao usuário) |
+| 2 | Texto da etapa morfossintática diz “quatro relações temporais locais”; uma está desativada | `pipeline.py`, descrição da etapa | B: descritivo; mudá-lo altera o texto dos 29 conjuntos |
+| 3 | `contracts.occurrence` ainda dá severidade a `duracao_suspensao`, `adiamento_amanha` e `referente_proximidade` | Essas regras não emitem mais; o ramo não é alcançado | B: inerte |
+| 4 | `politica.json` mantém `palavra_proxima\|baixa` e `gerundismo\|baixa` | Necessário para classificar relatórios antigos; Política v2 intacta | Correto |
+| 5 | Listas de regras Swift × Python | 26 regras ativas iguais nos dois lados; `retiredIDs` = `RETIRED_RULES` (12) | Sem divergência |
+| 6 | Checagens diretas de morfologia fora dos núcleos (`VerbForm` Inf/Ger/Part, `Mood`) | Não são “verbo finito” nem classificação de tempo; ficam nas relações, como registrado na Fase 3 | Sem divergência |
+| 7 | `scripts/montar-lume.command` não compilava nem rodava `DeduplicationCheck` e `PartialAnalysisCheck` | As duas verificações das Fases 6b ficavam fora da montagem | Corrigido: só a montagem, sem efeito no motor |
+| 8 | Cópia antiga e não editável do FONTE 1.4.0 no `site-packages` da `.venv` | Um script fora de `fonte/` importa essa cópia (aconteceu numa sonda desta fase). Testes, `avaliar_deteccao`, `medir_precisao`, contrato e a pipeline usam os fontes; a montagem reinstala `./fonte` antes de congelar | B: só do ambiente de desenvolvimento |
+| 9 | Problemas 2 e 3 da Fase 3 (recuperação ignora o modo; passado só pelo léxico sob subjuntivo) | Registrados em `LimitacoesRegistradas` | B |
+
+#### Preservação das decisões
+
+- **IDs:** contra `9f0f6d8`, nenhum alerta que continua mudou de ID ou de destino. Saíram 105 nos
+  8 conjuntos reais: 100 de repetição próxima, 2 de gerundismo, 2 de “chegar em” (A e A com LT) e 1
+  do LT absorvido pela crase do FONTE (B com LT). Entrou 1 (essa crase).
+- **Herança real** (código Swift atual, memórias reais dos livros):
+
+  | Relatório | 9f0f6d8 | Fase 6b | Final |
+  |---|---:|---:|---:|
+  | A / A com LT | 28 / 28 | 28 / 28 | 7 / 7 |
+  | C / C com LT | 15 / 17 | 15 / 17 | 11 / 13 |
+
+  As 25 que saem (A 21, C 4) são todas de regras retiradas: repetição próxima 23, gerundismo 1,
+  “chegar em” 1. As que ficam são as mesmas, pelo mesmo ID.
+- **Relatórios e arquivos antigos:** os 58 relatórios, 31 arquivos de decisões e 3 memórias de livro
+  da pasta do app abrem e validam com o modelo Swift atual. Nada foi gravado nessa pasta.
+- **Próximo salvamento da memória editorial** (simulado com o código Swift, sem gravar):
+  - `Decisoes/<sha>.json` mantém **todas** as entradas: `loadReport` restaura o arquivo sem filtrar
+    pelos IDs do relatório novo, e `autosave` grava o dicionário inteiro. No livro A: 30 entradas,
+    23 de alertas que não estão no relatório novo, todas preservadas.
+  - `Livros/<livro>.json` é refeito só com os alertas do relatório aberto: no livro A, 30 → 7
+    decisões. É o comportamento de sempre (memória do último relatório). Sem efeito funcional: as
+    regras retiradas não emitem mais, e a memória do livro nunca é a única cópia de uma decisão.
+  - Conflitos de alertas que não estão no relatório novo saem do arquivo de decisões no próximo
+    salvamento (`decisionConflicts` filtrado pelos IDs). Hoje não há nenhum conflito nos dados reais.
+- **Medição histórica:** `medir_precisao.py` cruza cada relatório guardado com o arquivo de decisões
+  do mesmo SHA. As 650 decisões continuam medidas, inclusive as das regras retiradas (repetição
+  próxima 43, gerundismo 1).
+- **Onde o histórico pode se perder:** a decisão só tem sentido (regra, classe, trecho) junto do
+  relatório que a gerou. “Limpar resíduos” apaga os relatórios antigos (fica o mais recente de cada
+  livro); depois disso, as decisões de alertas que não existem no relatório mantido deixam de ser
+  medidas. É uma ação explícita, com resumo antes, e anterior à estabilização; mas o diálogo não
+  avisa da perda de medição. Já existem 3 arquivos de decisões sem relatório (53 decisões fora da
+  medição), de antes desta fase.
+  - **Menor solução proposta (não implementada; aguarda aprovação):** em `StorageCleanup.plan`,
+    manter também a pasta de um relatório antigo quando o arquivo de decisões do mesmo SHA tiver
+    decisão (não pendente) para um ID que existe nesse relatório e não existe no relatório mantido
+    do livro. Cerca de 10 linhas em `Models.swift`.
+  - **Testes propostos** em `DeskToolsCheck`: (1) relatório antigo com alerta decidido que sumiu do
+    mais recente → fica; (2) relatório antigo cujas decisões estão todas no mais recente → sai;
+    (3) relatório antigo sem decisões → sai, como hoje.
+
+#### Validação final
+
+1. **Funcionamento** (corpus de desenvolvimento, 21 textos, 3.978 palavras, sem o LT; escrito junto
+   com as regras, não mede uso real): idêntico ao da Fase 7b.
+
+   | Métrica | 9f0f6d8 | Fase 6b | Final |
+   |---|---:|---:|---:|
+   | Precisão das pendências | 96,9% | 96,9% | 96,7% |
+   | Alarmes falsos nas pendências por 10 mil palavras | 5,0 | 5,0 | 5,0 |
+   | Precisão de todas as ocorrências | 88% | 88% | 89,6% |
+   | Alarmes falsos por 10 mil palavras (todas) | 22,6 | 22,6 | 17,6 |
+   | Ocorrências | 81 | 81 | 73 |
+   | Cobertura linguística | 65/84 | 65/84 | 60/84 |
+
+   A única classe com cobertura diferente é regência, 7/10 → 2/10: os 5 casos anotados eram “chegar
+   em” e “pedir para que”, retirados por decisão aprovada. Narrativa 0/14 (contradição e
+   continuidade são da Coerência com IA).
+2. **Regressão:** os 29 conjuntos são **idênticos** aos da Fase 7b (8 reais com e sem o LT; 21 do
+   corpus).
+
+   | Texto (palavras) | 9f0f6d8 | Fase 6b | Final | Pendências por 10 mil | Observações por 10 mil |
+   |---|---|---|---|---:|---:|
+   | A (13.810) | 37/26 | 37/26 | 36/6 | 26,1 | 4,3 |
+   | B (2.509) | 2/13 | 2/13 | 2/1 | 8,0 | 4,0 |
+   | C (3.129) | 18/11 | 18/11 | 18/7 | 57,5 | 22,4 |
+   | X (6.338) | 13/26 | 13/26 | 13/11 | 20,5 | 17,4 |
+   | A com LT | 37/26 | 37/26 | 36/6 | 26,1 | 4,3 |
+   | B com LT | 4/14 | 4/14 | 4/2 | 15,9 | 8,0 |
+   | C com LT | 19/12 | 19/12 | 19/8 | 60,7 | 25,6 |
+   | X com LT | 17/33 | 17/33 | 17/18 | 26,8 | 28,4 |
+
+   Pendências/observações. Nenhum impeditivo em nenhum conjunto. Das 36 pendências de A, 19 são de
+   pontuação final ausente, sem decisão (D6).
+3. **Generalização** (3 romances de desenvolvimento, 193.194 palavras, sem o LT): idênticos aos da
+   Fase 7b. Fase 6b → final: pendências 2.457 → 2.373 (127,2 → 122,8 por 10 mil), observações 3.483 →
+   2.500 (180,3 → 129,4). Por regra: repetição próxima −1.024, coerência temporal −61 (com +61 de
+   tempo verbal genérico nos mesmos verbos), palavra dobrada −19, variação de nome −10, frase cortada
+   −3, maiúscula −3, vocativo −2; nenhuma regra subiu fora dessa troca. O volume que resta vem dos
+   confusores da Fase 7a (grafia anterior a 1943, “--” como travessão, narrador oitocentista). Sem
+   anotação, não há falsos positivos por 10 mil nem precisão aqui, e esses textos não servem para
+   afirmar confiabilidade no português brasileiro contemporâneo.
+4. **Decisões reais** (`build/f8/precisao/`): as mesmas 650 decisões únicas de 6 livros e 1 autor;
+   nenhuma decisão nova desde 07/10. Precisão total 79%.
+   - pelo destino atual da Política v2: **pendências 497/582 = 85,4%**; observações 4/22 = 18,2%;
+     regras retiradas 11/46 = 23,9% (fora das classes ativas); ativas no total 501/604 = 82,9%;
+   - por classe (n ≥ 20): `narrative_tense` média 91% (408); `dialogo_contextual` baixa 91% (32);
+     `languagetool:gramatica` média 60% (30). Abaixo de 20 decisões, só indicação: estrutura média
+     39% (18) e baixa 10% (10); coerência temporal média 57% (14) e alta 100% (12); pontuação
+     duplicada 92% (12); ortografia do LT 33% (12); pontuação de diálogo 78% (9); as demais com
+     1 a 7 decisões;
+   - nos alertas que o motor final emite: C com LT tem 19 pendências decididas (12 erro confirmado,
+     4 intencional, 3 aceito; 0 falso positivo) e 8 observações (3 falso positivo, 3 intencional,
+     2 erro); A com LT tem 34 de 36 pendências sem decisão;
+   - os percentuais vêm de um autor e de decisões tomadas sobre versões anteriores do motor; não são
+     garantia estatística.
+
+#### Classificação dos problemas restantes
+
+- **A — impeditivos:** nenhum demonstrado.
+- **B — limitações aceitas nesta versão:**
+  - o histórico de decisões depende de guardar o relatório (“Limpar resíduos”; solução proposta
+    acima, aguardando aprovação);
+  - memória do livro só com o último relatório; conflitos de alertas que sumiram saem no próximo
+    salvamento (0 hoje);
+  - ramo de palavra dobrada de `analysis.analyze` (só chamada direta);
+  - texto da etapa (“quatro relações”), severidade inerte em `contracts.py`, cópia antiga na
+    `.venv`;
+  - estrutura (fragmento) com 39% e 10% em menos de 20 decisões, mantida pela Política v2 por
+    decisão do autor;
+  - `languagetool:gramatica` com 60% em 30 e categorias misturadas (Política v3, separada);
+  - pontuação final ausente **sem validação** (19 decisões pendentes); não é declarada confiável;
+  - as limitações da Fase 7b (crase dativa e concordância dependentes do modelo, correlação com
+    principal impessoal, vírgula sujeito-verbo sem decisões, “--” como travessão, radical do
+    perfil de fala nos usos que só suprimem, “Lia você vem?”, “Pobre Ana! tu…”) e os problemas 2
+    e 3 da Fase 3.
+- **C — melhorias futuras:** Política v3 do LT; “--” como travessão; acentuação (1/8) e ortografia
+  sem o LT; validação da pontuação final depois da D6; textos contemporâneos anotados para
+  generalização; aspas de título na pontuação de diálogo.
+
+#### Questões separadas da estabilização (nenhuma impede o núcleo)
+
+| Questão | Onde está | Impeditivo do FONTE? |
+|---|---|---|
+| Categorias e severidades do LT | Política v3 e app | Não: o LT é opcional; classe, severidade e destino atuais estão documentados e não mudam IDs |
+| 19 decisões de pontuação final ausente | decisões do autor no app | Não: a regra fica sem validação, como pendência |
+| Resolução de conflitos históricos | app | Não: 0 conflitos nos dados; registro cumulativo funciona |
+| Código de saída da CLI na análise parcial | CLI e app | Não: o app detecta pela `metadata.analise_parcial` do relatório, não pelo código |
+| Encerramento completo × parcial no app | app | Não: os registros já são separados; falta só a apresentação |
+
+#### Testes (09/10)
+- FONTE 503, pacotes 46, contrato Python, Coerencia 25: todos aprovados.
+- Swift: `ContractCheck`, `BookMemoryCheck`, `DeskToolsCheck`, `ClosureCheck`,
+  `FalsePositiveCheck`, `EditCheck`, `DeduplicationCheck`, `PartialAnalysisCheck`: todos aprovados.
+- `xcodebuild` Release: aprovado.
+- Comparações: 29 conjuntos e 3 textos independentes idênticos à Fase 7b; herança real reproduzida;
+  58 relatórios reais lidos; simulação do salvamento.
+- Herança e deduplicação: `BookMemoryCheck`, `DeduplicationCheck` e a herança real. Análise parcial:
+  `test_languagetool_indisponivel` (6) e `PartialAnalysisCheck`.
+- Depois da troca de versão para 1.5.0: FONTE, pacotes, contrato Python e `ContractCheck` de novo.
+- Nenhuma chamada à API.
+
+#### Versão proposta: FONTE 1.5.0 — Estabilização linguística
+- `fonte/pyproject.toml` e `fonte/fonte/__init__.py` em 1.5.0; o contrato Python confere a versão.
+- A montagem passa a rodar as 8 verificações Swift.
+- README e versão do app ficam para a release (a linha “Versão atual” descreve a versão publicada).
+- Sem tag, release ou push.
+
+**Veredicto: APTO para estabilização.** Nenhum defeito impeditivo demonstrado. A solução de
+preservação do histórico em “Limpar resíduos” é recomendada antes de usar essa limpeza, mas não
+depende do motor e espera a aprovação do autor.

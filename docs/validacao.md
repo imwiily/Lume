@@ -32,6 +32,42 @@ por alerta.
 Limites: as decisões vêm de poucos livros e de um autor; classes com menos de 20 decisões não têm
 precisão medida; o corpus é sintético e escrito junto com as regras.
 
+## FONTE 1.5.0 — estabilização linguística, validação final (09/10/2026)
+
+Registro completo: Fase 8 em `.agent/plans/fonte-estabilizacao.md`. Saídas em `build/f8/` (fora do
+Git). Motor nos fontes; nenhuma chamada à API; validação verbal reservada não consultada.
+
+- **Regressão:** 29 conjuntos (A, B, C e X com e sem o LT; 21 textos do corpus) e 3 textos
+  independentes idênticos à Fase 7b. Contra `9f0f6d8`, nenhum alerta que ficou mudou de ID ou de
+  destino; saíram só alertas de regras retiradas (105) e 1 do LT absorvido pela crase do FONTE.
+- **Pendências/observações** (sem o LT; por 10 mil palavras): A 36/6 (26,1/4,3); B 2/1 (8,0/4,0);
+  C 18/7 (57,5/22,4); X 13/11 (20,5/17,4). Nenhum impeditivo.
+- **Corpus de desenvolvimento** (mede funcionamento, não uso real): precisão das pendências 96,7%;
+  de todas as ocorrências 89,6%; alarmes falsos 17,6 por 10 mil palavras (5,0 nas pendências);
+  cobertura linguística 60/84 (regência 2/10 depois da retirada aprovada de “chegar em” e “pedir
+  para que”).
+- **Decisões reais** (650, 6 livros, 1 autor; decisões tomadas sobre versões anteriores): pendências
+  pela Política v2 85,4% (497/582); observações 18,2% (4/22). Classes medidas (n ≥ 20): tempo
+  verbal 91% (408), diálogo contextual 91% (32), gramática do LT 60% (30).
+- **Textos independentes** (193 mil palavras, grafia anterior a 1943): pendências 122,8 e observações
+  129,4 por 10 mil palavras (eram 127,2 e 180,3). Sem anotação: não medem precisão e não valem para
+  o português brasileiro contemporâneo.
+- **Compatibilidade:** os 58 relatórios, 31 arquivos de decisões e 3 memórias de livro reais abrem
+  com o app atual; herança real A 7, C 11 (13 com o LT), perdendo só decisões de regras retiradas;
+  `medir_precisao.py` continua contando essas decisões.
+- **Testes:** FONTE 503, pacotes 46, contrato Python, Coerencia 25, 8 verificações Swift,
+  `xcodebuild` Release.
+
+Limitações aceitas nesta versão:
+- o histórico de decisões precisa do relatório que as gerou; “Limpar resíduos” apaga relatórios
+  antigos e, com eles, a medição das decisões de alertas que não existem mais (solução proposta no
+  plano, ainda não aprovada);
+- estrutura (fragmento) abaixo de 50% em menos de 20 decisões; gramática do LT com categorias
+  misturadas (Política v3, separada);
+- pontuação final ausente sem validação até as 19 decisões pendentes;
+- crase dativa e concordância dependem do modelo; “--” como travessão não é reconhecido;
+  correlação de tempos com principal impessoal; vírgula sujeito-verbo sem decisões.
+
 ## Dois planos na narração, tratamento tu/você e explicações simples (07/10/2026)
 
 Plano: [`.agent/plans/dois-planos-e-tratamento.md`](../.agent/plans/dois-planos-e-tratamento.md).
