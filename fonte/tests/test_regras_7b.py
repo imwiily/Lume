@@ -102,3 +102,36 @@ class CraseDativa(unittest.TestCase):
 
     def test_prepositional_pronoun_is_not_the_direct_object(self):
         self.assertEqual(self.crases("Ele levou consigo a lanterna."), [])
+
+
+class VerbosDeFala(unittest.TestCase):
+    """Formas que faltavam ao perfil do inciso (ênclise, mais-que-perfeito) e o radical que não vale
+    contra o lema de outro verbo onde o verbo de fala é condição do alerta."""
+
+    @classmethod
+    def setUpClass(cls):
+        import spacy
+        cls.nlp = spacy.load("pt_core_news_sm", disable=["ner"])
+
+    def rodar(self, texto, *regras, modo="ambas"):
+        from fonte.pipeline import run
+        from fonte.settings import validate
+        ligadas = {r: r in regras for r in validate({})["rules"]}
+        achados, _, _ = run(blocos(texto), lambda: self.nlp, settings=validate({"rules": ligadas}), tense="passado",
+                            mode=modo)
+        return [(f["category"], f["excerpt"]) for f in achados]
+
+    def test_enclitic_and_pluperfect_speech_tags_are_not_actions(self):
+        for texto in ["— Vamos embora — disse-me ela.", "— Vamos embora — dissera ela.", "— Vamos embora — falara ela."]:
+            with self.subTest(texto=texto):
+                self.assertEqual(self.rodar(texto, "dialogo_contextual"), [])
+        self.assertTrue(self.rodar("— Vamos embora — abriu a porta.", "dialogo_contextual"))
+
+    def test_quoted_speech_with_enclitic_tag(self):
+        self.assertEqual(self.rodar("“Volto amanhã”, disse-me ela à saída.", "pontuacao_dialogo"), [])
+
+    def test_que_after_ellipsis_needs_a_verb_that_asks_for_que(self):
+        self.assertEqual(self.rodar("Ela prometeu… Que voltaria antes do inverno.", "frase_cortada"),
+                         [("Maiúscula após reticências", "Que")])
+        # “sentou” é de sentar; o radical de “sentir” não vale contra o lema do modelo.
+        self.assertEqual(self.rodar("Ela sentou… Que a noite passasse logo, pensava.", "frase_cortada"), [])

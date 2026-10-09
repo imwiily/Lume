@@ -11,7 +11,7 @@ from dataclasses import asdict
 import re
 
 from .analysis import explicar, finding, lista_ou_rotulo
-from .elocucao import pede_completiva, verbo_de_fala
+from .elocucao import pede_completiva_confirmada, verbo_de_fala
 from .lexicon import FINITE, NONVERB, flags
 from .verbo import certamente_verbo, conjugado_pelo_modelo, ha_forma_verbal, so_verbo_no_lexico
 from .tempo import TERMINACAO_CONDICIONAL, imperfeito_do_subjuntivo
@@ -654,10 +654,11 @@ def truncated(block, doc, emit):
             emit("frase_cortada", "Pontuação final ausente", last.start(), last.end(), "probable_error", .8,
                  explicar("O parágrafo termina sem ponto.", "pontuação final"), last[0] + ".")
     for match in re.finditer(r"(?:…|\.\.\.)\s+(Que)\b", text):
-        before = re.findall(r"[^\W\d_]+", text[:match.start()])
+        before = list(re.finditer(r"[^\W\d_]+(?:-[^\W\d_]+)*", text[:match.start()]))
         rest = re.split(r"[.!?…]", text[match.start(1):], maxsplit=1)[0]
         clause = doc.char_span(match.start(1), match.start(1) + len(rest), alignment_mode="contract")
-        if (before and pede_completiva(before[-1]) and clause is not None
+        verb = doc.char_span(before[-1].start(), before[-1].end(), alignment_mode="expand") if before else None
+        if (verb is not None and pede_completiva_confirmada(verb[0]) and clause is not None
                 and any(certamente_verbo(t) for t in clause if t.i != clause.start)):
             emit("frase_cortada", "Maiúscula após reticências", match.start(1), match.end(1), "editorial_attention", .65,
                  explicar("As reticências fazem uma pausa, mas a frase continua: o ‘que’ completa o que veio antes (‘eu "

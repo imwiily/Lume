@@ -72,22 +72,35 @@ ATESTA = frozenset({"confirmar", "afirmar", "garantir", "dizer", "atestar"})
 TERMINACOES = re.compile(r"(?:o|a|as|amos|ais|am|ei|aste|ou|astes|aram|ava|avas|ávamos|avam|e|es|emos|em|i|este|eu|"
                          r"estes|eram|ia|ias|íamos|iam|iu|imos|iram|ará|arão|erá|erão|irá|irão|ando|endo|indo)(?:-\w+)?")
 
-_IRREGULARES = frozenset(f for formas in INCISO_IRREGULARES.values() for f in formas)
+# Mais-que-perfeito (Fase 7b): o das formas irregulares, e as terminações que o radical dos
+# regulares não alcançava (“dissera”, “falara”, “pedira”).
+INCISO_IRREGULARES_MAIS_QUE_PERFEITO = {"dizer": ("dissera", "disseras", "disséramos", "dissereis")}
+TERMINACOES_MAIS_QUE_PERFEITO = re.compile(r"(?:ara|aras|áramos|áreis|era|eras|êramos|éramos|êreis|éreis|ira|iras|"
+                                           r"íramos|íreis)(?:-\w+)?")
+# Pronome átono ligado por hífen (“disse-me”, “dissera-lhe”).
+ENCLISE = re.compile(r"-(?:me|te|se|nos|vos|lhe|lhes|o|a|os|as|lo|la|los|las)$")
+
+_IRREGULARES = frozenset(f for formas in (*INCISO_IRREGULARES.values(), *INCISO_IRREGULARES_MAIS_QUE_PERFEITO.values())
+                         for f in formas)
 
 
 def pelo_radical(forma, verbos):
-    """A forma é de algum dos verbos, pelo radical (três letras ou mais) + terminação verbal."""
+    """A forma é de algum dos verbos, pelo radical (três letras ou mais) + terminação verbal, inclusive
+    a do mais-que-perfeito."""
     forma = forma.casefold()
     for verbo in verbos:
         radical = verbo[:-2]
-        if len(radical) >= 3 and forma.startswith(radical) and TERMINACOES.fullmatch(forma[len(radical):]):
+        if len(radical) >= 3 and forma.startswith(radical) and (
+                TERMINACOES.fullmatch(forma[len(radical):]) or TERMINACOES_MAIS_QUE_PERFEITO.fullmatch(forma[len(radical):])):
             return True
     return False
 
 
 def forma_de_fala(forma):
-    """Verbo do inciso só pela forma escrita (sem análise sintática)."""
-    return forma.casefold() in _IRREGULARES or pelo_radical(forma, INCISO)
+    """Verbo do inciso só pela forma escrita (sem análise sintática). A forma irregular vale também
+    com pronome enclítico (“disse-me”)."""
+    forma = forma.casefold()
+    return forma in _IRREGULARES or ENCLISE.sub("", forma) in _IRREGULARES or pelo_radical(forma, INCISO)
 
 
 def verbo_de_fala(token):
@@ -98,3 +111,21 @@ def verbo_de_fala(token):
 def pede_completiva(forma):
     """Verbo que continua com “que” (os do inciso e os de `PEDEM_QUE`), pela forma escrita."""
     return forma_de_fala(forma) or pelo_radical(forma, PEDEM_QUE)
+
+
+def _lema_de_outro_verbo(token, perfil):
+    """O modelo deu ao token o lema de um verbo fora do perfil (“sentou” → sentar). O radical recupera
+    o lema que o modelo errou, mas não contraria um lema de outro verbo."""
+    lema = token.lemma_.casefold()
+    return token.pos_ in {"VERB", "AUX"} and lema.endswith(("ar", "er", "ir", "or")) and lema not in perfil
+
+
+def verbo_de_fala_confirmado(token):
+    """`verbo_de_fala`, sem aceitar pelo radical o que o modelo lê como outro verbo. Para os usos em
+    que o verbo de fala é condição do alerta; quem só suprime alertas usa `verbo_de_fala`."""
+    return verbo_de_fala(token) and not _lema_de_outro_verbo(token, INCISO)
+
+
+def pede_completiva_confirmada(token):
+    """`pede_completiva` com a mesma conferência de `verbo_de_fala_confirmado`."""
+    return pede_completiva(token.text) and not _lema_de_outro_verbo(token, INCISO | set(PEDEM_QUE))

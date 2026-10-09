@@ -85,11 +85,12 @@ class PorConsumidor(unittest.TestCase):
 
     def test_speech_tag_by_written_form(self):
         # Diálogo contextual (verbo logo após o travessão) e crase do LanguageTool: só a forma escrita.
-        for forma in ["disse", "Perguntei", "respondemos", "murmurava", "pensou", "pediu", "dirá", "dizendo"]:
+        # “dissera”, “falara” e “disse-me”: mais-que-perfeito e ênclise, reconhecidos desde a Fase 7b.
+        for forma in ["disse", "Perguntei", "respondemos", "murmurava", "pensou", "pediu", "dirá", "dizendo",
+                      "dissera", "falara", "disse-me", "dissera-lhe"]:
             with self.subTest(forma=forma):
                 self.assertTrue(forma_de_fala(forma))
-        # “dissera”: limitação atual (forma irregular fora da lista e terminação “-era” fora das terminações).
-        for forma in ["ouviu", "viu", "achou", "sentiu", "abriu", "leu", "dissera"]:
+        for forma in ["ouviu", "viu", "achou", "sentiu", "abriu", "leu", "dissesse"]:
             with self.subTest(forma=forma):
                 self.assertFalse(forma_de_fala(forma))
 
@@ -136,7 +137,8 @@ class FonteUnica(unittest.TestCase):
     def test_consumers_use_the_core(self):
         self.assertIs(analysis.verbo_de_fala, elocucao.verbo_de_fala)
         self.assertIs(grammar.verbo_de_fala, elocucao.verbo_de_fala)
-        self.assertIs(grammar.pede_completiva, elocucao.pede_completiva)
+        self.assertIs(grammar.pede_completiva_confirmada, elocucao.pede_completiva_confirmada)
+        self.assertIs(context.verbo_de_fala_confirmado, elocucao.verbo_de_fala_confirmado)
         self.assertIs(context.verbo_de_fala, elocucao.verbo_de_fala)
         self.assertIs(context.forma_de_fala, elocucao.forma_de_fala)
         self.assertIs(languagetool.forma_de_fala, elocucao.forma_de_fala)

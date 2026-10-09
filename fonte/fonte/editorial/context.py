@@ -5,7 +5,7 @@ sustentam referências; parágrafos seguintes só ajudam a revisão humana.
 """
 import re
 from ..analysis import explicar
-from ..elocucao import forma_de_fala, verbo_de_fala
+from ..elocucao import forma_de_fala, verbo_de_fala, verbo_de_fala_confirmado
 from ..verbo import model_finite
 from ..segments import TRAVESSOES, classify, spans
 from .common import alert, evidence
@@ -105,7 +105,9 @@ def analyze(blocks, nlp, settings, *, docs=None):
                     emit('dialogo_contextual', 'Ação narrativa após fala', start + first.idx,
                          start + verb.idx + len(verb.text),
                          action_reason(block.text[:start - 1].rstrip(), fragment.lstrip()))
-                elif verbo_de_fala(verb) and end < len(block.text) and block.text[end] in TRAVESSOES:
+                # A retomada é alerta com o verbo de fala como condição: o radical não vale contra o
+                # lema que o modelo deu a outro verbo.
+                elif verbo_de_fala_confirmado(verb) and end < len(block.text) and block.text[end] in TRAVESSOES:
                     continuation = block.text[end + 1:].lstrip()
                     if (continuation and continuation[0].isupper()
                             and not fragment.rstrip().endswith(('.', '!', '?', '…', ':'))):
