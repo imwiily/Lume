@@ -43,6 +43,9 @@ QUANTIFIERS = {"pouco", "muito", "bastante", "algum", "alguns", "algumas", "vár
 DATIVE = set("entregar dar contar dizer pedir mostrar oferecer enviar mandar explicar perguntar responder "
              "devolver emprestar levar trazer apresentar ensinar prometer agradecer comunicar revelar "
              "confessar escrever vender pagar doar sugerir recomendar relatar anunciar".split())
+# Destinatário expresso antes do “a”: contração com o artigo ou pronome átono dativo.
+DESTINATARIO = {"ao", "aos", "às", "lhe", "lhes", "me", "te", "nos", "vos"}
+PRONOMES_PREPOSICIONADOS = {"comigo", "contigo", "consigo", "conosco", "convosco"}
 COMMON_GENDER = {"chefe", "jovem", "colega", "intérprete", "rival", "mártir", "cliente", "hóspede"}
 LOCUTIONS = re.compile(r"\b(em direção|devido|graças|junto|frente|em frente|em relação|rumo|quanto|referente|"
                        r"em resposta|em homenagem|semelhante|igual|contrári[oa]|próxim[oa]|obediente|fiel)"
@@ -158,8 +161,15 @@ def crase(block, doc, emit):
             if verb is None or verb.is_punct or verb_lemma(verb) not in DATIVE:
                 continue
             between = doc[verb.i + 1:token.i]
-            # Objeto pode ser adjetivo substantivado: “entregou o maior a tia”.
-            nominal = any(t.pos_ in {"NOUN", "PRON"} or (t.pos_ in {"ADJ", "NUM"} and t.i > 0 and doc[t.i - 1].pos_ == "DET")
+            # Destinatário já expresso (“contou ao filho a história”, “pagou-lhe a quantia”): o ‘a’ seguinte
+            # é artigo do objeto direto, não a preposição do destinatário.
+            if (any(t.lower_ in DESTINATARIO for t in between)
+                    or re.search(r"-(?:lhes?|me|te|nos|vos)\b", text[verb.idx:token.idx], re.I)):
+                continue
+            # Objeto pode ser adjetivo substantivado: “entregou o maior a tia”. Pronome preposicionado
+            # (“trazia comigo a ideia”) não é objeto direto.
+            nominal = any((t.pos_ in {"NOUN", "PRON"} and t.lower_ not in PRONOMES_PREPOSICIONADOS)
+                          or (t.pos_ in {"ADJ", "NUM"} and t.i > 0 and doc[t.i - 1].pos_ == "DET")
                           for t in between)
             if not nominal or any(
                     t.lower_ in {"à", "para", "e", "ou"} or (t.lower_ == "a" and t.pos_ == "ADP")

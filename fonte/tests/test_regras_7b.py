@@ -72,3 +72,33 @@ class FraseCortadaReticencias(unittest.TestCase):
 
     def test_capital_que_after_three_dots_is_still_checked(self):
         self.assertEqual(self.cortadas("Eu prometi... Que voltaria antes do inverno."), [("Maiúscula após reticências", "Que")])
+
+
+class CraseDativa(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        import spacy
+        cls.nlp = spacy.load("pt_core_news_sm", disable=["ner"])
+
+    def crases(self, texto):
+        from fonte.grammar import analyze
+        from fonte.settings import validate
+        regras = {r: False for r in validate({})["rules"]}
+        regras["crase"] = True
+        return [f["text"][f["start"]:f["end"]] for f in analyze(blocos(texto), self.nlp, validate({"rules": regras}))
+                if f["category"] == "Crase ausente"]
+
+    def test_feminine_recipient_after_direct_object_is_still_flagged(self):
+        for texto, esperado in [("Ela entregou o pacote a vizinha.", "a vizinha"),
+                                ("O rapaz mostrou o mapa a professora.", "a professora")]:
+            with self.subTest(texto=texto):
+                self.assertEqual(self.crases(texto), [esperado])
+
+    def test_recipient_already_expressed_means_direct_object(self):
+        for texto in ["Ela contou ao neto a lenda do rio.", "O pai mostrou aos filhos a fazenda inteira.",
+                      "Ele entregou-lhe a encomenda.", "Mostrei-lhes a cidade antiga."]:
+            with self.subTest(texto=texto):
+                self.assertEqual(self.crases(texto), [])
+
+    def test_prepositional_pronoun_is_not_the_direct_object(self):
+        self.assertEqual(self.crases("Ele levou consigo a lanterna."), [])
