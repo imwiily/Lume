@@ -36,9 +36,9 @@ precisão medida; o corpus é sintético e escrito junto com as regras.
 
 - O motor é o da tag `fonte-v1.5.0` (`f097e70`): nada em `fonte/`, `coerencia/` ou `packaging/`
   mudou desde então. Política editorial v2. Nenhuma chamada à API.
-- **Montagem** `build/20261009-152103-9F4FD48C/` (substitui a `build/20261009-145316-652158D7/`, que
-  declarava o macOS da montagem e levava a pasta do Coerencia):
-  - regressões aprovadas (503 do analisador, 50 dos pacotes); fora da montagem, contrato Python e
+- **Montagem definitiva** `build/20261009-165905-538CDAAB/`, a partir de `30e0a0a`, com as travas de
+  conteúdo (substitui as montagens anteriores da 1.7):
+  - regressões aprovadas (503 do analisador, 53 dos pacotes); fora da montagem, contrato Python e
     25 do Coerencia;
   - `xcodebuild` Release e as oito verificações Swift aprovados.
 - **`release.json`:**
@@ -46,7 +46,14 @@ precisão medida; o corpus é sintético e escrito junto com as regras.
   - corretor gramatical e Coerência disponíveis;
   - macOS mínimo 27.0 (app, manifesto e `release.json`);
   - assinatura ad hoc;
-  - SHA-256 do ZIP `329adde4041236a1868e0b5645908b75e3d68230de356225ec8cea283fd81d38`.
+  - SHA-256 do ZIP `5faa41a7d5273c3ac3c59880076226b45b67a1837c412693f4b814f5d2fb72b1`.
+- **Privacidade, conferida de novo no app definitivo:**
+  - `private_files` no app inteiro: nada;
+  - `own_packages_only`: só os módulos de `fonte/fonte` e `coerencia/coerencia`;
+  - nenhum `pyvenv.cfg` ou `.venv`, nenhuma chave de API;
+  - nenhuma sequência de 6 palavras dos manuscritos de referência nos 3.731 arquivos de texto, fora
+    duas expressões comuns nas regras do próprio LanguageTool;
+  - o ZIP é idêntico ao app, e a assinatura de ambos está íntegra.
 - **Motor embutido:**
   - produz os mesmos alertas (ID, sugestão, destino e mensagem) que os fontes nos três exemplos;
   - Coerencia 1.2.0 incluído só com os 7 módulos do pacote; a estimativa da Coerência com IA roda
