@@ -31,7 +31,8 @@ Restrições:
 - [x] Fase 6b — LanguageTool indisponível: análise parcial (08/10; commit `c5339e1`).
 - [x] Fase 7a — parecer definitivo das regras e plano de implementação (08/10). Aguarda o autor;
   nenhuma regra alterada.
-- [ ] Fase 7b — implementação aprovada.
+- [x] Fase 7a — commit `3218e49`.
+- [x] Fase 7b — implementação (08–09/10; commits `5f40df7` a `061fb6f`). Aguarda o autor.
 - [ ] Fases 7–8.
 - [ ] Pendente, fase com mudança de comportamento: `imperfeito` (problema 1 da Fase 3).
 
@@ -1846,3 +1847,105 @@ passa a ser considerada saudável por ter sido restringida.
 - `virgula_sujeito_verbo`;
 - `correlacao_tempos`;
 - `pronome_apos_corte`.
+
+### Fase 7b — implementação (08–09/10/2026)
+
+**Método:**
+- **Um commit por grupo.** Cada um foi gerado numa cópia congelada (`git worktree`): 29 conjuntos
+  e os 3 textos independentes de desenvolvimento, comparados com o grupo anterior
+  (`build/f7b/<grupo>`).
+- **Linha de base `build/f7b/base`:** idêntica à Fase 6b.
+- **Herança real** conferida com o código Swift atual.
+- **Testes:** os novos testes de cada grupo falham no código anterior.
+
+| # | Commit | Mudança | 29 conjuntos | Textos independentes |
+|---|---|---|---|---|
+| 1 | `5f40df7` | Palavra dobrada: ênclise + artigo/preposição homógrafos, “se” conjunção + “se” pronome com verbo, abreviatura | iguais | −19 alarmes |
+| 2 | `f1695ca` | `coordinated_past_present` desativada (`temporal.DESATIVADAS`; a implementação fica) | sem mudança de alertas; o metadado `temporal_relations` perde a relação | −61 pendências da relação; nos mesmos verbos volta o tempo verbal genérico (+20 pendências, +41 observações) |
+| 3 | `a8bed43` | “...” igual a “…” na frase cortada | iguais | −3 |
+| 4 | `649ec41` | Crase dativa: destinatário já expresso; pronome preposicionado | iguais | −1 |
+| 5 | `5303db5` | `modo_do_imperfeito`: indicativo, condicional, subjuntivo, ambíguo, pelo léxico e pelo modelo | iguais | iguais |
+| 6 | `cee60b3` | Verbos de fala: ênclise (“disse-me”), mais-que-perfeito (“dissera”); radical conferido com o lema do modelo onde o verbo de fala é condição do alerta | iguais | −1 |
+| 7 | `d74cb3b` | Pontuação de diálogo não roda com aspas como narração | iguais | iguais |
+| 8 | `a85f5d8` | Retiradas: repetição próxima, gerundismo, prazos, referentes literais; regências coloquiais | ver abaixo | −1.024 observações de repetição; −1 de regência |
+| 9 | `477eeb3` | Frágeis: vocativo, maiúscula depois de interjeição, “que, não” conclusivo, cor composta, ênclise na grafia oscilante | iguais | −16 |
+| 10 | `061fb6f` | Mensagens de concordância e crase dativa com “parece”; `medir_precisao.py --languagetool` | ver abaixo | — |
+
+**Manuscritos reais, com o LT, antes → depois** (pendências/observações):
+- A 37/26 → 36/6;
+- B 4/14 → 4/2;
+- C 19/12 → 19/8;
+- X 17/33 → 17/18.
+
+Na fila sai uma única pendência: a “chegar em” de A. As outras saídas são observações: 50 de
+repetição próxima e 1 de gerundismo. O texto mudou nos 29 conjuntos em três pontos: os avisos da
+etapa editorial (descreviam regras retiradas), o metadado `temporal_relations` e as mensagens do
+grupo 10.
+
+**Textos independentes, antes → depois:** 2.457/3.483 → 2.373/2.500 (pendências/observações). A
+maior parte do volume que resta vem dos confusores da Fase 7a (grafia antiga, “--”, narrador
+oitocentista).
+
+**Corpus de desenvolvimento:**
+- precisão das pendências 97% → 97%;
+- alarmes falsos de 22,6 → 17,6 por 10 mil palavras;
+- precisão de todas as ocorrências 88% → 90%;
+- cobertura de regência 7/10 → 2/10: os 5 casos anotados eram “chegar em” e “pedir para que”, que
+  deixaram de ser tratados como erro por decisão aprovada. As anotações não foram alteradas; a
+  perda fica registrada aqui.
+
+**IDs e decisões:**
+- **IDs:** nenhum alerta que continua mudou de ID.
+- **Herança real:** A passa de 28 para 7; C, de 15 e 17 para 11 e 13.
+  - As 25 decisões que deixam de ser herdadas (21 em A, 4 em C) são todas de alertas retirados
+    (repetição próxima 23, “chegar em” 1, gerundismo 1), todas “Estilo do autor”.
+  - As demais são idênticas.
+  - Os arquivos de decisões por relatório (`Decisoes/<sha>.json`) continuam intactos e entram em
+    `medir_precisao.py`.
+
+**Testes alterados, com motivo:**
+- Saíram os testes que exercitavam regras retiradas (prazos, adiamento, repetição próxima,
+  referentes, gerundismo, “chegar em”, “pedir para que”). No lugar, testes de que as chaves são
+  aceitas e não produzem alertas.
+- Os testes que usavam a repetição próxima como exemplo de outra coisa (aspas, itálico,
+  travessões, ordem das etapas, identidade por evidência, janela de contexto, IDs antigos) passaram
+  a usar a palavra dobrada, a frase repetida ou o diálogo contextual. `test_legacy_ids_preserved`
+  passou a exigir que haja alerta: sem isso, passaria por vacuidade.
+- `LimitacoesRegistradas` de `test_tempo` (imperfeito) virou teste da correção.
+- “dissera” mudou de negativo para positivo em `test_elocucao`.
+- Os testes da relação desativada usam `desativadas=()` para continuar caracterizando a
+  implementação.
+
+**Descartados, com justificativa:**
+- **Rebaixar a confiança do fragmento de estrutura:** não feito (decisão do autor). Fica a
+  limitação de 39% e 10%, com a Política v2 como está.
+- **Aspas de título** na pontuação de diálogo: não há critério estrutural seguro; a evidência é só
+  dos textos independentes.
+- **Pontuação final ausente:** aguarda a D6.
+- **“ao invés de”:** sem mudança, pendente de evidência.
+- **Listas de há/a e mas/mais nos núcleos:** risco sem alarme falso demonstrado em texto atual.
+- **`absorvidos` na relação temporal:** o alerta genérico absorvido nunca chegou a um relatório;
+  não há decisão a preservar.
+- **Ramo de palavra dobrada de `analysis.analyze`** (só na chamada direta): não recebeu as
+  distinções do grupo 1. Fica para a auditoria da Fase 8.
+
+**Limitações que ficam:**
+- crase dativa com o modelo errando o objeto;
+- concordância verbal dependente do sujeito escolhido pelo modelo;
+- correlação de tempos com principal impessoal;
+- vírgula sujeito-verbo sem decisões suficientes;
+- “--” como travessão;
+- radical do perfil de fala nos usos que só suprimem (conservador);
+- nomes próprios homógrafos de verbo em pergunta com vocativo (“Lia você vem?”), que agora não
+  são apontados;
+- interjeição seguida de vocativo exclamativo (“Pobre Ana! tu…”), ainda apontada.
+
+**Critérios restantes para a Fase 8:**
+- auditoria cruzada das exceções e da duplicação que sobrou (inclusive o ramo de palavra dobrada
+  de `analysis`);
+- medição final nas quatro categorias de evidência;
+- decisão separada sobre classe e severidade do LT (Política v3);
+- D6 (pontuação final ausente);
+- as pendências funcionais da Fase 7a (resolução de conflitos, código de saída parcial,
+  encerramento completo × parcial);
+- versão do baseline.

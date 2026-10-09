@@ -70,8 +70,6 @@ class MedicaoTests(unittest.TestCase):
         self.assertNotIn('Trecho', conteudo)
         self.assertNotIn('Secreto', conteudo)
 
-
-class MedicaoLanguageToolTests(MedicaoTests):
     def test_languagetool_decisions_by_rule_and_original_category(self):
         texto = 'Ele viu a jenela,, e a porta.'
         lt = alerta('t', texto, 15, 17, regra='languagetool', confianca='média', fonte='LanguageTool local · DOUBLE_PUNCTUATION')

@@ -85,6 +85,31 @@ do Lume passa a ser interromper o editor só com boa razão e deixar o manuscrit
 - **Regra `tratamento` retirada** por decisão do autor (nasceu de um caso isolado). A chave
   continua aceita nas configurações salvas, sem efeito.
 
+Estabilização do FONTE, Fase 7b: correção das fontes de alarme falso demonstradas e retirada de
+regras de estilo, registro e exemplo isolado.
+- **Restrições por classe linguística:**
+  - palavra dobrada (ênclise + homógrafo, “se se” com verbo, abreviatura);
+  - crase dativa (destinatário já expresso);
+  - frase cortada (“...” como “…”);
+  - vocativo, maiúscula depois de interjeição, “que, não” conclusivo, cor composta e verbo com
+    ênclise na grafia oscilante.
+- **Correções de classificação:**
+  - imperfeito separado do condicional e do subjuntivo pelo léxico;
+  - verbos de fala com ênclise e no mais-que-perfeito;
+  - o radical não contraria o lema de outro verbo onde o verbo de fala é condição do alerta;
+  - aspas como narração não passam pela pontuação de diálogo.
+- **Desativada:** a relação `coordinated_past_present` (2 acertos em 7 decisões). A implementação
+  fica.
+- **Retiradas** (as chaves continuam aceitas nas configurações antigas):
+  - repetição próxima, gerundismo, “chegar em” e “pedir para que”;
+  - prazos de uma cena e referentes literais.
+- **Mensagens:** concordância e crase dativa dizem “parece”.
+- **Medição:** `scripts/medir_precisao.py --languagetool` mede o LanguageTool por regra e
+  categoria original, sem mudar nada.
+- **Manuscritos reais (pendências/observações):** A 37/26 → 36/6; B 4/14 → 4/2; C 19/12 → 19/8;
+  X 17/33 → 17/18. Nenhum alerta que ficou mudou de ID. As decisões perdidas na herança são só as
+  dos alertas retirados.
+
 Estabilização do FONTE, Fase 6b (LanguageTool indisponível): quando o corretor pedido não inicia
 ou não responde, a análise do FONTE continua, em vez de parar sem relatório.
 - **No relatório:** fica registrado como análise parcial, com a etapa, o componente e o motivo. Os
