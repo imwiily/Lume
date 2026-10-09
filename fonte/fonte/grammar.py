@@ -621,7 +621,13 @@ def truncated(block, doc, emit):
         words = [t for t in sentence if t.is_alpha]
         last = words[-1] if words else None
         closing = sentence.text.rstrip()[-1:]
-        if last is None or closing not in {".", "!", "?"} or text[last.idx + len(last.text):].lstrip()[:1] not in {".", "!", "?"}:
+        if last is None or closing not in {".", "!", "?"}:
+            continue
+        after = text[last.idx + len(last.text):].lstrip()
+        if after[:1] not in {".", "!", "?"}:
+            continue
+        # Reticências em três pontos valem o mesmo que o caractere único “…”: interrupção deliberada.
+        if after.startswith(".."):
             continue
         previous = doc[last.i - 1] if last.i > sentence.start else None
         if last.lower_ in OPEN_ENDINGS or (last.lower_ == "cada" and previous is not None

@@ -46,3 +46,29 @@ class PalavraDobrada(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class FraseCortadaReticencias(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        import spacy
+        cls.nlp = spacy.load("pt_core_news_sm", disable=["ner"])
+
+    def cortadas(self, texto):
+        from fonte.grammar import analyze
+        from fonte.settings import validate
+        regras = {r: False for r in validate({})["rules"]}
+        regras["frase_cortada"] = True
+        return [(f["category"], f["text"][f["start"]:f["end"]])
+                for f in analyze(blocos(texto), self.nlp, validate({"rules": regras}))]
+
+    def test_three_dots_are_an_ellipsis_like_the_single_character(self):
+        for texto in ["— A ponte fica perto da...", "— A ponte fica perto da…", "O barco seguiu na direção de..."]:
+            with self.subTest(texto=texto):
+                self.assertEqual(self.cortadas(texto), [])
+
+    def test_sentence_cut_before_a_full_stop_is_still_flagged(self):
+        self.assertEqual(self.cortadas("O barco seguiu na direção de. Depois parou."), [("Frase cortada", "de")])
+
+    def test_capital_que_after_three_dots_is_still_checked(self):
+        self.assertEqual(self.cortadas("Eu prometi... Que voltaria antes do inverno."), [("Maiúscula após reticências", "Que")])
