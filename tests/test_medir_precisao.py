@@ -71,6 +71,19 @@ class MedicaoTests(unittest.TestCase):
         self.assertNotIn('Secreto', conteudo)
 
 
+class MedicaoLanguageToolTests(MedicaoTests):
+    def test_languagetool_decisions_by_rule_and_original_category(self):
+        texto = 'Ele viu a jenela,, e a porta.'
+        lt = alerta('t', texto, 15, 17, regra='languagetool', confianca='média', fonte='LanguageTool local · DOUBLE_PUNCTUATION')
+        lt['languagetool'] = {'regra': 'DOUBLE_PUNCTUATION', 'categoria': 'PUNCTUATION', 'tipo': 'typographical'}
+        antigo = alerta('o', texto, 10, 16, regra=None, fonte='LanguageTool local · MORFOLOGIK_RULE_PT_BR')
+        self.relatorio('1', 'livro.pages', 'e' * 64, [lt, antigo, alerta('f', texto, 0, 3, regra='crase')],
+                       {'t': 'Erro confirmado', 'o': 'Falso positivo', 'f': 'Erro confirmado'})
+        linhas = {(l['regra'], l['categoria'], l['classe']): (l['decisoes'], l['erro']) for l in medir.medir_languagetool(self.dados)}
+        self.assertEqual(linhas, {('DOUBLE_PUNCTUATION', 'PUNCTUATION', 'languagetool:gramatica'): (1, 1),
+                                  ('MORFOLOGIK_RULE_PT_BR', 'não registrada', 'languagetool:ortografia'): (1, 0)})
+
+
 if __name__ == '__main__':
     unittest.main()
 

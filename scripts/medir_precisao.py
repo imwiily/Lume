@@ -93,6 +93,35 @@ def medir(dados, minimo=MINIMO, limiar=LIMIAR):
             'classes': classes}
 
 
+def medir_languagetool(dados):
+    """Decisões dos alertas do LanguageTool por regra e pela categoria original (campo `languagetool`,
+    gravado desde a Fase 6b; nos relatórios anteriores, “não registrada”). Só mede: não muda classes,
+    severidades, destinos nem a política. Mesma deduplicação de `medir`."""
+    unicas = {}
+    for _, relatorio, decisoes in carregar(dados):
+        livro = hashlib.sha256(str(relatorio.get('document', '')).encode()).hexdigest()[:10]
+        for f in relatorio.get('findings', []):
+            valor = decisoes.get(f.get('id'))
+            if valor not in DESFECHOS or not str(f.get('source', '')).startswith('LanguageTool'):
+                continue
+            trecho = f['text'][f['start']:f['end']]
+            chave = hashlib.sha256(json.dumps([livro, classe(f), f['text'], trecho, f['start']],
+                                              ensure_ascii=False).encode()).hexdigest()
+            original = f.get('languagetool') or {}
+            unicas[chave] = (f['source'].rsplit(' · ', 1)[-1], original.get('categoria') or 'não registrada',
+                             original.get('tipo') or 'não registrado', classe(f), DESFECHOS[valor])
+    grupos = defaultdict(Counter)
+    for regra, categoria, tipo, nome, valor in unicas.values():
+        grupos[(regra, categoria, tipo, nome)][valor] += 1
+    linhas = []
+    for (regra, categoria, tipo, nome), conta in sorted(grupos.items(), key=lambda kv: -sum(kv[1].values())):
+        n = sum(conta.values())
+        linhas.append({'regra': regra, 'categoria': categoria, 'tipo': tipo, 'classe': nome, 'decisoes': n,
+                       'precisao': round(conta['erro'] / n, 3),
+                       **{k: conta[k] for k in ('erro', 'falso_positivo', 'estilo', 'intencional', 'aceito')}})
+    return linhas
+
+
 def tabela(resultado):
     linhas = [f"Decisões únicas: {resultado['decisoes_unicas']} em {len(resultado['livros'])} livros. "
               f"Precisão total (erro real ÷ decididas): "
@@ -113,6 +142,8 @@ def main(argv=None):
     parser.add_argument('--dados', type=Path, default=PADRAO, help='Pasta de dados do Lume (FONTE)')
     parser.add_argument('--saida', type=Path, required=True, help='Pasta nova para resultados')
     parser.add_argument('--minimo', type=int, default=MINIMO)
+    parser.add_argument('--languagetool', action='store_true',
+                        help='Também grava as decisões do LanguageTool por regra e categoria original')
     args = parser.parse_args(argv)
     if args.saida.exists():
         raise SystemExit(f'A pasta de saída já existe: {args.saida}')
@@ -121,6 +152,13 @@ def main(argv=None):
     (args.saida / 'precisao.json').write_text(json.dumps(resultado, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
     (args.saida / 'resumo.md').write_text(tabela(resultado) + '\n', encoding='utf-8')
     print(tabela(resultado))
+    if args.languagetool:
+        linhas = medir_languagetool(args.dados)
+        (args.saida / 'languagetool.json').write_text(json.dumps(linhas, ensure_ascii=False, indent=2) + '\n',
+                                                       encoding='utf-8')
+        print('\n| Regra do LanguageTool | Categoria | Tipo | Classe | Decisões | Erro real |\n| --- | --- | --- | --- | ---: | ---: |')
+        for l in linhas:
+            print(f"| {l['regra']} | {l['categoria']} | {l['tipo']} | {l['classe']} | {l['decisoes']} | {l['precisao']:.0%} |")
 
 
 if __name__ == '__main__':

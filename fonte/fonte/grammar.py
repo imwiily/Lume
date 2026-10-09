@@ -174,7 +174,7 @@ def crase(block, doc, emit):
                     or t.is_punct for t in between):
                 continue
             emit("crase", "Crase ausente", token.idx, nxt.idx + len(nxt.text), "probable_error", .75,
-                 explicar(f"Aqui ‘{nxt.text}’ é quem recebe a ação de ‘{verb.text}’ (como em ‘entregou o livro à irmã’). "
+                 explicar(f"Aqui ‘{nxt.text}’ parece ser quem recebe a ação de ‘{verb.text}’ (como em ‘entregou o livro à irmã’). "
                           f"O ‘a’ que indica para quem se junta ao ‘a’ antes da palavra feminina: ‘à {nxt.text}’.",
                           "crase com objeto indireto feminino"),
                  cased(token.text, "à") + text[token.idx + 1:nxt.idx + len(nxt.text)])
@@ -378,7 +378,7 @@ def agreement(block, doc, emit):
               and verb_number == "Plur" and "3" in verb.morph.get("Person") and subject.lower_ not in COLLECTIVE
               and (partitive(subject) or any(c.dep_ == "det" and number(c) == "Sing" for c in subject.children))):
             emit("concordancia", "Concordância verbal", subject.idx, verb.idx + len(verb.text), "probable_error", .75,
-                 explicar(f"Quem faz a ação é ‘{subject.text}’, no singular, mas ‘{verb.text}’ está no plural"
+                 explicar(f"Quem faz a ação parece ser ‘{subject.text}’, no singular, mas ‘{verb.text}’ está no plural"
                           + (", talvez puxado pela palavra no plural que vem logo depois" if partitive(subject) else "")
                           + ". Confira.", "concordância verbal"))
     for token in doc:
