@@ -2,7 +2,7 @@
   "schema_version": 1,
   "document": "Manuscrito-editorial.docx",
   "sha256": "0419a211108de83e2666d2ae1b25808fb86460e92a09503c219dfc85792fe675",
-  "created": "2026-10-07T15:26:58.077859+00:00",
+  "created": "2026-10-09T17:51:42.835114+00:00",
   "metadata": {
     "tempo": "passado",
     "paragrafos": 13,
@@ -21,13 +21,20 @@
       "conditional_future",
       "simultaneous_present",
       "ambiguous_simultaneity",
-      "coordinated_past_present",
       "conditional_tense_mismatch",
       "coordinated_tense_mismatch",
       "past_present_past",
       "same_subject_narrative_shift",
       "local_narrative_tense_shift"
     ],
+    "politica_versao": 2,
+    "diagnostico": [],
+    "destinos": {
+      "pendencia": 4,
+      "informacao": 0,
+      "diagnostico": 0
+    },
+    "impeditivos": 0,
     "stages": [
       {
         "module": "linguistic",
@@ -36,7 +43,7 @@
         "finding_count": 0,
         "coverage": "partial",
         "detail": "Padrões determinísticos; pontuação e interrogação também em falas/pensamentos. LanguageTool opcional.",
-        "duration_ms": 3
+        "duration_ms": 6
       },
       {
         "module": "morphosyntactic",
@@ -44,25 +51,25 @@
         "state": "completed",
         "finding_count": 2,
         "coverage": "partial",
-        "detail": "Tempo predominante, estrutura, quatro relações temporais locais, acentuação verbal contextual, crase, homófonos, concordância, regência e vírgula entre sujeito e verbo. Cobertura parcial; homógrafos permanecem dúvidas.",
-        "duration_ms": 711
+        "detail": "Tempo predominante, estrutura, quatro relações temporais locais, acentuação verbal contextual, crase, homófonos, concordância, regência, vírgula entre sujeito e verbo, correlação de tempos, frase cortada e locuções. Cobertura parcial; homógrafos permanecem dúvidas.",
+        "duration_ms": 1144
       },
       {
         "module": "editorial",
         "title": "Contexto curto",
         "state": "completed",
-        "finding_count": 3,
+        "finding_count": 1,
         "coverage": "partial",
-        "detail": "Diálogo, repetições, gerundismo e referências em janelas curtas.",
-        "duration_ms": 16
+        "detail": "Diálogo, frases repetidas e pronomes perto de cortes, em janelas curtas.",
+        "duration_ms": 19
       },
       {
         "module": "global_coherence",
         "title": "Coerência global",
         "state": "completed",
-        "finding_count": 3,
+        "finding_count": 1,
         "coverage": "partial",
-        "detail": "Variações de nomes e prazos; contradições narrativas com a Coerência com IA, quando ligada. Cobertura parcial.",
+        "detail": "Variações de nomes; contradições narrativas com a Coerência com IA, quando ligada. Cobertura parcial.",
         "duration_ms": 0
       },
       {
@@ -174,406 +181,17 @@
     ],
     "languagetool": false,
     "languagetool_origem": null,
-    "versao_fonte": "1.4.0"
+    "versao_fonte": "1.5.0"
   },
   "warnings": [
     "Escopo: corpo do documento e tabelas. Cabeçalhos, rodapés, notas, comentários, caixas de texto e imagens não são analisados. A localização usa parágrafos, não páginas.",
     "Revisão linguística sem o corretor gramatical local (LanguageTool): ortografia geral e boa parte da concordância não foram verificadas. As regras do FONTE cobrem apenas classes específicas.",
-    "Análise editorial experimental: regras locais de duração/adiamento, repetições, grafias próximas de nomes e referências em construções específicas. Não detecta todas as inconsistências nem interpreta o cânone, o registro de personagem ou a causalidade do enredo.",
+    "Análise editorial experimental: frases repetidas, grafias próximas de nomes e, com o original, pronomes perto de cortes. Não detecta todas as inconsistências nem interpreta o cânone, o registro de personagem ou a causalidade do enredo.",
     "Confiança baixa/média/alta descreve a força do indício da regra, não a probabilidade de existir um erro. Mesmo alertas de confiança alta exigem leitura humana.",
-    "As regras de continuidade e referências examinam também falas e itálicos. Repetições seguem as áreas de busca configuradas.",
+    "Repetições seguem as áreas de busca configuradas.",
     "Etapa concluída significa apenas que as regras disponíveis terminaram; a cobertura continua parcial."
   ],
   "findings": [
-    {
-      "id": "506024ea46077587",
-      "category": "Possível repetição próxima",
-      "priority": "Explorar",
-      "paragraph": 2,
-      "chapter": "Capítulo um",
-      "text": "🌿 Era melhor eu me preparar melhor.",
-      "start": 6,
-      "end": 34,
-      "reason": "“melhor” aparece duas vezes em pouco espaço. Pode ser necessário ou de propósito; o alerta só mostra a repetição.\n\nNa gramática: repetição próxima.",
-      "source": "FONTE Editorial · palavra_proxima",
-      "layer": "editorial",
-      "rule": "palavra_proxima",
-      "confidence": "baixa",
-      "related": [],
-      "context": [
-        {
-          "paragraph": 1,
-          "chapter": "Capítulo um",
-          "text": "Capítulo um",
-          "start": 0,
-          "end": 11,
-          "document": "atual",
-          "type": "text_evidence",
-          "range": {
-            "start": 0,
-            "end": 11
-          },
-          "excerpt": "Capítulo um"
-        },
-        {
-          "paragraph": 2,
-          "chapter": "Capítulo um",
-          "text": "🌿 Era melhor eu me preparar melhor.",
-          "start": 0,
-          "end": 35,
-          "document": "atual",
-          "type": "text_evidence",
-          "range": {
-            "start": 12,
-            "end": 47
-          },
-          "excerpt": "🌿 Era melhor eu me preparar melhor."
-        },
-        {
-          "paragraph": 3,
-          "chapter": "Capítulo um",
-          "text": "A reunião foi adiada para amanhã.",
-          "start": 0,
-          "end": 33,
-          "document": "atual",
-          "type": "text_evidence",
-          "range": {
-            "start": 48,
-            "end": 81
-          },
-          "excerpt": "A reunião foi adiada para amanhã."
-        },
-        {
-          "paragraph": 4,
-          "chapter": "Capítulo um",
-          "text": "Ganhei mais dois dias para revisar.",
-          "start": 0,
-          "end": 35,
-          "document": "atual",
-          "type": "text_evidence",
-          "range": {
-            "start": 82,
-            "end": 117
-          },
-          "excerpt": "Ganhei mais dois dias para revisar."
-        }
-      ],
-      "module": "editorial",
-      "severity": "editorial_attention",
-      "confidence_score": 0.4,
-      "category_code": "palavra_proxima",
-      "range": {
-        "start": 18,
-        "end": 46
-      },
-      "excerpt": "melhor eu me preparar melhor",
-      "message": "“melhor” aparece duas vezes em pouco espaço. Pode ser necessário ou de propósito; o alerta só mostra a repetição.\n\nNa gramática: repetição próxima.",
-      "suggestion": null,
-      "evidence": [
-        {
-          "paragraph": 2,
-          "chapter": "Capítulo um",
-          "text": "🌿 Era melhor eu me preparar melhor.",
-          "start": 6,
-          "end": 34,
-          "document": "atual",
-          "type": "text_evidence",
-          "range": {
-            "start": 18,
-            "end": 46
-          },
-          "excerpt": "melhor eu me preparar melhor"
-        }
-      ]
-    },
-    {
-      "id": "90c24dc29aab496b",
-      "category": "Possível inconsistência temporal",
-      "priority": "Explorar",
-      "paragraph": 3,
-      "chapter": "Capítulo um",
-      "text": "A reunião foi adiada para amanhã.",
-      "start": 14,
-      "end": 32,
-      "reason": "O adiamento é para amanhã, mas logo perto se fala em mais 2 dias. Se a atividade seria hoje, o ganho é de um dia só. Confira a data original e se os trechos falam do mesmo evento.\n\nNa gramática: continuidade de prazos.",
-      "source": "FONTE Editorial · adiamento_amanha",
-      "layer": "editorial",
-      "rule": "adiamento_amanha",
-      "confidence": "média",
-      "related": [
-        {
-          "paragraph": 4,
-          "chapter": "Capítulo um",
-          "text": "Ganhei mais dois dias para revisar.",
-          "start": 7,
-          "end": 21,
-          "document": "atual",
-          "type": "text_evidence",
-          "range": {
-            "start": 89,
-            "end": 103
-          },
-          "excerpt": "mais dois dias"
-        }
-      ],
-      "context": [
-        {
-          "paragraph": 1,
-          "chapter": "Capítulo um",
-          "text": "Capítulo um",
-          "start": 0,
-          "end": 11,
-          "document": "atual",
-          "type": "text_evidence",
-          "range": {
-            "start": 0,
-            "end": 11
-          },
-          "excerpt": "Capítulo um"
-        },
-        {
-          "paragraph": 2,
-          "chapter": "Capítulo um",
-          "text": "🌿 Era melhor eu me preparar melhor.",
-          "start": 0,
-          "end": 35,
-          "document": "atual",
-          "type": "text_evidence",
-          "range": {
-            "start": 12,
-            "end": 47
-          },
-          "excerpt": "🌿 Era melhor eu me preparar melhor."
-        },
-        {
-          "paragraph": 3,
-          "chapter": "Capítulo um",
-          "text": "A reunião foi adiada para amanhã.",
-          "start": 0,
-          "end": 33,
-          "document": "atual",
-          "type": "text_evidence",
-          "range": {
-            "start": 48,
-            "end": 81
-          },
-          "excerpt": "A reunião foi adiada para amanhã."
-        },
-        {
-          "paragraph": 4,
-          "chapter": "Capítulo um",
-          "text": "Ganhei mais dois dias para revisar.",
-          "start": 0,
-          "end": 35,
-          "document": "atual",
-          "type": "text_evidence",
-          "range": {
-            "start": 82,
-            "end": 117
-          },
-          "excerpt": "Ganhei mais dois dias para revisar."
-        },
-        {
-          "paragraph": 5,
-          "chapter": "Capítulo um",
-          "text": "Você não trabalha amanhã nem nos três dias seguintes.",
-          "start": 0,
-          "end": 53,
-          "document": "atual",
-          "type": "text_evidence",
-          "range": {
-            "start": 118,
-            "end": 171
-          },
-          "excerpt": "Você não trabalha amanhã nem nos três dias seguintes."
-        }
-      ],
-      "module": "global_coherence",
-      "severity": "possible_inconsistency",
-      "confidence_score": 0.65,
-      "category_code": "adiamento_amanha",
-      "range": {
-        "start": 62,
-        "end": 80
-      },
-      "excerpt": "adiada para amanhã",
-      "message": "O adiamento é para amanhã, mas logo perto se fala em mais 2 dias. Se a atividade seria hoje, o ganho é de um dia só. Confira a data original e se os trechos falam do mesmo evento.\n\nNa gramática: continuidade de prazos.",
-      "suggestion": null,
-      "evidence": [
-        {
-          "paragraph": 3,
-          "chapter": "Capítulo um",
-          "text": "A reunião foi adiada para amanhã.",
-          "start": 14,
-          "end": 32,
-          "document": "atual",
-          "type": "text_evidence",
-          "range": {
-            "start": 62,
-            "end": 80
-          },
-          "excerpt": "adiada para amanhã"
-        },
-        {
-          "paragraph": 4,
-          "chapter": "Capítulo um",
-          "text": "Ganhei mais dois dias para revisar.",
-          "start": 7,
-          "end": 21,
-          "document": "atual",
-          "type": "text_evidence",
-          "range": {
-            "start": 89,
-            "end": 103
-          },
-          "excerpt": "mais dois dias"
-        }
-      ]
-    },
-    {
-      "id": "8c01166045e479d4",
-      "category": "Possível inconsistência temporal",
-      "priority": "Verificar",
-      "paragraph": 5,
-      "chapter": "Capítulo um",
-      "text": "Você não trabalha amanhã nem nos três dias seguintes.",
-      "start": 18,
-      "end": 52,
-      "reason": "Aqui são amanhã e mais 3 dias, 4 no total. O trecho relacionado fala em 3 dias. Confira se os dois falam da mesma pessoa, do mesmo castigo e da mesma contagem (dias corridos ou de aula).\n\nNa gramática: continuidade de prazos.",
-      "source": "FONTE Editorial · duracao_suspensao",
-      "layer": "editorial",
-      "rule": "duracao_suspensao",
-      "confidence": "alta",
-      "related": [
-        {
-          "paragraph": 6,
-          "chapter": "Capítulo um",
-          "text": "O técnico está afastado por três dias.",
-          "start": 15,
-          "end": 37,
-          "document": "atual",
-          "type": "text_evidence",
-          "range": {
-            "start": 187,
-            "end": 209
-          },
-          "excerpt": "afastado por três dias"
-        }
-      ],
-      "context": [
-        {
-          "paragraph": 3,
-          "chapter": "Capítulo um",
-          "text": "A reunião foi adiada para amanhã.",
-          "start": 0,
-          "end": 33,
-          "document": "atual",
-          "type": "text_evidence",
-          "range": {
-            "start": 48,
-            "end": 81
-          },
-          "excerpt": "A reunião foi adiada para amanhã."
-        },
-        {
-          "paragraph": 4,
-          "chapter": "Capítulo um",
-          "text": "Ganhei mais dois dias para revisar.",
-          "start": 0,
-          "end": 35,
-          "document": "atual",
-          "type": "text_evidence",
-          "range": {
-            "start": 82,
-            "end": 117
-          },
-          "excerpt": "Ganhei mais dois dias para revisar."
-        },
-        {
-          "paragraph": 5,
-          "chapter": "Capítulo um",
-          "text": "Você não trabalha amanhã nem nos três dias seguintes.",
-          "start": 0,
-          "end": 53,
-          "document": "atual",
-          "type": "text_evidence",
-          "range": {
-            "start": 118,
-            "end": 171
-          },
-          "excerpt": "Você não trabalha amanhã nem nos três dias seguintes."
-        },
-        {
-          "paragraph": 6,
-          "chapter": "Capítulo um",
-          "text": "O técnico está afastado por três dias.",
-          "start": 0,
-          "end": 38,
-          "document": "atual",
-          "type": "text_evidence",
-          "range": {
-            "start": 172,
-            "end": 210
-          },
-          "excerpt": "O técnico está afastado por três dias."
-        },
-        {
-          "paragraph": 7,
-          "chapter": "Capítulo um",
-          "text": "Lívia entrou na sala. Lívia abriu o livro.",
-          "start": 0,
-          "end": 42,
-          "document": "atual",
-          "type": "text_evidence",
-          "range": {
-            "start": 211,
-            "end": 253
-          },
-          "excerpt": "Lívia entrou na sala. Lívia abriu o livro."
-        }
-      ],
-      "module": "global_coherence",
-      "severity": "possible_inconsistency",
-      "confidence_score": 0.9,
-      "category_code": "duracao_suspensao",
-      "range": {
-        "start": 136,
-        "end": 170
-      },
-      "excerpt": "amanhã nem nos três dias seguintes",
-      "message": "Aqui são amanhã e mais 3 dias, 4 no total. O trecho relacionado fala em 3 dias. Confira se os dois falam da mesma pessoa, do mesmo castigo e da mesma contagem (dias corridos ou de aula).\n\nNa gramática: continuidade de prazos.",
-      "suggestion": null,
-      "evidence": [
-        {
-          "paragraph": 5,
-          "chapter": "Capítulo um",
-          "text": "Você não trabalha amanhã nem nos três dias seguintes.",
-          "start": 18,
-          "end": 52,
-          "document": "atual",
-          "type": "text_evidence",
-          "range": {
-            "start": 136,
-            "end": 170
-          },
-          "excerpt": "amanhã nem nos três dias seguintes"
-        },
-        {
-          "paragraph": 6,
-          "chapter": "Capítulo um",
-          "text": "O técnico está afastado por três dias.",
-          "start": 15,
-          "end": 37,
-          "document": "atual",
-          "type": "text_evidence",
-          "range": {
-            "start": 187,
-            "end": 209
-          },
-          "excerpt": "afastado por três dias"
-        }
-      ]
-    },
     {
       "id": "9b2bac5d2b7a180a",
       "category": "Tempo verbal",
@@ -585,11 +203,12 @@
       "end": 14,
       "reason": "A história está sendo contada no passado, mas ‘está’ está no presente. Pode ser um erro ou uma mudança proposital: pensamento, fala, comentário do narrador ou algo que vale sempre (‘a água ferve a cem graus’) podem usar outro tempo. Confira.\n\nNa gramática: tempo verbal da narração.",
       "source": "Regras FONTE + spaCy + PortiLexicon-UD",
+      "rule": "tempo_verbal",
+      "category_code": "narrative_tense",
       "module": "morphosyntactic",
       "severity": "editorial_attention",
       "confidence": "média",
       "confidence_score": 0.65,
-      "category_code": "narrative_tense",
       "range": {
         "start": 182,
         "end": 186
@@ -655,7 +274,10 @@
           "end": 25,
           "document": "atual"
         }
-      ]
+      ],
+      "classe": "narrative_tense",
+      "destino": "pendencia",
+      "impeditivo": false
     },
     {
       "id": "cd47e79c27b09c54",
@@ -799,7 +421,10 @@
           },
           "excerpt": "Lívya"
         }
-      ]
+      ],
+      "classe": "variacao_nome",
+      "destino": "pendencia",
+      "impeditivo": false
     },
     {
       "id": "08ce86c8d39ef1d0",
@@ -929,7 +554,10 @@
           },
           "excerpt": "Ele começou a me explicar o mapa da região."
         }
-      ]
+      ],
+      "classe": "frase_duplicada",
+      "destino": "pendencia",
+      "impeditivo": false
     },
     {
       "id": "c243ffea88db68f2",
@@ -1049,80 +677,10 @@
           "end": 37,
           "document": "atual"
         }
-      ]
-    },
-    {
-      "id": "a8da07ec0f2a2f21",
-      "category": "Possível repetição próxima",
-      "priority": "Explorar",
-      "paragraph": 13,
-      "chapter": "Capítulo dois",
-      "text": "— Era melhor eu me preparar melhor.",
-      "start": 6,
-      "end": 34,
-      "reason": "“melhor” aparece duas vezes em pouco espaço. Pode ser necessário ou de propósito; o alerta só mostra a repetição.\n\nNa gramática: repetição próxima.",
-      "source": "FONTE Editorial · palavra_proxima",
-      "layer": "editorial",
-      "rule": "palavra_proxima",
-      "confidence": "baixa",
-      "related": [],
-      "context": [
-        {
-          "paragraph": 12,
-          "chapter": "Capítulo dois",
-          "text": "Capítulo dois",
-          "start": 0,
-          "end": 13,
-          "document": "atual",
-          "type": "text_evidence",
-          "range": {
-            "start": 406,
-            "end": 419
-          },
-          "excerpt": "Capítulo dois"
-        },
-        {
-          "paragraph": 13,
-          "chapter": "Capítulo dois",
-          "text": "— Era melhor eu me preparar melhor.",
-          "start": 0,
-          "end": 35,
-          "document": "atual",
-          "type": "text_evidence",
-          "range": {
-            "start": 420,
-            "end": 455
-          },
-          "excerpt": "— Era melhor eu me preparar melhor."
-        }
       ],
-      "module": "editorial",
-      "severity": "editorial_attention",
-      "confidence_score": 0.4,
-      "category_code": "palavra_proxima",
-      "range": {
-        "start": 426,
-        "end": 454
-      },
-      "excerpt": "melhor eu me preparar melhor",
-      "message": "“melhor” aparece duas vezes em pouco espaço. Pode ser necessário ou de propósito; o alerta só mostra a repetição.\n\nNa gramática: repetição próxima.",
-      "suggestion": null,
-      "evidence": [
-        {
-          "paragraph": 13,
-          "chapter": "Capítulo dois",
-          "text": "— Era melhor eu me preparar melhor.",
-          "start": 6,
-          "end": 34,
-          "document": "atual",
-          "type": "text_evidence",
-          "range": {
-            "start": 426,
-            "end": 454
-          },
-          "excerpt": "melhor eu me preparar melhor"
-        }
-      ]
+      "classe": "coerencia_temporal",
+      "destino": "pendencia",
+      "impeditivo": false
     }
   ]
 }

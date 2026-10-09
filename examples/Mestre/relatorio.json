@@ -2,7 +2,7 @@
   "schema_version": 1,
   "document": "Manuscrito-modular.docx",
   "sha256": "f9b848540f8a6d6e480bcffa79c257379126680f79a5b71375129b553b5180c3",
-  "created": "2026-10-07T15:26:57.200071+00:00",
+  "created": "2026-10-09T17:51:07.489857+00:00",
   "metadata": {
     "tempo": "passado",
     "paragrafos": 10,
@@ -21,13 +21,20 @@
       "conditional_future",
       "simultaneous_present",
       "ambiguous_simultaneity",
-      "coordinated_past_present",
       "conditional_tense_mismatch",
       "coordinated_tense_mismatch",
       "past_present_past",
       "same_subject_narrative_shift",
       "local_narrative_tense_shift"
     ],
+    "politica_versao": 2,
+    "diagnostico": [],
+    "destinos": {
+      "pendencia": 6,
+      "informacao": 1,
+      "diagnostico": 0
+    },
+    "impeditivos": 0,
     "stages": [
       {
         "module": "linguistic",
@@ -36,7 +43,7 @@
         "finding_count": 3,
         "coverage": "partial",
         "detail": "Padrões determinísticos; pontuação e interrogação também em falas/pensamentos. LanguageTool opcional.",
-        "duration_ms": 5
+        "duration_ms": 7
       },
       {
         "module": "morphosyntactic",
@@ -44,25 +51,25 @@
         "state": "completed",
         "finding_count": 3,
         "coverage": "partial",
-        "detail": "Tempo predominante, estrutura, quatro relações temporais locais, acentuação verbal contextual, crase, homófonos, concordância, regência e vírgula entre sujeito e verbo. Cobertura parcial; homógrafos permanecem dúvidas.",
-        "duration_ms": 900
+        "detail": "Tempo predominante, estrutura, quatro relações temporais locais, acentuação verbal contextual, crase, homófonos, concordância, regência, vírgula entre sujeito e verbo, correlação de tempos, frase cortada e locuções. Cobertura parcial; homógrafos permanecem dúvidas.",
+        "duration_ms": 992
       },
       {
         "module": "editorial",
         "title": "Contexto curto",
         "state": "completed",
-        "finding_count": 3,
+        "finding_count": 0,
         "coverage": "partial",
-        "detail": "Diálogo, repetições, gerundismo e referências em janelas curtas.",
-        "duration_ms": 15
+        "detail": "Diálogo, frases repetidas e pronomes perto de cortes, em janelas curtas.",
+        "duration_ms": 24
       },
       {
         "module": "global_coherence",
         "title": "Coerência global",
         "state": "completed",
-        "finding_count": 2,
+        "finding_count": 1,
         "coverage": "partial",
-        "detail": "Variações de nomes e prazos; contradições narrativas com a Coerência com IA, quando ligada. Cobertura parcial.",
+        "detail": "Variações de nomes; contradições narrativas com a Coerência com IA, quando ligada. Cobertura parcial.",
         "duration_ms": 0
       },
       {
@@ -159,14 +166,14 @@
     ],
     "languagetool": false,
     "languagetool_origem": null,
-    "versao_fonte": "1.4.0"
+    "versao_fonte": "1.5.0"
   },
   "warnings": [
     "Escopo: corpo do documento e tabelas. Cabeçalhos, rodapés, notas, comentários, caixas de texto e imagens não são analisados. A localização usa parágrafos, não páginas.",
     "Revisão linguística sem o corretor gramatical local (LanguageTool): ortografia geral e boa parte da concordância não foram verificadas. As regras do FONTE cobrem apenas classes específicas.",
-    "Análise editorial experimental: regras locais de duração/adiamento, repetições, grafias próximas de nomes e referências em construções específicas. Não detecta todas as inconsistências nem interpreta o cânone, o registro de personagem ou a causalidade do enredo.",
+    "Análise editorial experimental: frases repetidas, grafias próximas de nomes e, com o original, pronomes perto de cortes. Não detecta todas as inconsistências nem interpreta o cânone, o registro de personagem ou a causalidade do enredo.",
     "Confiança baixa/média/alta descreve a força do indício da regra, não a probabilidade de existir um erro. Mesmo alertas de confiança alta exigem leitura humana.",
-    "As regras de continuidade e referências examinam também falas e itálicos. Repetições seguem as áreas de busca configuradas.",
+    "Repetições seguem as áreas de busca configuradas.",
     "Etapa concluída significa apenas que as regras disponíveis terminaram; a cobertura continua parcial."
   ],
   "findings": [
@@ -245,7 +252,10 @@
           "end": 37,
           "document": "atual"
         }
-      ]
+      ],
+      "classe": "construcao_invalida",
+      "destino": "pendencia",
+      "impeditivo": false
     },
     {
       "id": "15e11f5cda86cfbe",
@@ -322,7 +332,10 @@
           "end": 37,
           "document": "atual"
         }
-      ]
+      ],
+      "classe": "virgula_que_nao",
+      "destino": "pendencia",
+      "impeditivo": false
     },
     {
       "id": "428189e951a76453",
@@ -407,7 +420,10 @@
           "end": 33,
           "document": "atual"
         }
-      ]
+      ],
+      "classe": "pontuacao_duplicada",
+      "destino": "pendencia",
+      "impeditivo": false
     },
     {
       "id": "0cca0bbe536caf7e",
@@ -420,11 +436,12 @@
       "end": 20,
       "reason": "A história está sendo contada no passado, mas ‘São’ está no presente. Pode ser um erro ou uma mudança proposital: pensamento, fala, comentário do narrador ou algo que vale sempre (‘a água ferve a cem graus’) podem usar outro tempo. Confira.\n\nNa gramática: tempo verbal da narração.",
       "source": "Regras FONTE + spaCy + PortiLexicon-UD",
+      "rule": "tempo_verbal",
+      "category_code": "narrative_tense",
       "confidence": "baixa",
       "confidence_score": 0.4,
       "module": "morphosyntactic",
       "severity": "editorial_attention",
-      "category_code": "narrative_tense",
       "range": {
         "start": 90,
         "end": 93
@@ -490,7 +507,10 @@
           "end": 33,
           "document": "atual"
         }
-      ]
+      ],
+      "classe": "narrative_tense",
+      "destino": "informacao",
+      "impeditivo": false
     },
     {
       "id": "83bed77156120761",
@@ -625,108 +645,10 @@
           "end": 36,
           "document": "atual"
         }
-      ]
-    },
-    {
-      "id": "36c63c5bd421af7d",
-      "category": "Possível repetição próxima",
-      "priority": "Explorar",
-      "paragraph": 5,
-      "chapter": "Capítulo 1",
-      "text": "Era melhor eu me preparar melhor.",
-      "start": 4,
-      "end": 32,
-      "reason": "“melhor” aparece duas vezes em pouco espaço. Pode ser necessário ou de propósito; o alerta só mostra a repetição.\n\nNa gramática: repetição próxima.",
-      "source": "FONTE Editorial · palavra_proxima",
-      "layer": "editorial",
-      "rule": "palavra_proxima",
-      "confidence": "baixa",
-      "related": [],
-      "context": [
-        {
-          "paragraph": 3,
-          "chapter": "Capítulo 1",
-          "text": "Essas máquinas.. São tão barulhentas.",
-          "start": 0,
-          "end": 37,
-          "document": "atual",
-          "type": "text_evidence",
-          "range": {
-            "start": 73,
-            "end": 110
-          },
-          "excerpt": "Essas máquinas.. São tão barulhentas."
-        },
-        {
-          "paragraph": 4,
-          "chapter": "Capítulo 1",
-          "text": "Clara abriu a janela e observa a rua.",
-          "start": 0,
-          "end": 37,
-          "document": "atual",
-          "type": "text_evidence",
-          "range": {
-            "start": 111,
-            "end": 148
-          },
-          "excerpt": "Clara abriu a janela e observa a rua."
-        },
-        {
-          "paragraph": 5,
-          "chapter": "Capítulo 1",
-          "text": "Era melhor eu me preparar melhor.",
-          "start": 0,
-          "end": 33,
-          "document": "atual",
-          "type": "text_evidence",
-          "range": {
-            "start": 149,
-            "end": 182
-          },
-          "excerpt": "Era melhor eu me preparar melhor."
-        },
-        {
-          "paragraph": 6,
-          "chapter": "Capítulo 1",
-          "text": "— Tô aqui, cê vem pro jantar, primo?",
-          "start": 0,
-          "end": 36,
-          "document": "atual",
-          "type": "text_evidence",
-          "range": {
-            "start": 183,
-            "end": 219
-          },
-          "excerpt": "— Tô aqui, cê vem pro jantar, primo?"
-        }
       ],
-      "module": "editorial",
-      "severity": "editorial_attention",
-      "confidence_score": 0.4,
-      "category_code": "palavra_proxima",
-      "range": {
-        "start": 153,
-        "end": 181
-      },
-      "excerpt": "melhor eu me preparar melhor",
-      "message": "“melhor” aparece duas vezes em pouco espaço. Pode ser necessário ou de propósito; o alerta só mostra a repetição.\n\nNa gramática: repetição próxima.",
-      "suggestion": null,
-      "evidence": [
-        {
-          "paragraph": 5,
-          "chapter": "Capítulo 1",
-          "text": "Era melhor eu me preparar melhor.",
-          "start": 4,
-          "end": 32,
-          "document": "atual",
-          "type": "text_evidence",
-          "range": {
-            "start": 153,
-            "end": 181
-          },
-          "excerpt": "melhor eu me preparar melhor"
-        }
-      ]
+      "classe": "coerencia_temporal",
+      "destino": "pendencia",
+      "impeditivo": false
     },
     {
       "id": "b42006cf02f9b122",
@@ -856,339 +778,10 @@
           },
           "excerpt": "Lívya"
         }
-      ]
-    },
-    {
-      "id": "1a74bf34c39989c1",
-      "category": "Possível inconsistência temporal",
-      "priority": "Verificar",
-      "paragraph": 9,
-      "chapter": "Capítulo 2",
-      "text": "Não trabalha amanhã nem nos três dias seguintes. Está afastado por três dias.",
-      "start": 13,
-      "end": 47,
-      "reason": "Aqui são amanhã e mais 3 dias, 4 no total. O trecho relacionado fala em 3 dias. Confira se os dois falam da mesma pessoa, do mesmo castigo e da mesma contagem (dias corridos ou de aula).\n\nNa gramática: continuidade de prazos.",
-      "source": "FONTE Editorial · duracao_suspensao",
-      "layer": "editorial",
-      "rule": "duracao_suspensao",
-      "confidence": "alta",
-      "related": [
-        {
-          "paragraph": 9,
-          "chapter": "Capítulo 2",
-          "text": "Não trabalha amanhã nem nos três dias seguintes. Está afastado por três dias.",
-          "start": 54,
-          "end": 76,
-          "document": "atual",
-          "type": "text_evidence",
-          "range": {
-            "start": 339,
-            "end": 361
-          },
-          "excerpt": "afastado por três dias"
-        }
       ],
-      "context": [
-        {
-          "paragraph": 7,
-          "chapter": "Capítulo 2",
-          "text": "Capítulo 2",
-          "start": 0,
-          "end": 10,
-          "document": "atual",
-          "type": "text_evidence",
-          "range": {
-            "start": 220,
-            "end": 230
-          },
-          "excerpt": "Capítulo 2"
-        },
-        {
-          "paragraph": 8,
-          "chapter": "Capítulo 2",
-          "text": "Lívia chegou à loja. Lívia abriu a porta. Lívya saiu.",
-          "start": 0,
-          "end": 53,
-          "document": "atual",
-          "type": "text_evidence",
-          "range": {
-            "start": 231,
-            "end": 284
-          },
-          "excerpt": "Lívia chegou à loja. Lívia abriu a porta. Lívya saiu."
-        },
-        {
-          "paragraph": 9,
-          "chapter": "Capítulo 2",
-          "text": "Não trabalha amanhã nem nos três dias seguintes. Está afastado por três dias.",
-          "start": 0,
-          "end": 77,
-          "document": "atual",
-          "type": "text_evidence",
-          "range": {
-            "start": 285,
-            "end": 362
-          },
-          "excerpt": "Não trabalha amanhã nem nos três dias seguintes. Está afastado por três dias."
-        },
-        {
-          "paragraph": 10,
-          "chapter": "Capítulo 2",
-          "text": "Ele esperou... Depois voltou.",
-          "start": 0,
-          "end": 29,
-          "document": "atual",
-          "type": "text_evidence",
-          "range": {
-            "start": 363,
-            "end": 392
-          },
-          "excerpt": "Ele esperou... Depois voltou."
-        }
-      ],
-      "module": "global_coherence",
-      "severity": "possible_inconsistency",
-      "confidence_score": 0.9,
-      "category_code": "duracao_suspensao",
-      "range": {
-        "start": 298,
-        "end": 332
-      },
-      "excerpt": "amanhã nem nos três dias seguintes",
-      "message": "Aqui são amanhã e mais 3 dias, 4 no total. O trecho relacionado fala em 3 dias. Confira se os dois falam da mesma pessoa, do mesmo castigo e da mesma contagem (dias corridos ou de aula).\n\nNa gramática: continuidade de prazos.",
-      "suggestion": null,
-      "evidence": [
-        {
-          "paragraph": 9,
-          "chapter": "Capítulo 2",
-          "text": "Não trabalha amanhã nem nos três dias seguintes. Está afastado por três dias.",
-          "start": 13,
-          "end": 47,
-          "document": "atual",
-          "type": "text_evidence",
-          "range": {
-            "start": 298,
-            "end": 332
-          },
-          "excerpt": "amanhã nem nos três dias seguintes"
-        },
-        {
-          "paragraph": 9,
-          "chapter": "Capítulo 2",
-          "text": "Não trabalha amanhã nem nos três dias seguintes. Está afastado por três dias.",
-          "start": 54,
-          "end": 76,
-          "document": "atual",
-          "type": "text_evidence",
-          "range": {
-            "start": 339,
-            "end": 361
-          },
-          "excerpt": "afastado por três dias"
-        }
-      ]
-    },
-    {
-      "id": "324c12df841919fd",
-      "category": "Possível repetição próxima",
-      "priority": "Explorar",
-      "paragraph": 9,
-      "chapter": "Capítulo 2",
-      "text": "Não trabalha amanhã nem nos três dias seguintes. Está afastado por três dias.",
-      "start": 28,
-      "end": 71,
-      "reason": "“três” aparece duas vezes em pouco espaço. Pode ser necessário ou de propósito; o alerta só mostra a repetição.\n\nNa gramática: repetição próxima.",
-      "source": "FONTE Editorial · palavra_proxima",
-      "layer": "editorial",
-      "rule": "palavra_proxima",
-      "confidence": "baixa",
-      "related": [],
-      "context": [
-        {
-          "paragraph": 7,
-          "chapter": "Capítulo 2",
-          "text": "Capítulo 2",
-          "start": 0,
-          "end": 10,
-          "document": "atual",
-          "type": "text_evidence",
-          "range": {
-            "start": 220,
-            "end": 230
-          },
-          "excerpt": "Capítulo 2"
-        },
-        {
-          "paragraph": 8,
-          "chapter": "Capítulo 2",
-          "text": "Lívia chegou à loja. Lívia abriu a porta. Lívya saiu.",
-          "start": 0,
-          "end": 53,
-          "document": "atual",
-          "type": "text_evidence",
-          "range": {
-            "start": 231,
-            "end": 284
-          },
-          "excerpt": "Lívia chegou à loja. Lívia abriu a porta. Lívya saiu."
-        },
-        {
-          "paragraph": 9,
-          "chapter": "Capítulo 2",
-          "text": "Não trabalha amanhã nem nos três dias seguintes. Está afastado por três dias.",
-          "start": 0,
-          "end": 77,
-          "document": "atual",
-          "type": "text_evidence",
-          "range": {
-            "start": 285,
-            "end": 362
-          },
-          "excerpt": "Não trabalha amanhã nem nos três dias seguintes. Está afastado por três dias."
-        },
-        {
-          "paragraph": 10,
-          "chapter": "Capítulo 2",
-          "text": "Ele esperou... Depois voltou.",
-          "start": 0,
-          "end": 29,
-          "document": "atual",
-          "type": "text_evidence",
-          "range": {
-            "start": 363,
-            "end": 392
-          },
-          "excerpt": "Ele esperou... Depois voltou."
-        }
-      ],
-      "module": "editorial",
-      "severity": "editorial_attention",
-      "confidence_score": 0.4,
-      "category_code": "palavra_proxima",
-      "range": {
-        "start": 313,
-        "end": 356
-      },
-      "excerpt": "três dias seguintes. Está afastado por três",
-      "message": "“três” aparece duas vezes em pouco espaço. Pode ser necessário ou de propósito; o alerta só mostra a repetição.\n\nNa gramática: repetição próxima.",
-      "suggestion": null,
-      "evidence": [
-        {
-          "paragraph": 9,
-          "chapter": "Capítulo 2",
-          "text": "Não trabalha amanhã nem nos três dias seguintes. Está afastado por três dias.",
-          "start": 28,
-          "end": 71,
-          "document": "atual",
-          "type": "text_evidence",
-          "range": {
-            "start": 313,
-            "end": 356
-          },
-          "excerpt": "três dias seguintes. Está afastado por três"
-        }
-      ]
-    },
-    {
-      "id": "761a77a6a287cbf1",
-      "category": "Possível repetição próxima",
-      "priority": "Explorar",
-      "paragraph": 9,
-      "chapter": "Capítulo 2",
-      "text": "Não trabalha amanhã nem nos três dias seguintes. Está afastado por três dias.",
-      "start": 33,
-      "end": 76,
-      "reason": "“dias” aparece duas vezes em pouco espaço. Pode ser necessário ou de propósito; o alerta só mostra a repetição.\n\nNa gramática: repetição próxima.",
-      "source": "FONTE Editorial · palavra_proxima",
-      "layer": "editorial",
-      "rule": "palavra_proxima",
-      "confidence": "baixa",
-      "related": [],
-      "context": [
-        {
-          "paragraph": 7,
-          "chapter": "Capítulo 2",
-          "text": "Capítulo 2",
-          "start": 0,
-          "end": 10,
-          "document": "atual",
-          "type": "text_evidence",
-          "range": {
-            "start": 220,
-            "end": 230
-          },
-          "excerpt": "Capítulo 2"
-        },
-        {
-          "paragraph": 8,
-          "chapter": "Capítulo 2",
-          "text": "Lívia chegou à loja. Lívia abriu a porta. Lívya saiu.",
-          "start": 0,
-          "end": 53,
-          "document": "atual",
-          "type": "text_evidence",
-          "range": {
-            "start": 231,
-            "end": 284
-          },
-          "excerpt": "Lívia chegou à loja. Lívia abriu a porta. Lívya saiu."
-        },
-        {
-          "paragraph": 9,
-          "chapter": "Capítulo 2",
-          "text": "Não trabalha amanhã nem nos três dias seguintes. Está afastado por três dias.",
-          "start": 0,
-          "end": 77,
-          "document": "atual",
-          "type": "text_evidence",
-          "range": {
-            "start": 285,
-            "end": 362
-          },
-          "excerpt": "Não trabalha amanhã nem nos três dias seguintes. Está afastado por três dias."
-        },
-        {
-          "paragraph": 10,
-          "chapter": "Capítulo 2",
-          "text": "Ele esperou... Depois voltou.",
-          "start": 0,
-          "end": 29,
-          "document": "atual",
-          "type": "text_evidence",
-          "range": {
-            "start": 363,
-            "end": 392
-          },
-          "excerpt": "Ele esperou... Depois voltou."
-        }
-      ],
-      "module": "editorial",
-      "severity": "editorial_attention",
-      "confidence_score": 0.4,
-      "category_code": "palavra_proxima",
-      "range": {
-        "start": 318,
-        "end": 361
-      },
-      "excerpt": "dias seguintes. Está afastado por três dias",
-      "message": "“dias” aparece duas vezes em pouco espaço. Pode ser necessário ou de propósito; o alerta só mostra a repetição.\n\nNa gramática: repetição próxima.",
-      "suggestion": null,
-      "evidence": [
-        {
-          "paragraph": 9,
-          "chapter": "Capítulo 2",
-          "text": "Não trabalha amanhã nem nos três dias seguintes. Está afastado por três dias.",
-          "start": 33,
-          "end": 76,
-          "document": "atual",
-          "type": "text_evidence",
-          "range": {
-            "start": 318,
-            "end": 361
-          },
-          "excerpt": "dias seguintes. Está afastado por três dias"
-        }
-      ]
+      "classe": "variacao_nome",
+      "destino": "pendencia",
+      "impeditivo": false
     },
     {
       "id": "afd593ec69c56bef",
@@ -1201,11 +794,12 @@
       "end": 53,
       "reason": "A história está sendo contada no passado, mas ‘Está’ está no presente. Pode ser um erro ou uma mudança proposital: pensamento, fala, comentário do narrador ou algo que vale sempre (‘a água ferve a cem graus’) podem usar outro tempo. Confira.\n\nNa gramática: tempo verbal da narração.",
       "source": "Regras FONTE + spaCy + PortiLexicon-UD",
+      "rule": "tempo_verbal",
+      "category_code": "narrative_tense",
       "module": "morphosyntactic",
       "severity": "editorial_attention",
       "confidence": "média",
       "confidence_score": 0.65,
-      "category_code": "narrative_tense",
       "range": {
         "start": 334,
         "end": 338
@@ -1263,7 +857,10 @@
           "end": 29,
           "document": "atual"
         }
-      ]
+      ],
+      "classe": "narrative_tense",
+      "destino": "pendencia",
+      "impeditivo": false
     }
   ]
 }

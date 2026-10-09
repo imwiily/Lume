@@ -32,6 +32,62 @@ por alerta.
 Limites: as decisões vêm de poucos livros e de um autor; classes com menos de 20 decisões não têm
 precisão medida; o corpus é sintético e escrito junto com as regras.
 
+## Lume 1.7 · FONTE 1.5.0 · Coerencia 1.2.0 — montagem da entrega (09/10/2026)
+
+- O motor é o da tag `fonte-v1.5.0` (`f097e70`): nada em `fonte/`, `coerencia/` ou `packaging/`
+  mudou desde então. Política editorial v2. Nenhuma chamada à API.
+- **Montagem definitiva** `build/20261009-165905-538CDAAB/`, a partir de `30e0a0a`, com as travas de
+  conteúdo (substitui as montagens anteriores da 1.7):
+  - regressões aprovadas (503 do analisador, 53 dos pacotes); fora da montagem, contrato Python e
+    25 do Coerencia;
+  - `xcodebuild` Release e as oito verificações Swift aprovados.
+- **`release.json`:**
+  - app 1.7 (build 27), motor 1.5.0, saudável;
+  - corretor gramatical e Coerência disponíveis;
+  - macOS mínimo 27.0 (app, manifesto e `release.json`);
+  - assinatura ad hoc;
+  - SHA-256 do ZIP `5faa41a7d5273c3ac3c59880076226b45b67a1837c412693f4b814f5d2fb72b1`.
+- **Privacidade, conferida de novo no app definitivo:**
+  - `private_files` no app inteiro: nada;
+  - `own_packages_only`: só os módulos de `fonte/fonte` e `coerencia/coerencia`;
+  - nenhum `pyvenv.cfg` ou `.venv`, nenhuma chave de API;
+  - nenhuma sequência de 6 palavras dos manuscritos de referência nos 3.731 arquivos de texto, fora
+    duas expressões comuns nas regras do próprio LanguageTool;
+  - o ZIP é idêntico ao app, e a assinatura de ambos está íntegra.
+- **Motor embutido:**
+  - produz os mesmos alertas (ID, sugestão, destino e mensagem) que os fontes nos três exemplos;
+  - Coerencia 1.2.0 incluído só com os 7 módulos do pacote; a estimativa da Coerência com IA roda
+    sem chamar a API;
+  - com o LanguageTool embutido, acrescenta 2 alertas no exemplo Mestre;
+  - com o LanguageTool indisponível, a análise termina como parcial e o manuscrito não muda.
+- **Exemplos** gerados de novo: Mestre 11 → 7, Temporal 9 → 8, Editorial 8 → 4. Saíram só alertas de
+  regras retiradas e da relação desativada; os demais mantêm o ID.
+- **Dados reais** (só leitura): 64 relatórios, 32 arquivos de decisões, 3 memórias de livro,
+  1 encerramento e 103 configurações abrem com o modelo Swift atual. `medir_precisao.py` conta
+  651 decisões: as 650 da Fase 8 e 1 nova.
+- **Limpar resíduos**, numa cópia da pasta de dados:
+  - 64 → 42 relatórios, 28 mantidos por decisões;
+  - mesmas 651 decisões e classes na medição;
+  - uma segunda limpeza não apaga nada.
+- **App montado:** abre na tela “Nova leitura” e fecha sem relatório de falha. Não foram
+  exercitados na interface: importação, análise, reanálise e encerramento. Esses fluxos foram
+  conferidos pelo motor embutido e pelas verificações Swift (`DeskToolsCheck`, `ClosureCheck`,
+  `PartialAnalysisCheck`).
+- **macOS mínimo:** o manifesto registrava o macOS da montagem (27.0.1), e o app anunciava o 13.0.
+  Medido pelo `minos` de cada binário do pacote:
+  - OpenSSL e xz do Homebrew: 27.0;
+  - Python 3.13 do Homebrew: 15.0;
+  - numpy: 14.0;
+  - Java do LanguageTool (jlink, OpenJDK 25), executável do PyInstaller e demais extensões: 11.0.
+  O mínimo declarado passa a ser o maior desses valores (27.0). Para baixar dele, seria preciso
+  montar com outro Python e outras bibliotecas e testar nos sistemas anteriores. Só o 27.0.1 foi
+  verificado.
+- **Conteúdo do motor:** o congelamento rodava na raiz do repositório. Lá, `coerencia/` vira pacote
+  de namespace, e o motor levava a pasta inteira: `.venv` com Python 3.14, testes e
+  `Projetos/` (dados locais da Coerência com IA). A montagem agora congela fora da raiz e recusa arquivos fora de `fonte/fonte` e `coerencia/coerencia`.
+- **Distribuição:** sem Developer ID e sem notarização. O Gatekeeper rejeita o app (`spctl`), e quem
+  baixar o ZIP precisa liberar a abertura manualmente.
+
 ## FONTE 1.5.0 — estabilização linguística, validação final (09/10/2026)
 
 Registro completo: Fase 8 em `.agent/plans/fonte-estabilizacao.md`. Saídas em `build/f8/` (fora do

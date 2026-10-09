@@ -2,7 +2,7 @@
   "schema_version": 1,
   "document": "Manuscrito-temporal.docx",
   "sha256": "866f840bcda8c7e15c1224060ff8317aab394f2c4c9b6bc487cbd69d66fd5b2e",
-  "created": "2026-10-07T15:26:58.943259+00:00",
+  "created": "2026-10-09T17:51:08.406056+00:00",
   "metadata": {
     "tempo": "passado",
     "paragrafos": 12,
@@ -13,13 +13,20 @@
       "conditional_future",
       "simultaneous_present",
       "ambiguous_simultaneity",
-      "coordinated_past_present",
       "conditional_tense_mismatch",
       "coordinated_tense_mismatch",
       "past_present_past",
       "same_subject_narrative_shift",
       "local_narrative_tense_shift"
     ],
+    "politica_versao": 2,
+    "diagnostico": [],
+    "destinos": {
+      "pendencia": 7,
+      "informacao": 1,
+      "diagnostico": 0
+    },
+    "impeditivos": 0,
     "stages": [
       {
         "module": "linguistic",
@@ -34,10 +41,10 @@
         "module": "morphosyntactic",
         "title": "Análise morfossintática",
         "state": "completed",
-        "finding_count": 7,
+        "finding_count": 6,
         "coverage": "partial",
-        "detail": "Tempo predominante, estrutura, quatro relações temporais locais, acentuação verbal contextual, crase, homófonos, concordância, regência e vírgula entre sujeito e verbo. Cobertura parcial; homógrafos permanecem dúvidas.",
-        "duration_ms": 703
+        "detail": "Tempo predominante, estrutura, quatro relações temporais locais, acentuação verbal contextual, crase, homófonos, concordância, regência, vírgula entre sujeito e verbo, correlação de tempos, frase cortada e locuções. Cobertura parcial; homógrafos permanecem dúvidas.",
+        "duration_ms": 724
       },
       {
         "module": "editorial",
@@ -45,8 +52,8 @@
         "state": "completed",
         "finding_count": 0,
         "coverage": "partial",
-        "detail": "Diálogo, repetições, gerundismo e referências em janelas curtas.",
-        "duration_ms": 8
+        "detail": "Diálogo, frases repetidas e pronomes perto de cortes, em janelas curtas.",
+        "duration_ms": 7
       },
       {
         "module": "global_coherence",
@@ -54,7 +61,7 @@
         "state": "skipped",
         "finding_count": 0,
         "coverage": "partial",
-        "detail": "Variações de nomes e prazos; contradições narrativas com a Coerência com IA, quando ligada. Cobertura parcial."
+        "detail": "Variações de nomes; contradições narrativas com a Coerência com IA, quando ligada. Cobertura parcial."
       },
       {
         "module": "audit",
@@ -144,12 +151,8 @@
         "estrutura": false,
         "pontuacao_dialogo": false,
         "palavra_consecutiva": false,
-        "palavra_proxima": false,
         "frase_duplicada": false,
         "variacao_nome": false,
-        "duracao_suspensao": false,
-        "adiamento_amanha": false,
-        "referente_proximidade": false,
         "pronome_apos_corte": false,
         "construcao_invalida": false,
         "pontuacao_duplicada": true,
@@ -161,8 +164,6 @@
         "vocativo": true,
         "capitalizacao_contextual": true,
         "dialogo_contextual": true,
-        "referente_contextual": true,
-        "gerundismo": true,
         "crase": true,
         "homofonos": true,
         "concordancia": true,
@@ -170,7 +171,8 @@
         "virgula_sujeito_verbo": true,
         "correlacao_tempos": true,
         "frase_cortada": true,
-        "locucoes": true
+        "locucoes": true,
+        "residuo_edicao": false
       },
       "tense_scopes": [
         "narracao"
@@ -206,14 +208,14 @@
     ],
     "languagetool": false,
     "languagetool_origem": null,
-    "versao_fonte": "1.4.0"
+    "versao_fonte": "1.5.0"
   },
   "warnings": [
     "Escopo: corpo do documento e tabelas. Cabeçalhos, rodapés, notas, comentários, caixas de texto e imagens não são analisados. A localização usa parágrafos, não páginas.",
     "Revisão linguística sem o corretor gramatical local (LanguageTool): ortografia geral e boa parte da concordância não foram verificadas. As regras do FONTE cobrem apenas classes específicas.",
-    "Análise editorial experimental: regras locais de duração/adiamento, repetições, grafias próximas de nomes e referências em construções específicas. Não detecta todas as inconsistências nem interpreta o cânone, o registro de personagem ou a causalidade do enredo.",
+    "Análise editorial experimental: frases repetidas, grafias próximas de nomes e, com o original, pronomes perto de cortes. Não detecta todas as inconsistências nem interpreta o cânone, o registro de personagem ou a causalidade do enredo.",
     "Confiança baixa/média/alta descreve a força do indício da regra, não a probabilidade de existir um erro. Mesmo alertas de confiança alta exigem leitura humana.",
-    "As regras de continuidade e referências examinam também falas e itálicos. Repetições seguem as áreas de busca configuradas.",
+    "Repetições seguem as áreas de busca configuradas.",
     "Etapa concluída significa apenas que as regras disponíveis terminaram; a cobertura continua parcial.",
     "Filtros aplicados antes da busca. Falas/pensamentos são separados pelas marcações configuradas; pensamentos implícitos e diálogos ambíguos podem ser classificados incorretamente. Estrutura e acentuação contextual são verificadas na narração; pontuação duplicada, espaçamento e quê final também em falas/pensamentos. LanguageTool mantém sua proteção própria de falas/itálicos."
   ],
@@ -330,7 +332,10 @@
           "end": 64,
           "document": "atual"
         }
-      ]
+      ],
+      "classe": "coerencia_temporal",
+      "destino": "pendencia",
+      "impeditivo": false
     },
     {
       "id": "086be43b638e8209",
@@ -452,7 +457,10 @@
           "end": 45,
           "document": "atual"
         }
-      ]
+      ],
+      "classe": "coerencia_temporal",
+      "destino": "pendencia",
+      "impeditivo": false
     },
     {
       "id": "c74008a02c876d71",
@@ -574,7 +582,10 @@
           "end": 41,
           "document": "atual"
         }
-      ]
+      ],
+      "classe": "coerencia_temporal",
+      "destino": "pendencia",
+      "impeditivo": false
     },
     {
       "id": "4b95d7d0b30bb288",
@@ -696,129 +707,10 @@
           "end": 30,
           "document": "atual"
         }
-      ]
-    },
-    {
-      "id": "688a2795aec484f4",
-      "category": "Coerência temporal entre orações",
-      "priority": "Verificar",
-      "paragraph": 6,
-      "chapter": "Capítulo 1",
-      "text": "O objeto parecia intacto e está quebrado.",
-      "start": 27,
-      "end": 31,
-      "reason": "‘está’ está no presente e vem ligado a ‘parecia’, que está no passado. Confira se as duas falam do mesmo momento. Se a segunda for algo que continua valendo hoje, ou uma mudança proposital, está certo.\n\nNa gramática: tempo verbal em orações coordenadas.",
-      "source": "FONTE Morfossintático · coordinated_past_present",
-      "rule": "coerencia_temporal",
-      "category_code": "temporal_consistency",
-      "relation": "coordinated_past_present",
-      "severity": "editorial_attention",
-      "confidence": "média",
-      "confidence_score": 0.65,
-      "suggestion": "estava",
-      "suggestion_kind": "possible",
-      "related": [
-        {
-          "paragraph": 6,
-          "chapter": "Capítulo 1",
-          "text": "O objeto parecia intacto e está quebrado.",
-          "start": 9,
-          "end": 16,
-          "document": "atual",
-          "type": "text_evidence",
-          "range": {
-            "start": 235,
-            "end": 242
-          },
-          "excerpt": "parecia"
-        }
       ],
-      "temporal_evidence": {
-        "anchor": "parecia",
-        "anchor_form": "past",
-        "target": "está",
-        "target_form": "present"
-      },
-      "module": "morphosyntactic",
-      "range": {
-        "start": 253,
-        "end": 257
-      },
-      "excerpt": "está",
-      "message": "‘está’ está no presente e vem ligado a ‘parecia’, que está no passado. Confira se as duas falam do mesmo momento. Se a segunda for algo que continua valendo hoje, ou uma mudança proposital, está certo.\n\nNa gramática: tempo verbal em orações coordenadas.",
-      "layer": "linguistica",
-      "evidence": [
-        {
-          "paragraph": 6,
-          "chapter": "Capítulo 1",
-          "text": "O objeto parecia intacto e está quebrado.",
-          "start": 27,
-          "end": 31,
-          "document": "atual",
-          "type": "text_evidence",
-          "range": {
-            "start": 253,
-            "end": 257
-          },
-          "excerpt": "está"
-        },
-        {
-          "paragraph": 6,
-          "chapter": "Capítulo 1",
-          "text": "O objeto parecia intacto e está quebrado.",
-          "start": 9,
-          "end": 16,
-          "document": "atual",
-          "type": "text_evidence",
-          "range": {
-            "start": 235,
-            "end": 242
-          },
-          "excerpt": "parecia"
-        }
-      ],
-      "context": [
-        {
-          "paragraph": 4,
-          "chapter": "Capítulo 1",
-          "text": "A enfermeira explicava o procedimento enquanto os alunos anotam.",
-          "start": 0,
-          "end": 64,
-          "document": "atual"
-        },
-        {
-          "paragraph": 5,
-          "chapter": "Capítulo 1",
-          "text": "O guia esperou enquanto atravessamos a ponte.",
-          "start": 0,
-          "end": 45,
-          "document": "atual"
-        },
-        {
-          "paragraph": 6,
-          "chapter": "Capítulo 1",
-          "text": "O objeto parecia intacto e está quebrado.",
-          "start": 0,
-          "end": 41,
-          "document": "atual"
-        },
-        {
-          "paragraph": 7,
-          "chapter": "Capítulo 1",
-          "text": "Os operários construiam casas.",
-          "start": 0,
-          "end": 30,
-          "document": "atual"
-        },
-        {
-          "paragraph": 8,
-          "chapter": "Capítulo 1",
-          "text": "As crianças distribuiam brinquedos.",
-          "start": 0,
-          "end": 35,
-          "document": "atual"
-        }
-      ]
+      "classe": "coerencia_temporal",
+      "destino": "informacao",
+      "impeditivo": false
     },
     {
       "id": "f94033688a16c77e",
@@ -932,7 +824,10 @@
           "end": 32,
           "document": "atual"
         }
-      ]
+      ],
+      "classe": "acentuacao_contextual",
+      "destino": "pendencia",
+      "impeditivo": false
     },
     {
       "id": "06bfd796d94ef3cb",
@@ -1046,7 +941,10 @@
           "end": 50,
           "document": "atual"
         }
-      ]
+      ],
+      "classe": "acentuacao_contextual",
+      "destino": "pendencia",
+      "impeditivo": false
     },
     {
       "id": "44788440e4496063",
@@ -1123,7 +1021,10 @@
           "end": 38,
           "document": "atual"
         }
-      ]
+      ],
+      "classe": "que_tonico_interrogativo",
+      "destino": "pendencia",
+      "impeditivo": false
     },
     {
       "id": "07f3453878e1e762",
@@ -1200,7 +1101,10 @@
           "end": 38,
           "document": "atual"
         }
-      ]
+      ],
+      "classe": "pontuacao_duplicada",
+      "destino": "pendencia",
+      "impeditivo": false
     }
   ]
 }

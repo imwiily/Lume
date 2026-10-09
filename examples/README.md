@@ -6,21 +6,21 @@ Os relatórios incluídos são registros das versões indicadas; contagens hist�
 
 `Manuscrito-modular.docx` é uma amostra sintética pequena. Não é uma análise do manuscrito A completo.
 
-Abra o documento, escolha Ambas, Passado e configuração padrão. O relatório incluído foi regenerado em 07/10/2026 pelo FONTE em desenvolvimento depois da 1.4.0, com as explicações em linguagem simples (spaCy 3.8.16 / pt_core_news_sm 3.8.0), com textos sintéticos, sem o LanguageTool.
+Abra o documento, escolha Ambas, Passado e configuração padrão. O relatório incluído foi gerado em 09/10/2026 pelo FONTE 1.5.0 (Lume 1.7), com spaCy 3.8.16 / pt_core_news_sm 3.8.0, sem o LanguageTool.
 
-Resultado observado: 11 alertas — 3 linguísticos, 3 morfossintáticos, 3 de contexto curto e 2 de coerência global limitada. O auditor está indisponível. Uma ocorrência pode ser uma escolha legítima: “São” e “Está”, por exemplo, continuam como atenção editorial, não erro confirmado.
+Resultado observado: 7 alertas — 3 linguísticos, 3 morfossintáticos e 1 de coerência global limitada; 6 pendências e 1 observação. Os 4 alertas de repetição próxima e de prazo que a versão 1.4.0 dava saíram com a retirada dessas regras; os demais mantêm os IDs. O auditor está indisponível. Uma ocorrência pode ser uma escolha legítima: “São” e “Está”, por exemplo, continuam como atenção editorial, não erro confirmado.
 
 Confira “Além de disso”, “que, não” e “..”. A fala “Tô aqui, cê vem pro jantar, primo?” e as reticências “...” devem permanecer preservadas pelas novas regras determinísticas. Filtre por módulo e classificação e registre uma decisão sem alterar o DOCX.
 
-Nesta versão, “observa” recebe a explicação temporal específica, ligada a “abriu”, com a sugestão “observava”, classificada como provável erro. A quantidade total continua a mesma. Consulte também `../Temporal` para exemplos independentes desta amostra.
+“observa” recebe a explicação temporal específica, ligada a “abriu”, com a sugestão “observou”, classificada como provável erro. Consulte também `../Temporal` para exemplos independentes desta amostra.
 
 ## Temporal
 
-Amostra sintética; relatório regenerado em 07/10/2026 pelo FONTE em desenvolvimento depois da 1.4.0 (mesmos alertas, explicações em linguagem simples), com spaCy 3.8.16 e pt_core_news_sm 3.8.0. Não contém personagens nem depende do enredo do manuscrito A.
+Amostra sintética; relatório gerado em 09/10/2026 pelo FONTE 1.5.0 (Lume 1.7), com spaCy 3.8.16 e pt_core_news_sm 3.8.0. Não contém personagens nem depende do enredo do manuscrito A.
 
 Abra `Manuscrito-temporal.docx`, importe `Busca-temporal.json` e selecione **Ambas / Passado**. A configuração isola coerência temporal, acentuação contextual, quê final e pontuação duplicada; as demais regras ficam desligadas. Restaure o padrão antes de uma revisão geral.
 
-São esperadas **9 ocorrências**: 2 linguísticas e 7 morfossintáticas. Dessas, 7 são prováveis erros e 2 são atenção editorial; nenhuma é erro confirmado. Contexto curto e coerência global ficam desativados por essa configuração. Auditoria continua indisponível.
+São esperadas **8 ocorrências**: 2 linguísticas e 6 morfossintáticas. Dessas, 7 são prováveis erros e 1 é atenção editorial; nenhuma é erro confirmado. “está” deixou de ser apontado na 1.5.0, com a desativação da relação entre orações coordenadas no passado e no presente. Contexto curto e coerência global ficam desativados por essa configuração. Auditoria continua indisponível.
 
 | Trecho | Sugestão/decisão a avaliar |
 | --- | --- |
@@ -28,7 +28,6 @@ São esperadas **9 ocorrências**: 2 linguísticas e 7 morfossintáticas. Dessas
 | ligará | ligaria |
 | anotam | anotavam |
 | atravessamos | Conferir a intenção; presente e perfeito têm a mesma grafia |
-| está | estava, se a descrição permanece no passado |
 | construiam | construíam |
 | distribuiam | distribuíam |
 | que? | quê? |
