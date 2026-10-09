@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path
 import platform
+import re
 import shutil
 import subprocess
 import sys
@@ -12,6 +13,46 @@ import uuid
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'packaging'))
 from engine_packages import inventory, validate, probe
+
+MACH_O = {b'\xcf\xfa\xed\xfe', b'\xfe\xed\xfa\xcf', b'\xca\xfe\xba\xbe'}
+
+
+def minimum_os(root):
+    """Maior macOS mínimo (minos) gravado nos binários do pacote. O sistema da montagem não conta:
+    um binário com minos maior que o macOS do usuário não carrega."""
+    versions = []
+    for path in sorted(Path(root).rglob('*')):
+        if path.is_symlink() or not path.is_file():
+            continue
+        with path.open('rb') as stream:
+            head = stream.read(8)
+        # 0xcafebabe também abre classes Java; no binário universal, segue o número de arquiteturas.
+        if head[:4] not in MACH_O or (head[:4] == b'\xca\xfe\xba\xbe' and int.from_bytes(head[4:], 'big') > 30):
+            continue
+        shown = subprocess.run(['/usr/bin/vtool', '-show-build', str(path)],
+                               capture_output=True, text=True, check=True).stdout
+        # Por comando de carga: minos em LC_BUILD_VERSION; version em LC_VERSION_MIN_MACOSX (antigo).
+        found = re.findall(r'cmd LC_BUILD_VERSION\n.*?^\s*minos (\d+(?:\.\d+)*)$', shown, re.M | re.S)
+        found += re.findall(r'cmd LC_VERSION_MIN_MACOSX\n.*?^\s*version (\d+(?:\.\d+)*)$', shown, re.M | re.S)
+        if not found:
+            raise SystemExit('Binário sem macOS mínimo declarado: ' + str(path))
+        versions += [tuple(map(int, v.split('.'))) for v in found]
+    if not versions:
+        raise SystemExit('Nenhum binário no motor: ' + str(root))
+    return '.'.join(map(str, max(versions)))
+
+
+def own_packages_only(runtime):
+    """O motor leva só os módulos de fonte/fonte e coerencia/coerencia. A pasta do projeto tem
+    dados locais (Coerencia/Projetos guarda trechos de manuscritos), .venv e testes."""
+    for name in ('fonte', 'coerencia'):
+        source, frozen = ROOT / name / name, Path(runtime) / '_internal' / name
+        files = lambda base: {p.relative_to(base) for p in base.rglob('*')
+                              if p.is_file() and '__pycache__' not in p.parts}
+        extra = sorted(str(p) for p in files(frozen) - files(source))
+        if extra:
+            raise SystemExit('O motor congelado leva arquivos fora do pacote ' + name + ': '
+                             + ', '.join(extra[:5]) + '. Instale o pacote em modo editável compat.')
 
 
 def freeze_command(work):
@@ -124,10 +165,13 @@ def main():
     command = freeze_command(work)
     print('Empacotando Python, modelo e analisador. Registro: ' + str(log), flush=True)
     with log.open('w') as stream:
-        result = subprocess.run(command, cwd=ROOT, stdout=stream, stderr=subprocess.STDOUT)
+        # Fora da raiz: nela, coerencia/ (pasta do projeto) vira pacote de namespace, e --collect-all
+        # levaria a pasta inteira (Projetos com trechos de manuscritos, .venv, testes).
+        result = subprocess.run(command, cwd=work, stdout=stream, stderr=subprocess.STDOUT)
     if result.returncode:
         raise SystemExit('PyInstaller falhou. Consulte ' + str(log))
     runtime = work / 'dist/lume-engine'
+    own_packages_only(runtime)
     environment = dict(os.environ, PYINSTALLER_RESET_ENVIRONMENT='1', PYTHONDONTWRITEBYTECODE='1')
     result = subprocess.run([str(runtime / 'lume-engine'), '--lume-probe'], cwd=work,
                             env=environment, capture_output=True, text=True, timeout=120)
@@ -146,7 +190,7 @@ def main():
     licencas(package, grammar)
     manifest = {'package_schema': 1, 'api_version': 1, 'report_schema': 1, 'decision_schema': 1,
                 'engine_version': health['engine_version'], 'platform': 'darwin', 'architecture': 'arm64',
-                'minimum_os': platform.mac_ver()[0], 'executable': 'runtime/lume-engine', 'files': inventory(package)}
+                'minimum_os': minimum_os(package), 'executable': 'runtime/lume-engine', 'files': inventory(package)}
     (package / 'manifest.json').write_text(json.dumps(manifest, indent=2, sort_keys=True))
     validate(package); probe(package, manifest)
     # Contrato real da CLI após congelamento e relocação; não usa Python externo.

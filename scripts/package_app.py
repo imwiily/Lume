@@ -36,6 +36,11 @@ def package(app, engine, output):
         info = plistlib.load(stream)
     if info.get('CFBundleIdentifier') != 'br.fonte.editorial':
         raise ValueError('Selecione o aplicativo Lume compilado.')
+    # O app não pode anunciar um macOS em que o motor embutido não carrega.
+    announced, required = info.get('LSMinimumSystemVersion', '0'), manifest['minimum_os']
+    if tuple(map(int, announced.split('.'))) < tuple(map(int, required.split('.'))):
+        raise ValueError('O app anuncia macOS ' + announced + ', mas o motor exige macOS ' + required
+                         + '. Ajuste MACOSX_DEPLOYMENT_TARGET do app.')
     # Uma saída nova impede mistura de versões e sobrescrita de entregas anteriores.
     output.mkdir(parents=True, exist_ok=False)
     target = output / 'Lume.app'
