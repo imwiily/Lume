@@ -42,11 +42,30 @@ IRREGULAR_IMPERFECT = {
 DEPOIS_DE_PARAR = {"de", "do", "da", "dos", "das", "em", "no", "na", "nos", "nas", "num", "numa"}
 
 
+def modo_do_imperfeito(token):
+    """Separa as formas que a terminação confunde (“-ia”, “-ria”, “-sse”) pelo léxico e pelo modelo:
+    “indicativo” (cantava, queria, ia, era), “condicional” (faria, construiríamos), “subjuntivo”
+    (fosse, cantasse), “ambiguo” (terminação de imperfeito sem confirmação no léxico) ou None.
+    O léxico decide: a leitura de passado é o imperfeito do indicativo; sem leitura de tempo no
+    indicativo, a terminação do condicional ou do subjuntivo decide o modo."""
+    word, value = token.lower_, flags(token.text)
+    if any(word in forms for forms in IRREGULAR_IMPERFECT.values()):
+        return "indicativo"
+    mood, tense = token.morph.get("Mood"), token.morph.get("Tense")
+    sem_indicativo = bool(value & FINITE) and not value & (PAST | PRESENT | FUTURE)
+    if sem_indicativo and (TERMINACAO_CONDICIONAL.search(word) or "Cnd" in mood):
+        return "condicional"
+    if imperfeito_do_subjuntivo(token) or (sem_indicativo and "Sub" in mood and "Imp" in tense):
+        return "subjuntivo"
+    if IMPERFECT_ENDING.search(word) or ("Imp" in tense and "Ind" in mood):
+        return "indicativo" if value & PAST else ("ambiguo" if not value & (PRESENT | FUTURE) else None)
+    return None
+
+
 def imperfeito(token):
-    """Imperfeito pelo modelo, pela terminação ou pelas formas irregulares (era, tinha, vinha, punha).
-    Não separa o modo nem o condicional em “-íamos” (limitação registrada na Fase 3)."""
-    return ("Imp" in token.morph.get("Tense") or bool(IMPERFECT_ENDING.search(token.lower_))
-            or any(token.lower_ in forms for forms in IRREGULAR_IMPERFECT.values()))
+    """Imperfeito do indicativo, ou terminação de imperfeito que o léxico não desempata (ambíguo:
+    tratado como antes). Exclui o futuro do pretérito e o imperfeito do subjuntivo (Fase 7b)."""
+    return modo_do_imperfeito(token) in {"indicativo", "ambiguo"}
 
 
 def mais_que_perfeito_composto(token):

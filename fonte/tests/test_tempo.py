@@ -12,8 +12,8 @@ import unittest
 import spacy
 
 from fonte import grammar, temporal, tempo, verbo
-from fonte.tempo import (imperfeito, imperfeito_do_subjuntivo, mais_que_perfeito_composto, passado_so_no_lexico,
-                         tempo_estrito, tempo_narrativo, tempo_recuperado)
+from fonte.tempo import (imperfeito, imperfeito_do_subjuntivo, mais_que_perfeito_composto, modo_do_imperfeito,
+                         passado_so_no_lexico, tempo_estrito, tempo_narrativo, tempo_recuperado)
 
 
 class Base(unittest.TestCase):
@@ -72,6 +72,27 @@ class MorphologyTests(Base):
         # “disse”: pretérito perfeito, mesma terminação, leitura no indicativo.
         self.assertFalse(imperfeito_do_subjuntivo(self.token("Ele disse que viria.", "disse")))
 
+    def test_imperfect_mood_is_separated_by_the_lexicon(self):
+        # Corrigido na Fase 7b (antes, em LimitacoesRegistradas: condicional e subjuntivo passavam
+        # como imperfeito). A terminação sozinha não decide: “queria” e “ia” são imperfeito do
+        # indicativo, “faria” não.
+        casos = [("Ela cantava baixinho.", "cantava", "indicativo"), ("Ele queria sair cedo.", "queria", "indicativo"),
+                 ("Ela ia ao mercado.", "ia", "indicativo"), ("Era tarde.", "Era", "indicativo"),
+                 ("Ele faria tudo de novo.", "faria", "condicional"),
+                 ("Nós construiríamos uma casa.", "construiríamos", "condicional"),
+                 ("Ela deveria voltar.", "deveria", "condicional"),
+                 ("Se ele fosse rico, viajaria.", "fosse", "subjuntivo"),
+                 ("Pediu que ela cantasse.", "cantasse", "subjuntivo")]
+        for frase, palavra, modo in casos:
+            with self.subTest(palavra=palavra):
+                t = self.token(frase, palavra)
+                self.assertEqual(modo_do_imperfeito(t), modo)
+                self.assertEqual(imperfeito(t), modo == "indicativo")
+
+    def test_unknown_form_with_imperfect_ending_stays_ambiguous(self):
+        t = self.token("O grifo zurlava no alto.", "zurlava")
+        self.assertEqual((modo_do_imperfeito(t), imperfeito(t)), ("ambiguo", True))
+
     def test_compound_pluperfect(self):
         self.assertTrue(mais_que_perfeito_composto(self.token("Ela tinha esquecido a chave.", "tinha")))
         self.assertFalse(mais_que_perfeito_composto(self.token("Ela tinha uma chave.", "tinha")))
@@ -83,11 +104,6 @@ class MorphologyTests(Base):
 
 class LimitacoesRegistradas(Base):
     """Comportamentos atuais registrados na Fase 3, sem correção (exigem mudança de comportamento)."""
-
-    def test_imperfect_also_matches_conditional_and_subjunctive(self):
-        # A terminação “-íamos” do condicional e o imperfeito do subjuntivo também passam como imperfeito.
-        self.assertTrue(imperfeito(self.token("Nós construiríamos uma casa.", "construiríamos")))
-        self.assertTrue(imperfeito(self.token("Se ele fosse rico, viajaria.", "fosse")))
 
     def test_recovery_ignores_mood(self):
         # Subjuntivo ou imperativo que o modelo marca como tal ainda sai “presente” na recuperação.

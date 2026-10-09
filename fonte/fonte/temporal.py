@@ -181,7 +181,8 @@ INTRODUCERS = {"que", "onde", "cujo", "cuja", "cujos", "cujas", "quem", "qual", 
 def modal_imperfect(token):
     """Lema do modal (‘dever’ ou ‘poder’) no imperfeito seguido de infinitivo; senão None."""
     lemma = lemma_of(token, MODAL_IMPERFECT)
-    if lemma is None or not IMPERFECT_ENDING.search(token.lower_):
+    # Só o imperfeito do indicativo (“devia”, “podia”); “deveria” é futuro do pretérito.
+    if lemma is None or not IMPERFECT_ENDING.search(token.lower_) or not imperfeito(token):
         return None
     following = [t for t in token.doc[token.i + 1:token.i + 4] if not t.is_punct]
     if following and following[0].lower_ in {"não", "nunca", "mesmo", "até", "também", "bem"}:
