@@ -7,49 +7,22 @@ from dataclasses import asdict
 import re
 import unicodedata
 
-from .analysis import DEPOIS_DE_PARAR, TERMINACOES, finding
+from .analysis import explicar, finding, lista_ou_rotulo
+from .elocucao import ATESTA, COMENTARIO_DO_NARRADOR, NARRADOR_ANUNCIA, RELATO, TERMINACOES
 from .editorial.common import evidence
-from .lexicon import FINITE, PAST, PRESENT, FUTURE, NONFINITE, NONVERB, flags, finite, model_finite
-from .segments import classify, spans
+from .lexicon import FINITE, PAST, PRESENT, FUTURE, NONFINITE, flags
+from .verbo import certamente_verbo, model_finite, so_verbo_no_lexico
+from .tempo import (IMPERFECT_ENDING, IRREGULAR_IMPERFECT, TERMINACAO_CONDICIONAL, TERMINACAO_IMPERFEITO_SUBJUNTIVO, imperfeito,
+                    mais_que_perfeito_composto, para_como_verbo, tempo_estrito, tempo_recuperado,
+                    verbo_unico_da_frase)
+from .segments import abre_fala, classify, spans
 
 TIME_SHIFTS = {"hoje", "agora", "atualmente", "amanhã", "ontem", "outrora", "antigamente",
                "sempre", "geralmente", "habitualmente", "ainda", "desde", "depois", "atual"}
 STATIVE = {"saber", "conhecer", "existir", "possuir", "pertencer", "entender", "compreender",
            "gostar", "preferir", "continuar", "permanecer", "valer", "significar"}
 SUBJUNCTIVE_CUES = {"talvez", "quiçá", "oxalá", "tomara", "embora", "caso", "se", "que"}
-IRREGULAR_IMPERFECT = {
-    "ser": ("era", "eras", "era", "éramos", "éreis", "eram"),
-    "ter": ("tinha", "tinhas", "tinha", "tínhamos", "tínheis", "tinham"),
-    "vir": ("vinha", "vinhas", "vinha", "vínhamos", "vínheis", "vinham"),
-    "pôr": ("punha", "punhas", "punha", "púnhamos", "púnheis", "punham"),
-}
 
-
-def form(token):
-    """A grafia sozinha nunca desempata presente/pretérito nem decide o modo."""
-    if token.pos_ not in {"VERB", "AUX"} or not finite(token) or not model_finite(token):
-        return None
-    value = flags(token.text)
-    mood = token.morph.get("Mood")
-    # O modelo pequeno pode marcar “construiríamos” como presente. A desinência
-    # do condicional + ausência de leitura indicativa no léxico corrigem isso.
-    conditional_ending = re.search(r"r(?:ia|ias|íamos|íeis|iam)$", token.text.casefold())
-    if (value & FINITE and not value & (PAST | PRESENT | FUTURE)
-            and ("Cnd" in mood or conditional_ending)):
-        return "conditional"
-    if "Sub" in mood or "Imp" in mood:
-        return None
-    if value & PAST and value & PRESENT:
-        return "ambiguous_past_present"
-    if "Ind" not in mood:
-        return None
-    if value & FUTURE and not value & (PAST | PRESENT):
-        return "future"
-    if value & PAST and not value & (PRESENT | FUTURE):
-        return "past"
-    if value & PRESENT and not value & (PAST | FUTURE):
-        return "present"
-    return None
 
 
 def predicate(token):
@@ -92,7 +65,7 @@ def governs(root, token):
     if token.dep_ == "mark":
         return False  # Subordinante: abre outra oração.
     walk = token.head
-    while walk != root and walk.head != walk and walk.pos_ not in {"VERB", "AUX"} and not finite(walk):
+    while walk != root and walk.head != walk and walk.pos_ not in {"VERB", "AUX"} and not certamente_verbo(walk):
         walk = walk.head
     return walk == root
 
@@ -113,13 +86,44 @@ def explicit_shift(root):
     return bool(re.search(r"\b(?:[12]\d{3}|pr[oó]xim[oa]|atualmente|neste (?:momento|instante)|no momento)\b", text, re.I))
 
 
+# O narrador em primeira pessoa fala de si no presente, fora da cena: “me chamo”, “sou” + nome ou
+# adjetivo, “acho que”, “confesso que”, “vou contar”. Ações da cena (“Sinto o frio”, “Vou até a
+# porta”, “Sou atingido”) continuam comparadas com a narração.
+NARRATOR_THAT = frozenset(COMENTARIO_DO_NARRADOR.values())
+NARRATOR_TELLS = re.compile(r"vou\s+(?:\w+\s+)?(?:" + "|".join(NARRADOR_ANUNCIA) + r")\b", re.I)
+
+
+def narrator_frame(token):
+    """Verbo na primeira pessoa do singular que é comentário do narrador sobre si, não evento da cena.
+
+    Um passado antes dele na mesma frase (“desde que acordei, sinto que…”) o prende à cena, exceto
+    na identidade do narrador sem predicado depois (“mudou quem eu sou”)."""
+    word = token.lower_
+    tail = token.doc.text[token.idx:token.sent.end_char]
+    prefix = token.doc.text[token.sent.start_char:token.idx]
+    if word == "sou" and re.search(r"\b(?:quem|que)\s+(?:eu\s+)?$", prefix, re.I) and re.fullmatch(r"sou\W*", tail):
+        return True
+    if any(tempo_estrito(t) in {"past", "ambiguous_past_present"} for t in token.sent if t.i < token.i):
+        return False
+    if word == "chamo" and re.search(r"\bme\s*$", prefix, re.I):
+        return True
+    if word == "sou":
+        head = token.head if token.dep_ == "cop" else None
+        following = next((t for t in token.doc[token.i + 1:token.sent.end] if not t.is_space), None)
+        participle = following is not None and "Part" in following.morph.get("VerbForm")
+        return head is not None and head.pos_ in {"NOUN", "ADJ", "PROPN", "PRON", "NUM"} and not participle
+    if word in NARRATOR_THAT and re.match(r"\w+\s+que\b", tail, re.I):
+        return True
+    return word == "vou" and bool(NARRATOR_TELLS.match(tail))
+
+
 def legitimate_present(token):
     """Evidências locais compartilhadas pelas duas verificações temporais.
 
     Abstém-se diante de estados atuais plausíveis; não prova causalidade.
     Não libera ações no presente só porque aparecem depois de um passado.
     """
-    if form(token) != "present":
+    if tempo_estrito(token) != "present":
         return False
     root = predicate(token)
     if explicit_shift(root):
@@ -132,15 +136,18 @@ def legitimate_present(token):
     # qualquer verbo no passado. Depois de um passado, a norma pede ‘havia’.
     if (token.lower_ == "há" and re.match(r"há\s+(?:muito|pouco|bastante|algum|alguns|algumas|\d+|[a-zà-ú]+)\s+"
                                           r"(?:tempo|anos?|séculos?|décadas?|meses|dias|semanas|gerações)\b", tail, re.I)
-            and not any(form(t) in {"past", "ambiguous_past_present"} for t in token.sent if t.i < token.i)):
+            and not any(tempo_estrito(t) in {"past", "ambiguous_past_present"} for t in token.sent if t.i < token.i)):
         return True
     if token.lemma_.casefold() in STATIVE:
+        return True
+    # Comentário do narrador e o que ele afirma nele (“sinto que devo…”).
+    if narrator_frame(token) or any(narrator_frame(a) for a in token.ancestors if tempo_estrito(a) == "present"):
         return True
     # “O que quer que fosse”: locução indefinida, não um verbo no presente da narração.
     if token.lower_ == "quer" and re.search(r"\bque\s*$", prefix, re.I) and re.match(r"quer\s+que\b", tail, re.I):
         return True
     if token.lemma_.casefold() == "poder" and any(
-            c.dep_ == "xcomp" and c.lemma_.casefold() in {"confirmar", "afirmar", "garantir", "dizer", "atestar"}
+            c.dep_ == "xcomp" and c.lemma_.casefold() in ATESTA
             for c in token.children):
         return True
     # Estado posterior expresso por cópula, sem converter progressivos como
@@ -148,14 +155,91 @@ def legitimate_present(token):
     if token.lemma_.casefold() == "estar" and token.dep_ == "cop":
         groups = {}
         for candidate in token.sent:
-            if form(candidate):
+            if tempo_estrito(candidate):
                 groups.setdefault(predicate(candidate).i, []).append(candidate)
         anchor, path = nearest_anchor(root, groups, token.sent)
-        if anchor is not None and form(anchor) == "past" and "conj" in path:
+        if anchor is not None and tempo_estrito(anchor) == "past" and "conj" in path:
             return predicate(anchor).lemma_.casefold() in {
                 "sofrer", "quebrar", "ferir", "machucar", "adoecer", "cair", "morrer",
                 "nascer", "chegar", "perder", "ganhar", "terminar", "concluir", "aposentar"}
     return False
+
+
+# Orações dependentes: relativa, completiva, adverbial, subjetiva.
+DEPENDENT = {"acl:relcl", "acl", "ccomp", "advcl", "csubj"}
+# Modais que, no imperfeito com infinitivo, podem expressar expectativa ou possibilidade, não
+# uma ação passada da cena. ‘Devia’ é quase sempre ‘deveria’ (“deviam atrapalhar”); ‘podia’ divide-se
+# entre ‘poderia’ e a capacidade no passado, por isso só perde confiança. ‘Parecia estar’, ‘queria
+# sair’, ‘precisava ir’ e ‘tinha que’ descrevem aparência, desejo ou necessidade no passado e
+# continuam comparados com a narração.
+MODAL_IMPERFECT = {"dever", "poder"}
+# Introdutores de oração dependente ligados ao verbo dela.
+INTRODUCERS = {"que", "onde", "cujo", "cuja", "cujos", "cujas", "quem", "qual", "quais", "quando", "enquanto",
+               "porque", "embora", "se", "como", "conforme", "caso", "porquanto", "conquanto"}
+
+
+def modal_imperfect(token):
+    """Lema do modal (‘dever’ ou ‘poder’) no imperfeito seguido de infinitivo; senão None."""
+    lemma = lemma_of(token, MODAL_IMPERFECT)
+    # Só o imperfeito do indicativo (“devia”, “podia”); “deveria” é futuro do pretérito.
+    if lemma is None or not IMPERFECT_ENDING.search(token.lower_) or not imperfeito(token):
+        return None
+    following = [t for t in token.doc[token.i + 1:token.i + 4] if not t.is_punct]
+    if following and following[0].lower_ in {"não", "nunca", "mesmo", "até", "também", "bem"}:
+        following = following[1:]
+    return lemma if following and "Inf" in following[0].morph.get("VerbForm") else None
+
+
+def introduced(clause):
+    """A oração tem introdutor próprio: subordinante (mark) ou relativo ligado ao verbo dela."""
+    return any(c.dep_ == "mark" or "Rel" in c.morph.get("PronType") or c.lower_ in INTRODUCERS
+               for c in clause.children if c.i < clause.i)
+
+
+def misattached(conjunct):
+    """Verbo finito coordenado pela análise a um infinitivo, gerúndio ou subjuntivo: o modelo o
+    pendurou na oração errada (“abaixa para pegar a moeda, mas não encontrou nada”); a coordenação
+    verdadeira é com a linha principal."""
+    head = conjunct.head
+    finite_conjunct = certamente_verbo(conjunct) and "Sub" not in conjunct.morph.get("Mood")
+    return finite_conjunct and (bool(set(head.morph.get("VerbForm")) & {"Inf", "Ger"}) or "Sub" in head.morph.get("Mood"))
+
+
+def dependent_clause(token):
+    """O predicado de `token` está numa oração dependente (relativa, completiva ou adverbial) com
+    introdutor próprio. O rótulo da árvore sozinho não basta: o modelo pendura verbos principais em
+    adjetivos, particípios e infinitivos. ‘Enquanto’ fica de fora: liga ações simultâneas, e o
+    passado ali continua comparável com a oração principal."""
+    walk = predicate(token)
+    while walk.head != walk:
+        markers = {c.lower_ for c in walk.children if c.dep_ in {"mark", "advmod"}}
+        if "enquanto" in markers:
+            return False
+        if walk.dep_ == "conj" and misattached(walk):
+            return False
+        if walk.dep_ in DEPENDENT and introduced(walk):
+            return True
+        walk = walk.head
+    return False
+
+
+def past_plane(token):
+    """Plano de um passado numa narração no presente.
+
+    “anterior”: fato anterior ao momento narrado ou expectativa, legítimo — mais-que-perfeito
+    composto, perfeito em oração dependente (“o rapaz que encontrou na festa”, “descobre que foi
+    ali que…”) e ‘devia’ + infinitivo. “incerto”: imperfeito em oração dependente (estado anterior
+    ou ação simultânea à cena, que pediria o presente: “por onde passava”) e ‘podia’ + infinitivo.
+    None: passado da linha principal (“abre a porta e caminhou”), comparado com a narração.
+    """
+    if mais_que_perfeito_composto(token):
+        return "anterior"
+    modal = modal_imperfect(token)
+    if modal:
+        return "anterior" if modal == "dever" else "incerto"
+    if dependent_clause(token):
+        return "incerto" if imperfeito(token) else "anterior"
+    return None
 
 
 def bounded_interval(root):
@@ -208,13 +292,15 @@ def temporal_alert(block, offset, anchor, target, subtype, reason, severity, con
                   severity=severity, confidence="alta" if confidence >= .85 else "média" if confidence >= .6 else "baixa",
                   confidence_score=confidence, suggestion=suggestion, suggestion_kind="possible",
                   related=[evidence(block, offset + anchor.idx, offset + anchor.idx + len(anchor.text))],
-                  temporal_evidence={"anchor": anchor.text, "anchor_form": form(anchor),
-                                     "target": target.text, "target_form": form(target)})
+                  temporal_evidence={"anchor": anchor.text, "anchor_form": tempo_estrito(anchor),
+                                     "target": target.text, "target_form": tempo_estrito(target)})
     return result
 
 
-IMPERFECT_SUBJUNCTIVE = re.compile(r"sse(?:s|m|mos|is)?$")
-CONDITIONAL_ENDING = re.compile(r"r(?:ia|ias|íamos|íeis|iam)$")
+# Relações desativadas (Fase 7b): a implementação fica, mas não são emitidas na análise.
+# `coordinated_past_present` acertou 2 de 7 decisões reais; a geração nova cobre a sequência.
+DESATIVADAS = frozenset({"coordinated_past_present"})
+
 # Precedência entre alertas do mesmo verbo: o mais específico prevalece.
 PRECEDENCE = ("conditional_tense_mismatch", "modal_mood_mismatch", "coordinated_tense_mismatch", "past_present_past",
               "same_subject_narrative_shift", "local_narrative_tense_shift")
@@ -224,12 +310,12 @@ def clause_tense(token):
     """Tempo da principal de uma condicional: futuro do pretérito pela terminação confirmada no
     léxico (o modelo lê “morreria” como adjetivo), senão futuro ou presente do indicativo."""
     word, value = token.text.casefold(), flags(token.text)
-    if CONDITIONAL_ENDING.search(word) and value & FINITE and not value & (PAST | PRESENT | FUTURE):
+    if TERMINACAO_CONDICIONAL.search(word) and value & FINITE and not value & (PAST | PRESENT | FUTURE):
         return "conditional"
-    tense = form(token)
+    tense = tempo_estrito(token)
     if tense in {"future", "present"}:
         return tense
-    return event_tense(token) if event_tense(token) == "present" else None
+    return tempo_recuperado(token) if tempo_recuperado(token) == "present" else None
 
 
 def conditionals(block, offset, doc):
@@ -244,16 +330,16 @@ def conditionals(block, offset, doc):
         walk = main
         reported = False
         while walk.head != walk:
-            if walk.dep_ in {"ccomp", "xcomp"} and walk.head.lemma_.casefold() in REPORTING:
+            if walk.dep_ in {"ccomp", "xcomp"} and walk.head.lemma_.casefold() in RELATO:
                 reported = True
             walk = walk.head
         if reported:
             continue
         word = sub.text.casefold()
-        if IMPERFECT_SUBJUNCTIVE.search(word) and flags(word) & FINITE:
+        if TERMINACAO_IMPERFEITO_SUBJUNTIVO.search(word) and flags(word) & FINITE:
             condition, expected = "imperfeito do subjuntivo", "conditional"
         # Depois de ‘se’, a forma igual ao infinitivo (“se isso acertar”) é o futuro do subjuntivo.
-        elif (("Sub" in sub.morph.get("Mood") and "Fut" in sub.morph.get("Tense")) or form(sub) == "present"
+        elif (("Sub" in sub.morph.get("Mood") and "Fut" in sub.morph.get("Tense")) or tempo_estrito(sub) == "present"
               or ("Inf" in sub.morph.get("VerbForm") and not sub.morph.get("Mood"))):
             condition, expected = "presente ou futuro do subjuntivo", "present_future"
         else:
@@ -262,14 +348,16 @@ def conditionals(block, offset, doc):
         if found is None:
             continue
         if expected == "conditional" and found in {"future", "present"}:
-            usual = "o futuro do pretérito (“…ria”)"
+            simple = (f"A condição ‘se … {sub.text}’ é uma hipótese, que costuma vir com verbos como ‘seria’ ou "
+                      f"‘conseguiria’. ‘{main.text}’ não está nessa forma.")
         elif expected == "present_future" and found == "conditional":
-            usual = "o presente ou o futuro"
+            simple = (f"A condição ‘se … {sub.text}’ fala de algo possível, que costuma vir com verbos como ‘é’ ou "
+                      f"‘vai ser’. ‘{main.text}’ está na forma de hipótese (‘…ria’).")
         else:
             continue
-        reason = (f"A condição ‘{sub.text}’ está no {condition}; com ela, a consequência costuma ficar n{usual}, "
-                  f"mas ‘{main.text}’ não está nesse tempo. Confira se a condição e a consequência estão no mesmo "
-                  "plano (hipótese possível ou irreal). Discurso indireto e efeitos de estilo podem justificar a mistura.")
+        reason = explicar(simple + " Confira se a condição e o resultado combinam. Em falas relatadas ou por estilo, "
+                          "a mistura pode ser intencional.",
+                          f"correlação de tempos na condicional (condição no {condition})")
         out.append(temporal_alert(block, offset, sub, main, "conditional_tense_mismatch", reason, "probable_error", .86))
     return out
 
@@ -294,8 +382,9 @@ def modality(block, offset, doc):
                 or any(t.lower_ in {"se", "que"} for t in clause[:clause.index(verb)])
                 or any(c.dep_ == "advcl" and any(m.lower_ == "se" for m in c.children) for c in verb.children)):
             continue
-        reason = (f"Com ‘talvez’ antes do verbo, a dúvida costuma pedir o subjuntivo; ‘{verb.text}’ está no futuro "
-                  "do pretérito. Confira se a forma do subjuntivo (“…sse”) expressa melhor a possibilidade.")
+        reason = explicar(f"Com ‘talvez’ antes do verbo, a dúvida costuma usar a forma terminada em ‘…sse’ (‘talvez "
+                          f"ajudasse’). ‘{verb.text}’ está na forma ‘…ria’. Confira qual você quis dizer.",
+                          "modo verbal com ‘talvez’ (subjuntivo × futuro do pretérito)")
         out.append(temporal_alert(block, offset, adverb, verb, "modal_mood_mismatch", reason, "editorial_attention", .7))
     return out
 
@@ -305,17 +394,17 @@ def relations(block, offset, doc):
     for sentence in doc.sents:
         groups = {}
         for token in sentence:
-            if form(token):
+            if tempo_estrito(token):
                 groups.setdefault(predicate(token).i, []).append(token)
         for target in sentence:
-            target_form = form(target)
+            target_form = tempo_estrito(target)
             if target_form not in {"future", "present", "ambiguous_past_present"}:
                 continue
             root = predicate(target)
             anchor, path = nearest_anchor(root, groups, sentence)
             if anchor is None or explicit_shift(root) or legitimate_present(target):
                 continue
-            anchor_form = form(anchor)
+            anchor_form = tempo_estrito(anchor)
             between = doc[min(anchor.i, target.i):max(anchor.i, target.i)].text
             if any(c in between for c in (";", ":", "\n")):
                 continue
@@ -333,10 +422,10 @@ def relations(block, offset, doc):
                         contracted = forms.get(target.lower_)
                         if contracted:
                             proposal, last = match_case(contracted, target.text), following
-                reason = (f"‘{anchor.text}’ estabelece uma hipótese ou projeção no futuro do pretérito; "
-                          f"‘{target.text}’, em oração dependente, está no futuro do presente. "
-                          "Se as duas ações compartilham a mesma projeção temporal, confira a uniformidade. "
-                          "Uma referência futura própria pode justificar a alternância.")
+                reason = explicar(f"‘{anchor.text}’ fala de uma hipótese (forma ‘…ria’), mas ‘{target.text}’, ligado a "
+                                  "ele, está no futuro comum (‘…rá’). Quando as duas coisas fazem parte da mesma hipótese, "
+                                  "costumam usar a mesma forma. Se a segunda for um futuro de verdade, está certo.",
+                                  "futuro do pretérito × futuro do presente")
                 out.append(temporal_alert(block, offset, anchor, target, "conditional_future", reason,
                                           "probable_error", .82, proposal, last))
                 continue
@@ -345,25 +434,32 @@ def relations(block, offset, doc):
             if (anchor_form == "past" and simultaneous
                     and anchor.lemma_.casefold() not in STATIVE and target.lemma_.casefold() not in STATIVE):
                 if target_form == "present":
-                    reason = (f"‘{anchor.text}’ situa a ação no passado, enquanto ‘{target.text}’ está no presente. "
-                              "O conectivo ‘enquanto’ pode ligar ações simultâneas: se esse for o sentido, "
-                              "confira o tempo da oração subordinada. Uso contrastivo e mudança deliberada de perspectiva são possíveis.")
+                    reason = explicar(f"‘{anchor.text}’ está no passado e ‘{target.text}’ está no presente. Se o ‘enquanto’ "
+                                      "indica que as duas coisas aconteceram ao mesmo tempo, costumam ficar no mesmo tempo. "
+                                      "Se for um contraste ou mudança proposital, está certo.",
+                                      "tempo verbal em orações simultâneas")
                     out.append(temporal_alert(block, offset, anchor, target, "simultaneous_present", reason,
                                               "probable_error", .8, imperfect_suggestion(target)))
                 elif target_form == "ambiguous_past_present" and not bounded_interval(root):
-                    reason = (f"‘{target.text}’ admite tanto presente quanto pretérito perfeito; a grafia não decide. "
-                              f"‘{anchor.text}’ está no passado e ‘enquanto’ pode indicar simultaneidade. "
-                              "Confira se a segunda ação descreve um processo em curso, que pode pedir o imperfeito, "
-                              "ou um intervalo concluído, em que o perfeito pode ser legítimo. Não há erro confirmado.")
+                    reason = explicar(f"‘{target.text}’ pode ser presente ou passado; a palavra é igual nos dois. "
+                                      f"‘{anchor.text}’ está no passado, e o ‘enquanto’ indica coisas ao mesmo tempo. Se "
+                                      "a ação ainda estava acontecendo, costuma-se usar a forma ‘…ava’/‘…ia’; se já tinha "
+                                      "terminado, a forma atual pode estar certa. Não há erro confirmado.",
+                                      "pretérito perfeito × imperfeito em orações simultâneas")
                     out.append(temporal_alert(block, offset, anchor, target, "ambiguous_simultaneity", reason,
                                               "editorial_attention", .5))
             elif anchor_form == "past" and target_form == "present" and "conj" in path:
                 # Preserva presentes resultativos e declarações gerais frequentes.
                 if target.lemma_.casefold() in STATIVE:
                     continue
-                reason = (f"A análise liga ‘{target.text}’ (presente) a uma oração coordenada sob ‘{anchor.text}’ (passado). "
-                          "Confira se a descrição continua no mesmo momento ou se passa ao presente do narrador. "
-                          "Consequências que continuam válidas e mudanças intencionais podem justificar a alternância.")
+                # A âncora precisa estar no mesmo nível da coordenação: um passado dentro de relativa ou
+                # subordinada (“a briga que havia tido e percebe…”) e o imperfeito modal (“deviam
+                # atrapalhar, mas é…”) não são o predicado coordenado.
+                if dependent_clause(anchor) or modal_imperfect(anchor):
+                    continue
+                reason = explicar(f"‘{target.text}’ está no presente e vem ligado a ‘{anchor.text}’, que está no passado. "
+                                  "Confira se as duas falam do mesmo momento. Se a segunda for algo que continua valendo "
+                                  "hoje, ou uma mudança proposital, está certo.", "tempo verbal em orações coordenadas")
                 out.append(temporal_alert(block, offset, anchor, target, "coordinated_past_present", reason,
                                           "editorial_attention", .65, imperfect_suggestion(target)))
     return out
@@ -376,9 +472,6 @@ STATE = STATIVE | {"ser", "ter", "haver", "parecer", "viver", "morar", "custar",
                    "lembrar", "recordar", "esquecer", "acreditar", "achar", "imaginar", "duvidar"}
 # Modais com infinitivo (“posso garantir”, “deve haver”): atitude ou possibilidade, não evento.
 MODAL = {"poder", "dever", "precisar", "querer"}
-# Verbos que introduzem conteúdo relatado ou sabido: “explicou que a Terra gira”.
-REPORTING = {"dizer", "explicar", "contar", "afirmar", "saber", "aprender", "ensinar", "descobrir", "lembrar",
-             "perceber", "entender", "ler", "ouvir", "achar", "pensar", "acreditar", "notar", "garantir"}
 HABITUAL_MARKS = {"quando", "se", "sempre", "sempre que", "toda vez que"}
 # Hábito sem conjunção: “durante todo o ano”, “todos os dias”, “normalmente”, “costuma”.
 HABITUAL_WORDS = {"normalmente", "geralmente", "habitualmente", "frequentemente", "costumar"}
@@ -396,87 +489,6 @@ ANAPHORIC = {"ele", "ela", "eles", "elas", "seu", "sua", "seus", "suas", "dele",
              "me", "te", "lhe", "lhes", "meu", "minha", "meus", "minhas", "esse", "essa", "este", "esta",
              "aquele", "aquela", "isso", "aquilo", "nosso", "nossa"}
 ASPECTUAL = {"começar", "voltar", "continuar", "passar", "acabar", "tornar", "pôr", "ficar"}
-
-
-def verbal_para(token):
-    """‘Para’ seguido de “no/na/de/em…” e precedido de nome ou pronome: verbo ‘parar’ no presente."""
-    doc = token.doc
-    return (token.lower_ == "para" and token.i + 1 < len(doc) and doc[token.i + 1].lower_ in DEPOIS_DE_PARAR
-            and token.i > 0 and doc[token.i - 1].pos_ in {"NOUN", "PROPN", "PRON"})
-
-
-def sole_verb(token):
-    """Único candidato a verbo da frase, abrindo-a (sujeito elíptico: “Aponto para o mapa”) ou
-    logo depois do grupo nominal que a abre (“O relógio da sala demora a bater”): a frase precisa
-    de um verbo e só ele pode sê-lo, mesmo sem objeto e com leitura nominal no léxico. O grupo
-    nominal vale pela forma, não pelo rótulo do modelo, que às vezes faz do nome a raiz e do verbo
-    um adjetivo. Palavra sozinha na frase (“Nada.”) fica de fora: sem complemento, a leitura
-    nominal prevalece."""
-    lex = flags(token.text)
-    if not token.is_alpha or not lex & PRESENT or lex & (PAST | FUTURE | NONFINITE):
-        return False
-    # Palavra gramatical que o léxico também lista como verbo (“Aquela”, “Apenas”, “Pelo”, “dele”).
-    if token.pos_ in {"DET", "PRON", "ADP", "ADV", "CCONJ", "SCONJ", "NUM", "PUNCT"}:
-        return False
-    sent = token.sent
-    first = next((t for t in sent if t.is_alpha), None)
-    previous = token.doc[token.i - 1] if token.i > sent.start else None
-    after_subject = (previous is not None and previous.pos_ in {"NOUN", "PROPN", "PRON"}
-                     and all(t.pos_ in {"DET", "ADJ", "NUM"} for t in token.doc[sent.start:previous.i]))
-    return ((token == first or after_subject)
-            and any(t.is_alpha for t in token.doc[token.i + 1:sent.end])
-            and not any(finite(t) or form(t) for t in sent if t.i != token.i))
-
-
-def event_tense(token):
-    """Passado ou presente de um predicado finito, combinando modelo, léxico e sintaxe.
-
-    O modelo às vezes etiqueta o verbo como adjetivo (“Ela segura a mochila”) ou como
-    verbo sem morfologia (“e solta o peixe”). Com o léxico admitindo a forma finita, o
-    modelo sem leitura não finita e um objeto ligado (particípio sem auxiliar não toma
-    objeto), a leitura verbal é aceita. Formas ambíguas não decidem.
-    """
-    # Logo depois de preposição só cabe infinitivo ou nome (“em volta dele”, “de volta”).
-    if token.i > 0 and token.doc[token.i - 1].pos_ == "ADP" and token.lower_ != "para":
-        return None
-    value = form(token)
-    if value in {"past", "present"}:
-        return value
-    if verbal_para(token):
-        return "present"
-    word, lemma = token.text.casefold(), token.lemma_.casefold()
-    # “vira” = presente de ‘virar’ ou mais-que-perfeito de ‘ver’: o lema do modelo decide. Com
-    # lema em -ar cuja 3ª pessoa do presente é a própria palavra, é presente (o mais-que-perfeito
-    # de ‘virar’ seria “virara”), mesmo que a etiqueta de tempo diga outra coisa.
-    if (value == "ambiguous_past_present" and lemma.endswith("ar")
-            and word in {lemma[:-2] + "a", lemma[:-2] + "am"}):
-        return "present"
-    # 1ª do plural igual no presente e no perfeito (“passamos”, “chegamos”, “saímos”): só é
-    # analisada numa narração no passado, onde o perfeito é a leitura natural. Serve de âncora,
-    # nunca de alvo.
-    if value == "ambiguous_past_present" and re.search(r"(?:a|e|i|í)mos$", word):
-        return "past"
-    lex = flags(token.text)
-    verb_form = token.morph.get("VerbForm")
-    # Forma só verbal e finita no léxico (“Abri”, “Procuro”, “escorrem”): prevalece sobre a
-    # etiqueta do modelo (nome, adjetivo ou até infinitivo). Só no início da frase, na raiz ou
-    # no verbo pendurado na raiz nominal, onde o modelo erra; o léxico não lista todo substantivo.
-    only_finite = bool(lex & FINITE) and not lex & (NONVERB | NONFINITE)
-    if value is not None or not lex & FINITE or (verb_form and "Fin" not in verb_form and not only_finite):
-        return None
-    first = next((t for t in token.sent if t.is_alpha), None)
-    exclusive = only_finite and (token == first or token.dep_ == "ROOT"
-                                 or (token.dep_ == "acl" and token.head.dep_ == "ROOT"))
-    if not exclusive and not sole_verb(token):
-        if not any(c.dep_ in {"obj", "iobj"} for c in token.children):
-            return None
-        if not (finite(token) or token.pos_ == "VERB"):
-            return None
-    if lex & PRESENT and not lex & (PAST | FUTURE):
-        return "present"
-    if lex & PAST and not lex & (PRESENT | FUTURE):
-        return "past"
-    return None
 
 
 def lemma_of(token, verbs):
@@ -541,7 +553,7 @@ def present_function(token):
         return "narrator_comment"
     walk = root
     while walk.head != walk:
-        if walk.dep_ in {"ccomp", "csubj", "acl:relcl", "acl", "advcl", "xcomp"} and walk.head.lemma_.casefold() in REPORTING:
+        if walk.dep_ in {"ccomp", "csubj", "acl:relcl", "acl", "advcl", "xcomp"} and walk.head.lemma_.casefold() in RELATO:
             return "general_truth"
         walk = walk.head
     # Consequência de uma condição (“Se eu parar, vou cair”): hipótese, não ação da cena.
@@ -551,9 +563,9 @@ def present_function(token):
     # ‘quando’ como mark ou advmod; a oração principal não pode estar no passado.
     def habitual(clause):
         return bool({m.lower_ for m in clause.children if m.dep_ in {"mark", "advmod"}} & HABITUAL_MARKS)
-    if root.dep_ in {"advcl", "ccomp"} and habitual(root) and event_tense(root.head) != "past":
+    if root.dep_ in {"advcl", "ccomp"} and habitual(root) and tempo_recuperado(root.head) != "past":
         return "general_truth"
-    if any(c.dep_ in {"advcl", "ccomp"} and habitual(c) and event_tense(c) == "present" for c in root.children):
+    if any(c.dep_ in {"advcl", "ccomp"} and habitual(c) and tempo_recuperado(c) == "present" for c in root.children):
         return "general_truth"
     clause_text = " ".join(t.text for t in own_clause(root))
     if (HABITUAL_TIME.search(clause_text) or {t.lower_ for t in own_clause(root)} & HABITUAL_WORDS
@@ -650,9 +662,6 @@ def anchored(token):
     return bool(words & (INDEFINITE | ANAPHORIC)) or preposed or "1" in person or "2" in person or aspectual
 
 
-# Parágrafo que abre com hífen ou travessão e espaço: fala, mesmo quando a marcação de
-# diálogo configurada é outra. Fica fora da sequência narrativa.
-SPEECH_OPENING = re.compile(r"^\s*[-–—]\s")
 
 
 def events(block, offset, doc, nlp, sentence_base, trace=None):
@@ -661,7 +670,9 @@ def events(block, offset, doc, nlp, sentence_base, trace=None):
     `trace` (lista, só para depuração): recebe cada forma finita no presente descartada, com o motivo.
     """
     out = []
-    if SPEECH_OPENING.match(block.text):
+    # Parágrafo que abre com hífen ou travessão e espaço: fala, mesmo quando a marcação de
+    # diálogo configurada é outra. Fica fora da sequência narrativa.
+    if abre_fala(block.text, exige_espaco=True):
         if trace is not None:
             trace.append({"block": block.number, "token": block.text[:20], "discard_reason": "parágrafo de fala"})
         events.verbal = 0
@@ -676,7 +687,7 @@ def events(block, offset, doc, nlp, sentence_base, trace=None):
         # Só quando a leitura original não reconhece a primeira palavra como evento: em minúscula
         # o modelo às vezes acerta (“procura”), às vezes piora (“Fico” vira advérbio).
         if (first is not None and first.text[:1].isupper() and flags(first.text) & FINITE
-                and (event_tense(first) is None or predicate(first).dep_ not in MAIN_LINE)):
+                and (tempo_recuperado(first) is None or predicate(first).dep_ not in MAIN_LINE)):
             start = first.idx - sentence.start_char
             text = sentence.text
             tokens = nlp(text[:start] + text[start].lower() + text[start + 1:])
@@ -684,14 +695,14 @@ def events(block, offset, doc, nlp, sentence_base, trace=None):
         question = asks(sentence)
         opener = next((t for t in tokens if t.is_alpha), None)
         for token in tokens:
-            tense = event_tense(token)
+            tense = tempo_recuperado(token)
             head = predicate(token)
             # “Alguns livros ainda caem”: o modelo pendura o verbo no nome (acl) da raiz nominal.
             # Perífrase em que o modelo pôs o gerúndio ou infinitivo como raiz (“Fico olhando…”): a forma
             # finita que abre a frase é o auxiliar da linha principal.
             periphrasis = (token == opener and head.dep_ != "ROOT" and head.head.dep_ == "ROOT"
                            and set(head.head.morph.get("VerbForm")) & {"Ger", "Inf"})
-            main = head.dep_ in MAIN_LINE or verbal_para(token) or periphrasis or sole_verb(token) or (head.dep_ == "acl" and head.head.dep_ == "ROOT"
+            main = head.dep_ in MAIN_LINE or para_como_verbo(token) or periphrasis or verbo_unico_da_frase(token) or (head.dep_ == "acl" and head.head.dep_ == "ROOT"
                                               and head.head.pos_ in {"NOUN", "PROPN"}
                                               and not any(c.lower_ in {"que", "onde", "cujo", "cuja"} for c in head.children))
             # O auxiliar finito de uma locução (“estava observando”) dá o tempo ao predicado.
@@ -711,7 +722,7 @@ def events(block, offset, doc, nlp, sentence_base, trace=None):
                         "subject": subject_key(token), "subject_gn": subject_features(token), "anchored": anchored(token),
                         "person": ("".join(token.morph.get("Person")), "".join(token.morph.get("Number"))),
                         "sentence": sentence_base + index})
-        if len(out) > before_count or any(finite(t) for t in sentence):
+        if len(out) > before_count or any(certamente_verbo(t) for t in sentence):
             verbal += 1
     events.verbal = verbal
     return out
@@ -751,26 +762,27 @@ def surface_coordination(block, offset, doc):
     out = []
     for token in doc:
         lex = flags(token.text)
-        if (not token.is_alpha or event_tense(token) is not None or not lex & FINITE or not lex & PRESENT
+        if (not token.is_alpha or tempo_recuperado(token) is not None or not lex & FINITE or not lex & PRESENT
                 or lex & (PAST | FUTURE) or token.i == 0 or token.i + 2 >= len(doc)):
             continue
         subject, nxt = doc[token.i - 1], doc[token.i + 1]
         # O “sujeito” não pode ser forma verbal (“Virei para…”); ‘para’ só pelo critério próprio.
         if (subject.pos_ not in {"NOUN", "PROPN", "PRON"} or nxt.pos_ != "DET" or flags(subject.text) & FINITE
-                or (token.lower_ == "para" and not verbal_para(token))):
+                or (token.lower_ == "para" and not para_como_verbo(token))):
             continue
         for k in range(token.i + 2, min(len(doc) - 1, token.i + 9)):
             if doc[k].is_punct or doc[k].sent != token.sent:
                 break
             if doc[k].lower_ in {"e", "mas"}:
                 verb = doc[k + 1]
-                if event_tense(verb) == "past" and not any(c.dep_.startswith("nsubj") and c.i < verb.i for c in verb.children):
+                if tempo_recuperado(verb) == "past" and not any(c.dep_.startswith("nsubj") and c.i < verb.i for c in verb.children):
                     def ev(t):
                         return {"block": block, "start": offset + t.idx, "end": offset + t.idx + len(t.text), "token": t,
                                 "text": block.text[offset + t.idx:offset + t.idx + len(t.text)], "function": "narrative_event"}
-                    reason = (f"‘{ev(token)['text']}’ (presente) e ‘{ev(verb)['text']}’ (passado) parecem ações coordenadas do mesmo "
-                              "sujeito. A análise sintática desta frase é incerta; confira se as duas ações deveriam estar no "
-                              "mesmo tempo.")
+                    reason = explicar(f"‘{ev(token)['text']}’ está no presente e ‘{ev(verb)['text']}’ está no passado, "
+                                      "parecendo duas ações seguidas da mesma pessoa. A leitura desta frase é incerta; "
+                                      "confira se as duas deveriam estar no mesmo tempo.",
+                                      "tempo verbal em ações coordenadas")
                     state = {"state": "unknown", "score": {"past": 0.0, "present": 0.0, "other": 0.0}, "verbs": [], "following": [ev(verb)["text"]]}
                     alert = sequence_alert(ev(token), [ev(verb)], "coordinated_tense_mismatch", reason, .75, state, True)
                     alert["temporal_evidence"]["surface"] = True
@@ -852,15 +864,15 @@ def sequence(evts, trace=None):
         # não a pessoa da morfologia do modelo (que erra na 1ª pessoa sem sujeito).
         linked = [e for e in coordinated if e["subject"] == event["subject"]]
         if linked:
-            reason = (f"‘{event['text']}’ (presente) e ‘{linked[0]['text']}’ (passado) são ações coordenadas do mesmo "
-                      "sujeito, na mesma sequência. Provável inconsistência de tempo verbal: confira se as duas "
-                      "ações deveriam estar no mesmo tempo.")
+            reason = explicar(f"‘{event['text']}’ está no presente e ‘{linked[0]['text']}’ está no passado, mas são duas "
+                              "ações seguidas da mesma pessoa. Provavelmente deveriam estar no mesmo tempo.",
+                              "tempo verbal em ações coordenadas")
             out.append(sequence_alert(event, linked, "coordinated_tense_mismatch", reason, .88, state, True))
             continue
         if coordinated:
-            reason = (f"‘{event['text']}’ (presente) e ‘{coordinated[0]['text']}’ (passado) estão em orações coordenadas "
-                      "do mesmo momento narrativo, com sujeitos diferentes. Possível inconsistência de tempo verbal; "
-                      "confira se as duas orações deveriam estar no mesmo tempo.")
+            reason = explicar(f"‘{event['text']}’ está no presente e ‘{coordinated[0]['text']}’ está no passado, no mesmo "
+                              "momento da história, com pessoas diferentes. Confira se deveriam estar no mesmo tempo.",
+                              "tempo verbal em orações coordenadas")
             out.append(sequence_alert(event, coordinated, "coordinated_tense_mismatch", reason, .72, state, False))
             continue
         previous = before[-1] if before else None
@@ -868,9 +880,9 @@ def sequence(evts, trace=None):
         if (previous and following and previous["tense"] == "past" and following["tense"] == "past"
                 and previous["sentence"] < event["sentence"] < following["sentence"]
                 and (compatible(previous, event) or compatible(following, event))):
-            reason = (f"Provável inconsistência de tempo verbal: ‘{event['text']}’, uma ação no presente, aparece entre "
-                      f"‘{previous['text']}’ e ‘{following['text']}’, narradas no passado, no mesmo plano "
-                      "narrativo e sem marca de fala, pensamento ou mudança deliberada de tempo.")
+            reason = explicar(f"‘{event['text']}’ está no presente, mas fica entre ‘{previous['text']}’ e "
+                              f"‘{following['text']}’, que estão no passado, na mesma cena e sem ser fala ou pensamento. "
+                              "Provavelmente deveria estar no passado também.", "tempo verbal na sequência narrativa")
             out.append(sequence_alert(event, [previous, following], "past_present_past", reason, .9, state,
                                       compatible(previous, event)))
             continue
@@ -880,9 +892,9 @@ def sequence(evts, trace=None):
             nxt = following if following and following["sentence"] == event["sentence"] + 1 else None
             marker = nxt is not None and any(t.lower_ in SEQUENCE_MARKERS for t in nxt["token"].sent[:3])
             if nxt and nxt["tense"] == "past" and (compatible(nxt, event) or marker) and (event["anchored"] or event["subject"] is None or marker or compatible(nxt, event)):
-                reason = (f"‘{event['text']}’ está no presente, mas a ação seguinte da mesma sequência, "
-                          f"‘{nxt['text']}’, está no passado. Possível inconsistência de tempo verbal; confira se a "
-                          "sequência deveria estar toda no mesmo tempo.")
+                reason = explicar(f"‘{event['text']}’ está no presente, mas a ação seguinte, ‘{nxt['text']}’, está no "
+                                  "passado. Confira se a sequência deveria estar toda no mesmo tempo.",
+                                  "tempo verbal na sequência narrativa")
                 # Evidência real: estado anterior (ou “unknown”) e o passado que confirma depois.
                 out.append(sequence_alert(event, [nxt], "local_narrative_tense_shift", reason, .72,
                                           dict(state, following=[nxt["text"]]), compatible(nxt, event)))
@@ -914,9 +926,9 @@ def sequence(evts, trace=None):
         if len(chain) >= 2 or single:
             explicit = event["subject"] is not None
             confidence = (.75 if single else .85 if explicit or adjacent else .75) - (.15 if continues else 0)
-            reason = (f"As ações anteriores do mesmo sujeito estão no passado ({', '.join(e['text'] for e in chain)}); "
-                      f"‘{event['text']}’ passa ao presente sem marca de mudança de plano. Provável inconsistência de "
-                      "tempo verbal; confira se a mudança é intencional.")
+            reason = explicar(f"As ações anteriores da mesma pessoa estão no passado ({', '.join(e['text'] for e in chain)}), "
+                              f"e ‘{event['text']}’ passa para o presente sem nada que indique a mudança. Confira se foi "
+                              "intencional.", "tempo verbal na sequência narrativa")
             out.append(sequence_alert(event, chain, "same_subject_narrative_shift", reason, confidence, state, True))
             continue
         chain = earlier[-3:]
@@ -925,9 +937,9 @@ def sequence(evts, trace=None):
         if not event["anchored"] or chain[-1]["sentence"] < event["sentence"] - 2:
             note(event, "outro sujeito sem âncora na cena" if not event["anchored"] else "último passado distante", state)
         if event["anchored"] and chain[-1]["sentence"] >= event["sentence"] - 2:
-            reason = (f"A cena vem sendo narrada no passado ({', '.join(state['verbs'])}); ‘{event['text']}’, uma ação de "
-                      "outro sujeito na mesma cena, está no presente. Possível mudança de plano temporal; confira "
-                      "se o uso do presente é intencional.")
+            reason = explicar(f"A cena vem sendo contada no passado ({', '.join(state['verbs'])}), e ‘{event['text']}’, "
+                              "uma ação de outra pessoa na mesma cena, está no presente. Confira se foi intencional.",
+                              "tempo verbal na sequência narrativa")
             out.append(sequence_alert(event, chain, "local_narrative_tense_shift", reason, .7 - (.1 if continues else 0),
                                       state, False))
     return out
@@ -969,9 +981,9 @@ def accents(block, offset, doc, expected_tense):
             proposals = accent_candidates(token.text)
             if len(proposals) != 1:
                 continue
-            reason = (f"No eixo passado configurado/inferido, ‘{proposals[0]}’ é uma leitura possível deste predicado. "
-                      f"O léxico confirma essa forma acentuada; ‘{token.text}’ pode ter outro uso ou uma análise incerta. "
-                      "Confira o modo verbal e a intenção antes de alterar a acentuação.")
+            reason = explicar(f"Numa história contada no passado, aqui pode caber ‘{proposals[0]}’, com acento (como em "
+                              f"‘caía’, ‘saía’). Sem acento, ‘{token.text}’ é outra forma do verbo. Confira qual você quis "
+                              "dizer.", "acentuação de verbos no imperfeito")
             result = asdict(finding(block, "Acentuação verbal no contexto", "Verificar", offset + token.idx,
                                     offset + token.idx + len(token.text), reason,
                                     "FONTE Morfossintático · acentuacao_contextual"))
@@ -983,13 +995,16 @@ def accents(block, offset, doc, expected_tense):
     return out
 
 
-def analyze(blocks, nlp, settings, expected_tense="auto", trace=None):
+def analyze(blocks, nlp, settings, expected_tense="auto", trace=None, desativadas=DESATIVADAS):
+    """`desativadas`: relações que não são emitidas (padrão: `DESATIVADAS`)."""
     roles = classify(blocks, settings)
     jobs = []
     allowed = set(settings["tense_scopes"] if settings["rules"]["coerencia_temporal"] else [])
     if settings["rules"]["acentuacao_contextual"]:
         allowed.add("narracao")
     for block, labels in zip(blocks, roles):
+        if lista_ou_rotulo(block.text):
+            continue
         for start, end, role in spans(labels, allowed):
             if block.text[start:end].strip():
                 jobs.append((block, start, end, role))
@@ -1019,6 +1034,7 @@ def analyze(blocks, nlp, settings, expected_tense="auto", trace=None):
         if settings["rules"]["acentuacao_contextual"] and role == "narracao":
             out.extend(accents(block, start, doc, expected_tense))
     out.extend(sequence(evts, trace))
+    out = [f for f in out if f.get("relation") not in desativadas]
     # Um alerta por verbo: o mais específico prevalece (PRECEDENCE); relações antigas só ficam
     # onde nenhum detector da lista apontou o mesmo trecho.
     rank = {name: i for i, name in enumerate(PRECEDENCE)}

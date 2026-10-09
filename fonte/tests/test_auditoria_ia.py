@@ -24,7 +24,7 @@ def achado(block, trecho):
     inicio = block.text.index(trecho)
     item = asdict(finding(block, 'Concordância', 'Verificar', inicio, inicio + len(trecho),
                           'Sujeito no plural com verbo no singular.', 'Auditoria · IA (Claude)'))
-    item.update(rule='auditoria_ia', category_code='audit_agreement', severity='editorial_attention',
+    item.update(rule='auditoria_ia', category_code='audit_concordancia', severity='editorial_attention',
                 confidence='média', confidence_score=.6, suggestion='estavam', suggestion_kind='possible')
     return item
 
@@ -155,7 +155,8 @@ class AuditCoreTests(unittest.TestCase):
                 self.assertEqual((f['severity'], f['confidence'], f['confidence_score']), ('editorial_attention', 'média', .6))
                 self.assertEqual((f['suggestion'], f['suggestion_kind'], f['layer']), ('estavam', 'possible', 'linguistica'))
                 self.assertEqual(f['source'], 'Auditoria · IA (Claude)')
-                self.assertEqual(f['reason'], 'Sujeito no plural.')
+                # Linguagem simples e, na linha final, o nome gramatical (do modelo ou o título da categoria).
+                self.assertEqual(f['reason'], 'Sujeito no plural.\n\nNa gramática: concordância.')
                 self.assertEqual(resumo['achados'], {'concordancia': 1})
                 self.assertEqual((resumo['trechos'], resumo['enviados']), (2, 2))
                 self.assertAlmostEqual(resumo['custo_usd'], 0.02)
@@ -194,6 +195,26 @@ class AuditCoreTests(unittest.TestCase):
                 self.assertEqual(out, [])
                 self.assertEqual(resumo['descartes'], {motivo: 1})
 
+    def test_style_repetition_is_discarded_and_accidental_is_kept(self):
+        blocks = livro()
+        blocks[3] = Block(4, 'Marta abriu a a janela. A rua, a rua inteira, estava vazia.', 'Capítulo 1')
+        out, _, resumo, *_ = self.auditar({'ocorrencias': [
+            item(4, 'a a', 'repeticao', sugestao='a', explicacao='A palavra saiu dobrada.'),
+            item(4, 'A rua, a rua inteira', 'repeticao', explicacao='Repetição sem efeito.'),   # estilo
+            item(4, 'estava vazia', 'repeticao', explicacao='Palavra já usada.'),                # estilo
+        ]}, blocks=blocks)
+        self.assertEqual([f['text'][f['start']:f['end']] for f in out], ['a a'])
+        self.assertEqual(resumo['descartes'], {'estilo': 2})
+
+    def test_prompt_forbids_style_and_asks_plain_language(self):
+        from fonte.auditoria_ia import ESQUEMA, SISTEMA
+        self.assertIn('Nunca sugira mudança de estilo', SISTEMA)
+        self.assertIn('linguagem simples', SISTEMA)
+        self.assertIn('termo', ESQUEMA['properties']['ocorrencias']['items']['required'])
+        out, *_ = self.auditar({'ocorrencias': [dict(item(2, 'estava', explicacao='Vários objetos, verbo de um só.'),
+                                                     termo='concordância verbal')]})
+        self.assertEqual(out[0]['reason'], 'Vários objetos, verbo de um só.\n\nNa gramática: concordância verbal.')
+
     def test_repeated_answer_counts_once(self):
         out, _, resumo, *_ = self.auditar({'ocorrencias': [item(2, 'estava'), item(2, 'estava'),
                                                            item(2, 'que estava', 'estrutura_frase')]})
@@ -205,7 +226,8 @@ class AuditCoreTests(unittest.TestCase):
         self.assertEqual(len(out), 1)
 
     def test_repeated_excerpt_uses_first_occurrence_and_says_so(self):
-        out, *_ = self.auditar({'ocorrencias': [item(4, 'rua', 'repeticao', explicacao='Repetição próxima.')]})
+        # Trecho que aparece duas vezes no parágrafo (a categoria não importa; repetição de estilo é descartada).
+        out, *_ = self.auditar({'ocorrencias': [item(4, 'rua', 'ortografia', explicacao='Grafia a conferir.')]})
         f, = out
         self.assertEqual(f['start'], livro()[3].text.index('rua'))
         self.assertIn('“rua”', f['reason'])
@@ -301,8 +323,24 @@ class AuditCoreTests(unittest.TestCase):
                                        mode='editorial', auditoria={'cliente': modelo})
         f, = [f for f in findings if f['module'] == 'audit']
         self.assertEqual((f['excerpt'], f['severity']), ('estava', 'editorial_attention'))
+        # Controle de qualidade: categoria de norma, sem medição, começa como observação.
+        self.assertEqual((f['destino'], f['impeditivo']), ('informacao', False))
         self.assertEqual(meta['stages'][-1]['state'], 'completed')
         self.assertEqual(meta['auditoria_ia']['achados'], {'concordancia': 1})
+
+    def test_audit_is_quality_control_not_a_second_review(self):
+        # Confiança baixa e categorias experimentais vão para o diagnóstico, fora da mesa; nada é impeditivo.
+        modelo = ModeloFalso({'ocorrencias': [item(2, 'estava', confianca='baixa'),
+                                              item(4, 'a rua', 'continuidade_local')]},
+                             {'ocorrencias': [item(6, 'a cliente', 'crase')]})
+        findings, _, meta = run(livro(), Mock(), settings=selected('concordancia', 'crase'),
+                                tense='passado', mode='editorial', auditoria={'cliente': modelo})
+        mesa = {f['excerpt']: f['destino'] for f in findings if f['module'] == 'audit'}
+        diagnostico = {f['excerpt']: f['destino'] for f in meta['diagnostico']}
+        self.assertEqual(mesa, {'a cliente': 'informacao'})
+        self.assertEqual(diagnostico, {'estava': 'diagnostico', 'a rua': 'diagnostico'})
+        self.assertFalse(any(f['impeditivo'] for f in findings + meta['diagnostico']))
+        self.assertEqual(meta['destinos']['diagnostico'], 2)
 
     def test_real_client_request_with_fake_sdk(self):
         # O cliente `Claude` do Coerencia com um SDK falso: pedido válido e custo, sem rede.

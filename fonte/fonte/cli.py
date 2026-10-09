@@ -1,5 +1,5 @@
 import argparse
-from contextlib import nullcontext
+from contextlib import ExitStack, nullcontext
 from datetime import datetime, timezone
 import hashlib
 import json
@@ -192,10 +192,16 @@ def main(argv=None):
         else:
             server = nullcontext(args.porta_lt or 8081)
             origin = "externo" if args.languagetool else None
-        with server as port:
+        with ExitStack() as stack:
+            port, falha = None, None
+            try:
+                port = stack.enter_context(server)
+            except grammar_checker.LanguageToolIndisponivel as exc:
+                # O FONTE segue sem o corretor; o relatório registra a análise parcial.
+                falha = str(exc)
             findings, extra_warnings, metadata = run_pipeline(
                 blocks, load_model, settings=settings, tense=args.tempo, mode=args.modo,
-                original=original_blocks, languagetool=args.languagetool, port=port,
+                original=original_blocks, languagetool=args.languagetool, port=port, languagetool_falha=falha,
                 progress=progress, coerencia=dict(
                     pasta=args.coerencia_projeto.expanduser().resolve(), documento=path.name,
                     modelo=args.coerencia_modelo, teto=args.coerencia_teto, esforco=args.coerencia_esforco)
@@ -214,6 +220,10 @@ def main(argv=None):
             warnings.append("Filtros aplicados antes da busca. Falas/pensamentos são separados pelas marcações configuradas; pensamentos implícitos e diálogos ambíguos podem ser classificados incorretamente. Estrutura e acentuação contextual são verificadas na narração; pontuação duplicada, espaçamento e quê final também em falas/pensamentos. LanguageTool mantém sua proteção própria de falas/itálicos.")
         metadata.update({"languagetool": args.languagetool, "languagetool_origem": origin,
                          "versao_fonte": __version__})
+        parcial = metadata.get("languagetool_status") == "indisponivel"
+        if parcial:
+            # Pedido, mas não executado: o relatório não pode dizer que o corretor rodou.
+            metadata.update(languagetool=False, languagetool_pedido=True, languagetool_origem=None)
         data = {"schema_version": 1, "document": path.name, "sha256": digest,
                 "created": datetime.now(timezone.utc).isoformat(), "metadata": metadata,
                 "warnings": warnings, "findings": findings}
@@ -227,10 +237,14 @@ def main(argv=None):
             output = Path(tempfile.mkdtemp(prefix=path.stem + "-revisao-", dir=path.parent))
         with (output / "relatorio.json").open("x", encoding="utf-8") as handle:
             handle.write(json.dumps(data, ensure_ascii=False, indent=2))
-        print(f"{len(findings)} suspeitas para avaliação humana. Isso não mede a qualidade nem certifica a publicação.")
+        destinos = metadata.get("destinos", {})
+        print(f"{destinos.get('pendencia', len(findings))} pendências ({metadata.get('impeditivos', 0)} impeditivas) e "
+              f"{destinos.get('informacao', 0)} observações para avaliação humana. Isso não mede a qualidade nem "
+              "certifica a publicação.")
         print(f"Relatório: {output / 'relatorio.json'}")
         print("Manuscrito preservado. Corretor gramatical geral: " + (
-            f"LanguageTool local ({origin})" if args.languagetool else "não executado (opcional)"))
+            "INDISPONÍVEL — análise parcial, sem ortografia geral nem boa parte da gramática" if parcial
+            else f"LanguageTool local ({origin})" if args.languagetool else "não executado (opcional)"))
         return 0
     except KeyboardInterrupt:
         print("\nAnálise interrompida. Manuscrito preservado.", file=sys.stderr)

@@ -99,13 +99,8 @@ struct SearchSettingsView: View {
         VStack(alignment: .leading, spacing: 12) {
             heading("Onde procurar")
             group {
-                subheading("Repetições de palavras e frases")
+                subheading("Palavras dobradas e frases repetidas")
                 ForEach(scopes, id: \.0) { key, label in Toggle(label, isOn: scopeBinding(key, tense: false)) }
-                Stepper("Distância máxima: \(store.searchSettings.wordDistance) palavras", value: $store.searchSettings.wordDistance, in: 2...40)
-                Picker("Limite para palavras", selection: $store.searchSettings.repetitionBoundary) {
-                    Text("Mesmo trecho").tag("trecho")
-                    Text("Mesma frase").tag("frase")
-                }.pickerStyle(.menu)
                 Toggle("Comparar frases também entre parágrafos próximos", isOn: $store.searchSettings.duplicateAcrossParagraphs)
                 Picker("Frases repetidas", selection: $store.searchSettings.duplicateSimilarity) {
                     Text("Mesmas palavras").tag(1.0)
@@ -117,7 +112,7 @@ struct SearchSettingsView: View {
             group {
                 subheading("Mudanças de tempo verbal")
                 ForEach(scopes, id: \.0) { key, label in Toggle(label, isOn: scopeBinding(key, tense: true)) }
-                note("Estrutura e pontuação são verificadas na narração. Continuidade e referências usam o contexto; variações de nomes usam o documento inteiro. O corretor gramatical local mantém suas próprias proteções.")
+                note("Estrutura e pontuação são verificadas na narração. Variações de nomes usam o documento inteiro. O corretor gramatical local mantém suas próprias proteções.")
             }
         }.font(LumeFont.ui(13))
     }
@@ -142,7 +137,7 @@ struct SearchSettingsView: View {
                 editor($titlesText, height: 85).onChange(of: titlesText) { store.searchSettings.chapterTitles = lines($0) }
                 Text("Estilos de parágrafo adicionais · um por linha")
                 editor($stylesText, height: 65).onChange(of: stylesText) { store.searchSettings.chapterStyles = lines($0) }
-                Text("Nomes aceitos que não devem gerar alerta de variação · um por linha")
+                Text("Nomes aceitos · nomes e termos da obra (espécies, lugares, poderes) que não geram alerta de grafia nem de variação; o plural vale junto · um por linha")
                 editor($namesText, height: 65).onChange(of: namesText) { store.searchSettings.ignoredNames = lines($0) }
             }
         }.font(LumeFont.ui(13))

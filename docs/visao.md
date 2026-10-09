@@ -6,11 +6,26 @@ O objetivo não é apenas encontrar erros ortográficos ou gramaticais. O Lume d
 
 A filosofia central do projeto é simples:
 
-> **Tudo aquilo que mereceria a atenção de um revisor profissional antes da publicação deve, idealmente, ser apresentado pelo Lume.**
+> **O Lume interrompe o editor só quando há evidência suficiente para justificar a interrupção.**
+>
+> **Poucos alertas. Alta confiança. Alto valor editorial. Um ponto de encerramento claro.**
 
-Isso não significa que toda ocorrência encontrada seja necessariamente um erro. O sistema deve distinguir claramente entre **erro confirmado**, **provável erro**, **atenção editorial** e **consulta ao autor**.
+O objetivo não é tornar impossível encontrar outro erro depois do Lume. É tornar improvável que
+um problema relevante passe despercebido, sem tornar a revisão interminável. **O manuscrito
+precisa poder chegar ao fim.**
 
-O Lume não deve substituir o editor. Ele deve ampliar sua capacidade de leitura e reduzir drasticamente a possibilidade de um problema passar despercebido.
+Um alerta tem custo: o editor para a leitura, procura o contexto, interpreta, decide, registra e,
+se o alerta for ruim, passa a desconfiar dos próximos. Por isso a precisão vale tanto quanto a
+cobertura. Um detector que encontra quase tudo mas produz dezenas de dúvidas inúteis é pior, na
+prática editorial, do que um que encontra um pouco menos e quase nunca interrompe sem razão.
+
+O Lume não promete que nenhum erro restante existe. Ele é uma ferramenta conservadora de
+auditoria editorial: quando ele interrompe, há uma boa razão para olhar. O sistema distingue
+**erro confirmado**, **provável erro**, **atenção editorial**, **possível inconsistência** e
+**consulta ao autor**, e separa o que é pendência do que é só informação (ver
+[Ocorrência, pendência e encerramento](#ocorrência-pendência-e-encerramento)).
+
+O Lume não substitui o editor.
 
 ---
 
@@ -294,45 +309,20 @@ Esse módulo deve funcionar como um **revisor de continuidade**.
 
 # Auditor Final
 
-Depois que os quatro módulos terminarem, o manuscrito deve passar por uma última etapa.
+Depois que os quatro módulos terminarem, o manuscrito pode passar por uma última etapa, opcional.
 
-O Auditor Final não será apenas outro tipo de revisão.
+O Auditor Final é principalmente o **controle de qualidade do próprio Lume**. Ele relê o texto com
+as ocorrências já emitidas e procura o que os módulos deixaram passar, mas nem todo achado dele vira
+trabalho para o editor:
 
-Ele será o **controle de qualidade dos quatro módulos anteriores**.
+- **achados sólidos** (categoria objetiva, trecho conferido, correção mínima) → revisão editorial,
+  nunca como impedimento;
+- **achados fracos ou experimentais** → diagnóstico do motor, para melhoria futura, fora da mesa.
 
-Ele receberá:
-
-- o manuscrito completo;
-- todas as ocorrências já encontradas;
-- o banco de fatos da obra;
-- as análises anteriores;
-- as áreas já consideradas seguras.
-
-Sua missão será:
-
-> **Procure problemas relevantes que os outros módulos deixaram passar.**
-
-O auditor deve evitar repetir ocorrências existentes.
-
-Ele deve procurar apenas novos problemas.
-
-Isso também permitirá medir a qualidade dos módulos.
-
-Por exemplo:
-
-> Módulos principais: 182 ocorrências  
-> Auditor final: 27 novas ocorrências
-
-significa que ainda existem falhas importantes nos módulos.
-
-Já:
-
-> Módulos principais: 182 ocorrências  
-> Auditor final: 2 novas ocorrências
-
-indica que o sistema está amadurecendo.
-
-A meta de longo prazo é fazer com que o Auditor encontre cada vez menos problemas novos.
+O número de achados novos do Auditor não mede a maturidade do Lume. Mede-se quantos achados
+promovidos se confirmaram como erro real. Um achado do Auditor também não cria automaticamente
+uma regra: ele passa pela mesma pergunta de qualquer falso negativo (ver
+[Falsos negativos](#falsos-negativos)).
 
 ---
 
@@ -386,6 +376,66 @@ Exemplo:
 
 Isso é fundamental para evitar um dos problemas encontrados em ferramentas como LanguageTool: transformar decisões estilísticas ou narrativas em “erros gramaticais”.
 
+A severidade diz **que tipo** de problema é. Ela não decide sozinha se o alerta vira trabalho:
+isso é o destino, abaixo.
+
+---
+
+# Ocorrência, pendência e encerramento
+
+Quatro coisas diferentes, que não devem ser confundidas:
+
+1. **Ocorrência detectada:** tudo o que uma etapa encontrou e passou pela conferência do trecho.
+2. **Informação:** ocorrência mostrada de forma recolhida, que não conta como pendência nem pede
+   decisão.
+3. **Pendência editorial:** ocorrência que entra na fila e pede decisão.
+4. **Impedimento:** pendência que precisa de decisão antes de encerrar a revisão.
+
+Há ainda o **diagnóstico**: o que o motor detectou com evidência fraca ou em caráter experimental.
+Fica fora da mesa e serve só para medir e melhorar o Lume.
+
+O destino de cada classe (regra × confiança) vem de uma **política versionada**, calibrada com a
+precisão medida nas decisões reais dos editores. **A confiança é evidência auxiliar; o destino
+editorial é decidido pela política.** Com amostra suficiente, os dados prevalecem sobre o rótulo:
+o diálogo contextual, marcado com confiança baixa, acertou 91% em 32 decisões e continua na fila.
+
+- **Observação:** uma classe com pelo menos 20 decisões e menos de 50% de erro real sai da fila.
+  Esse limiar é um **critério de não-interrupção, não de qualidade**: uma classe com 49% não é
+  “boa”; apenas não é confiável o bastante para interromper o editor, e sua qualidade continua
+  acompanhada pelas métricas. Classes de confiança baixa sem 20 decisões também começam como
+  observação.
+- **Pendência** significa só que a classe ainda merece atenção editorial segundo a política atual.
+  Não é afirmação de que a regra é confiável.
+
+Uma classe só é **impeditiva** se tiver ao mesmo tempo:
+
+- precisão real de 90% ou mais, com pelo menos 20 decisões;
+- natureza objetiva e determinável (crase, homófonos, concordância, pontuação duplicada,
+  espaçamento, construção inválida, quê tônico, acentuação contextual, “que, não” e o corretor
+  ortográfico e gramatical). A natureza objetiva é propriedade da classe, não sinônimo de
+  impeditivo;
+- severidade de erro confirmado ou provável erro.
+
+Precisão e gravidade são dimensões diferentes: classes editoriais, narrativas, de repetição,
+referência, estilo ou continuidade interpretativa nunca são impeditivas, mesmo com precisão alta.
+Uma classe nova começa como informação ou diagnóstico e só sobe com medição em livros reais.
+
+## Revisão concluída
+
+Zero ocorrências não é o critério. Um livro pode estar pronto com construções intencionais, falsos
+positivos decididos, escolhas de estilo aceitas e observações que o editor escolheu não abrir.
+
+O editor pode **encerrar a revisão** quando nenhum impedimento estiver sem decisão. O encerramento
+registra quantas observações e pendências não impeditivas ficaram abertas, a data, a versão do
+motor e a versão da política. O estado final se chama **Revisão concluída**.
+
+O Lume não certifica perfeição, nem “texto sem erros”. Ele certifica que o processo de auditoria
+definido terminou.
+
+Decisões já tomadas (falso positivo, intencional, estilo do autor, aceito editorialmente,
+corrigido) continuam valendo e não deixam o livro “inacabado”. Uma decisão só reabre com evidência
+nova: o parágrafo mudou.
+
 ---
 
 # Preservação da voz do autor
@@ -426,16 +476,15 @@ O Lume deve registrar as decisões do editor.
 
 Quando uma ocorrência for apresentada, o editor poderá marcar, por exemplo:
 
-- Corrigir;
-- Ignorar;
+- Corrigido;
+- Erro confirmado;
 - Falso positivo;
 - Intencional;
-- Consultar autor;
-- Adicionar exceção.
+- Estilo do autor;
+- Aceito editorialmente.
 
-Essas decisões devem poder alimentar o Fonte-Revisor.
-
-Isso permitirá que o sistema melhore ao longo do tempo.
+Essas decisões alimentam a **medição de precisão** de cada classe, que define a política de
+destino. Elas não criam exceções automáticas.
 
 Mas o aprendizado não deve ser cego.
 
@@ -472,9 +521,15 @@ Casos em que o Lume indicou algo que o editor decidiu manter.
 
 Erros reais que o Lume não encontrou.
 
-Esses falsos negativos são especialmente importantes.
+Encontrar um falso negativo **não** significa criar uma regra. A pergunta é:
 
-Exemplos:
+> Este erro pertence a uma classe generalizável, relevante e detectável com boa precisão o
+> bastante para justificar um novo alerta?
+
+Se a resposta for não, o erro fica fora da cobertura automática. Isso não é fracasso; é a
+delimitação responsável do sistema.
+
+Exemplos históricos de falsos negativos que viraram testes:
 
 > luz, que, não era comum
 
@@ -488,7 +543,7 @@ Exemplos:
 
 > as folhas secas caiam
 
-Cada um desses trechos deve virar um teste automático.
+Quando a classe passa pela pergunta acima, o caso vira teste automático, escrito do zero.
 
 Por exemplo:
 
@@ -506,7 +561,7 @@ severidade: probable_error
 
 Antes de uma nova versão do Fonte-Revisor ser distribuída, todos os testes devem ser executados.
 
-Se uma atualização fizer o sistema deixar de detectar um erro que já conseguia encontrar anteriormente, ocorre uma **regressão**.
+Se uma atualização fizer o sistema deixar de detectar um erro que já conseguia encontrar anteriormente, ocorre uma **regressão**. Também é regressão uma atualização que baixa a precisão das pendências: alertas novos que interrompem sem razão.
 
 A versão não deve ser considerada pronta até que isso seja analisado.
 
@@ -628,29 +683,25 @@ Também deve ser possível filtrar por severidade.
 
 ---
 
-# Filosofia de cobertura
+# Precisão antes de cobertura irrestrita
 
-O Lume Mestre deve ter uma filosofia diferente de um corretor convencional.
+Para problemas de evidência fraca, o Lume prefere **não interromper** o editor. Uma dúvida de
+baixa confiança não tem o mesmo peso de um erro objetivo: ela fica como informação, como
+diagnóstico do motor ou não é emitida.
 
-Para problemas de baixa confiança, é preferível:
+O sistema busca reduzir a chance de um problema relevante passar, sem transformar cada frase
+discutível em pendência. A métrica principal é a precisão das pendências (quantas justificavam a
+interrupção), ao lado da cobertura nos erros relevantes, e não a cobertura máxima.
 
-> mostrar uma dúvida claramente identificada como dúvida
+O Lume não deve virar:
 
-do que:
-
-> esconder um possível problema importante.
-
-Porém, isso não significa inundar o usuário de alertas.
-
-Por isso a distinção entre:
-
-- erro;
-- provável erro;
-- atenção;
-- inconsistência;
-- consulta.
-
-O sistema deve procurar **alta cobertura sem perder honestidade sobre a confiança da análise**.
+- um revisor literário opinativo;
+- um detector de qualquer coisa incomum;
+- um gerador de possibilidades;
+- um substituto do editor;
+- uma ferramenta que precise chegar a zero alertas;
+- uma ferramenta que aprende uma regra nova para cada erro isolado encontrado depois;
+- uma máquina otimizada só para a pontuação em corpus sintético.
 
 ---
 
@@ -695,13 +746,13 @@ A visão de longo prazo é que ele consiga dizer:
 
 > “A habilidade foi anteriormente definida como gravidade; aqui aparece como pressão do ar. Verifique se a relação é intencional.”
 
-> “Os quatro revisores não sinalizaram este problema, mas a auditoria final encontrou uma possível inconsistência.”
-
-O objetivo é transformar o Lume em uma ferramenta capaz de realizar uma **primeira leitura editorial extremamente profunda**, deixando para o editor humano principalmente aquilo que realmente exige interpretação, gosto, intenção autoral e decisão editorial.
+O objetivo é uma **primeira leitura editorial confiável**, que deixa para o editor humano aquilo que
+exige interpretação, gosto, intenção autoral e decisão editorial, e que sabe quando terminou.
 
 Em outras palavras:
 
-> **O Lume deve encontrar o problema.  
-> O editor deve decidir o que fazer com ele.**
+> **Quando o Lume interrompe, há uma boa razão para olhar.  
+> O editor decide o que fazer.  
+> E a revisão chega ao fim.**
 
 Essa é a visão central do **Lume como Revisor Mestre**.

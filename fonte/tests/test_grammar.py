@@ -189,23 +189,17 @@ class AgreementTests(unittest.TestCase):
 
 class RegencyAndCommaTests(unittest.TestCase):
     def test_regency_is_attention_not_error(self):
-        found = [f for f in run("O navio chegou no porto ao meio-dia.") if f["rule"] == "regencia"]
-        self.assertEqual(len(found), 1)
-        self.assertEqual(found[0]["severity"], "editorial_attention")
-        self.assertEqual(excerpts(run("O navio chegou na hora certa."), "regencia"), [])
-        self.assertTrue(excerpts(run("O chefe pediu para que todos saíssem."), "regencia"))
+        # Fica só o pronome reto como objeto, como atenção editorial.
+        found = [f for f in run("O vizinho ajudou ela a descer as malas.") if f["rule"] == "regencia"]
+        self.assertEqual([f["severity"] for f in found], ["editorial_attention"])
 
-    def test_chegar_em_is_register_note_without_correction(self):
-        # Uso brasileiro corrente: nota de registro, nunca troca automática.
-        for sentence in ["Meu tio chegava em casa sempre cansado.", "A carta chegou na secretaria ontem."]:
+    def test_colloquial_regency_was_retired(self):
+        # “Chegar em” e “pedir para que” são registro do português brasileiro, não erro: retirados na
+        # Fase 7b (antes, nota de registro sem correção).
+        for sentence in ["Meu tio chegava em casa sempre cansado.", "A carta chegou na secretaria ontem.",
+                         "O navio chegou no porto ao meio-dia.", "O chefe pediu para que todos saíssem."]:
             with self.subTest(sentence=sentence):
-                found, = [f for f in run(sentence) if f["rule"] == "regencia"]
-                self.assertEqual(found["severity"], "editorial_attention")
-                self.assertEqual(found["priority"], "Explorar")
-                self.assertIsNone(found["suggestion"])
-                self.assertIn("amplamente usadas", found["reason"])
-                self.assertIn("registro normativo mais formal", found["reason"])
-                self.assertNotIn("Na norma culta", found["reason"])
+                self.assertEqual(excerpts(run(sentence), "regencia"), [])
 
     def test_subject_pronoun_as_object(self):
         found = [f for f in run("O vizinho ajudou ela a descer as malas.") if f["rule"] == "regencia"]
@@ -253,7 +247,8 @@ class TenseFalseAlarmTests(unittest.TestCase):
         # Parse com substantivo anterior que não é sujeito: só a leitura de
         # adjetivo concordante (minúscula, mesmo gênero e número) é nominal.
         from spacy.tokens import Doc
-        from fonte.lexicon import flags, nominal_context
+        from fonte.lexicon import flags
+        from fonte.verbo import nominal_context
 
         def nominal(words, gender, index=2):
             morph = f"Gender={gender}|Number=Sing"

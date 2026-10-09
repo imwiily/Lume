@@ -2,7 +2,7 @@
   "schema_version": 1,
   "document": "Manuscrito-temporal.docx",
   "sha256": "866f840bcda8c7e15c1224060ff8317aab394f2c4c9b6bc487cbd69d66fd5b2e",
-  "created": "2026-09-30T01:32:15.727107+00:00",
+  "created": "2026-10-07T15:26:58.943259+00:00",
   "metadata": {
     "tempo": "passado",
     "paragrafos": 12,
@@ -13,7 +13,12 @@
       "conditional_future",
       "simultaneous_present",
       "ambiguous_simultaneity",
-      "coordinated_past_present"
+      "coordinated_past_present",
+      "conditional_tense_mismatch",
+      "coordinated_tense_mismatch",
+      "past_present_past",
+      "same_subject_narrative_shift",
+      "local_narrative_tense_shift"
     ],
     "stages": [
       {
@@ -23,7 +28,7 @@
         "finding_count": 2,
         "coverage": "partial",
         "detail": "Padrões determinísticos; pontuação e interrogação também em falas/pensamentos. LanguageTool opcional.",
-        "duration_ms": 3
+        "duration_ms": 2
       },
       {
         "module": "morphosyntactic",
@@ -32,7 +37,7 @@
         "finding_count": 7,
         "coverage": "partial",
         "detail": "Tempo predominante, estrutura, quatro relações temporais locais, acentuação verbal contextual, crase, homófonos, concordância, regência e vírgula entre sujeito e verbo. Cobertura parcial; homógrafos permanecem dúvidas.",
-        "duration_ms": 984
+        "duration_ms": 703
       },
       {
         "module": "editorial",
@@ -54,10 +59,10 @@
       {
         "module": "audit",
         "title": "Auditoria final",
-        "state": "not_implemented",
+        "state": "skipped",
         "finding_count": 0,
-        "coverage": "not_implemented",
-        "detail": "Auditor editorial independente ainda não implementado; nenhuma busca adicional foi realizada."
+        "coverage": "partial",
+        "detail": "Problemas que as etapas anteriores deixaram passar, com a API do Claude; só quando ligada e confirmada. Cobertura parcial."
       }
     ],
     "pipeline_version": 2,
@@ -162,7 +167,10 @@
         "homofonos": true,
         "concordancia": true,
         "regencia": true,
-        "virgula_sujeito_verbo": true
+        "virgula_sujeito_verbo": true,
+        "correlacao_tempos": true,
+        "frase_cortada": true,
+        "locucoes": true
       },
       "tense_scopes": [
         "narracao"
@@ -198,7 +206,7 @@
     ],
     "languagetool": false,
     "languagetool_origem": null,
-    "versao_fonte": "1.0.0"
+    "versao_fonte": "1.4.0"
   },
   "warnings": [
     "Escopo: corpo do documento e tabelas. Cabeçalhos, rodapés, notas, comentários, caixas de texto e imagens não são analisados. A localização usa parágrafos, não páginas.",
@@ -206,7 +214,7 @@
     "Análise editorial experimental: regras locais de duração/adiamento, repetições, grafias próximas de nomes e referências em construções específicas. Não detecta todas as inconsistências nem interpreta o cânone, o registro de personagem ou a causalidade do enredo.",
     "Confiança baixa/média/alta descreve a força do indício da regra, não a probabilidade de existir um erro. Mesmo alertas de confiança alta exigem leitura humana.",
     "As regras de continuidade e referências examinam também falas e itálicos. Repetições seguem as áreas de busca configuradas.",
-    "Auditoria editorial independente ainda não implementada. Etapa concluída significa apenas que as regras disponíveis terminaram.",
+    "Etapa concluída significa apenas que as regras disponíveis terminaram; a cobertura continua parcial.",
     "Filtros aplicados antes da busca. Falas/pensamentos são separados pelas marcações configuradas; pensamentos implícitos e diálogos ambíguos podem ser classificados incorretamente. Estrutura e acentuação contextual são verificadas na narração; pontuação duplicada, espaçamento e quê final também em falas/pensamentos. LanguageTool mantém sua proteção própria de falas/itálicos."
   ],
   "findings": [
@@ -219,7 +227,7 @@
       "text": "O artesão fabricaria um vaso que receberá pinturas.",
       "start": 33,
       "end": 41,
-      "reason": "‘fabricaria’ estabelece uma hipótese ou projeção no futuro do pretérito; ‘receberá’, em oração dependente, está no futuro do presente. Se as duas ações compartilham a mesma projeção temporal, confira a uniformidade. Uma referência futura própria pode justificar a alternância.",
+      "reason": "‘fabricaria’ fala de uma hipótese (forma ‘…ria’), mas ‘receberá’, ligado a ele, está no futuro comum (‘…rá’). Quando as duas coisas fazem parte da mesma hipótese, costumam usar a mesma forma. Se a segunda for um futuro de verdade, está certo.\n\nNa gramática: futuro do pretérito × futuro do presente.",
       "source": "FONTE Morfossintático · conditional_future",
       "rule": "coerencia_temporal",
       "category_code": "temporal_consistency",
@@ -257,7 +265,7 @@
         "end": 52
       },
       "excerpt": "receberá",
-      "message": "‘fabricaria’ estabelece uma hipótese ou projeção no futuro do pretérito; ‘receberá’, em oração dependente, está no futuro do presente. Se as duas ações compartilham a mesma projeção temporal, confira a uniformidade. Uma referência futura própria pode justificar a alternância.",
+      "message": "‘fabricaria’ fala de uma hipótese (forma ‘…ria’), mas ‘receberá’, ligado a ele, está no futuro comum (‘…rá’). Quando as duas coisas fazem parte da mesma hipótese, costumam usar a mesma forma. Se a segunda for um futuro de verdade, está certo.\n\nNa gramática: futuro do pretérito × futuro do presente.",
       "layer": "linguistica",
       "evidence": [
         {
@@ -333,7 +341,7 @@
       "text": "Nós construiríamos uma ponte que ligará as margens.",
       "start": 33,
       "end": 39,
-      "reason": "‘construiríamos’ estabelece uma hipótese ou projeção no futuro do pretérito; ‘ligará’, em oração dependente, está no futuro do presente. Se as duas ações compartilham a mesma projeção temporal, confira a uniformidade. Uma referência futura própria pode justificar a alternância.",
+      "reason": "‘construiríamos’ fala de uma hipótese (forma ‘…ria’), mas ‘ligará’, ligado a ele, está no futuro comum (‘…rá’). Quando as duas coisas fazem parte da mesma hipótese, costumam usar a mesma forma. Se a segunda for um futuro de verdade, está certo.\n\nNa gramática: futuro do pretérito × futuro do presente.",
       "source": "FONTE Morfossintático · conditional_future",
       "rule": "coerencia_temporal",
       "category_code": "temporal_consistency",
@@ -371,7 +379,7 @@
         "end": 102
       },
       "excerpt": "ligará",
-      "message": "‘construiríamos’ estabelece uma hipótese ou projeção no futuro do pretérito; ‘ligará’, em oração dependente, está no futuro do presente. Se as duas ações compartilham a mesma projeção temporal, confira a uniformidade. Uma referência futura própria pode justificar a alternância.",
+      "message": "‘construiríamos’ fala de uma hipótese (forma ‘…ria’), mas ‘ligará’, ligado a ele, está no futuro comum (‘…rá’). Quando as duas coisas fazem parte da mesma hipótese, costumam usar a mesma forma. Se a segunda for um futuro de verdade, está certo.\n\nNa gramática: futuro do pretérito × futuro do presente.",
       "layer": "linguistica",
       "evidence": [
         {
@@ -455,7 +463,7 @@
       "text": "A enfermeira explicava o procedimento enquanto os alunos anotam.",
       "start": 57,
       "end": 63,
-      "reason": "‘explicava’ situa a ação no passado, enquanto ‘anotam’ está no presente. O conectivo ‘enquanto’ pode ligar ações simultâneas: se esse for o sentido, confira o tempo da oração subordinada. Uso contrastivo e mudança deliberada de perspectiva são possíveis.",
+      "reason": "‘explicava’ está no passado e ‘anotam’ está no presente. Se o ‘enquanto’ indica que as duas coisas aconteceram ao mesmo tempo, costumam ficar no mesmo tempo. Se for um contraste ou mudança proposital, está certo.\n\nNa gramática: tempo verbal em orações simultâneas.",
       "source": "FONTE Morfossintático · simultaneous_present",
       "rule": "coerencia_temporal",
       "category_code": "temporal_consistency",
@@ -493,7 +501,7 @@
         "end": 178
       },
       "excerpt": "anotam",
-      "message": "‘explicava’ situa a ação no passado, enquanto ‘anotam’ está no presente. O conectivo ‘enquanto’ pode ligar ações simultâneas: se esse for o sentido, confira o tempo da oração subordinada. Uso contrastivo e mudança deliberada de perspectiva são possíveis.",
+      "message": "‘explicava’ está no passado e ‘anotam’ está no presente. Se o ‘enquanto’ indica que as duas coisas aconteceram ao mesmo tempo, costumam ficar no mesmo tempo. Se for um contraste ou mudança proposital, está certo.\n\nNa gramática: tempo verbal em orações simultâneas.",
       "layer": "linguistica",
       "evidence": [
         {
@@ -577,7 +585,7 @@
       "text": "O guia esperou enquanto atravessamos a ponte.",
       "start": 24,
       "end": 36,
-      "reason": "‘atravessamos’ admite tanto presente quanto pretérito perfeito; a grafia não decide. ‘esperou’ está no passado e ‘enquanto’ pode indicar simultaneidade. Confira se a segunda ação descreve um processo em curso, que pode pedir o imperfeito, ou um intervalo concluído, em que o perfeito pode ser legítimo. Não há erro confirmado.",
+      "reason": "‘atravessamos’ pode ser presente ou passado; a palavra é igual nos dois. ‘esperou’ está no passado, e o ‘enquanto’ indica coisas ao mesmo tempo. Se a ação ainda estava acontecendo, costuma-se usar a forma ‘…ava’/‘…ia’; se já tinha terminado, a forma atual pode estar certa. Não há erro confirmado.\n\nNa gramática: pretérito perfeito × imperfeito em orações simultâneas.",
       "source": "FONTE Morfossintático · ambiguous_simultaneity",
       "rule": "coerencia_temporal",
       "category_code": "temporal_consistency",
@@ -615,7 +623,7 @@
         "end": 216
       },
       "excerpt": "atravessamos",
-      "message": "‘atravessamos’ admite tanto presente quanto pretérito perfeito; a grafia não decide. ‘esperou’ está no passado e ‘enquanto’ pode indicar simultaneidade. Confira se a segunda ação descreve um processo em curso, que pode pedir o imperfeito, ou um intervalo concluído, em que o perfeito pode ser legítimo. Não há erro confirmado.",
+      "message": "‘atravessamos’ pode ser presente ou passado; a palavra é igual nos dois. ‘esperou’ está no passado, e o ‘enquanto’ indica coisas ao mesmo tempo. Se a ação ainda estava acontecendo, costuma-se usar a forma ‘…ava’/‘…ia’; se já tinha terminado, a forma atual pode estar certa. Não há erro confirmado.\n\nNa gramática: pretérito perfeito × imperfeito em orações simultâneas.",
       "layer": "linguistica",
       "evidence": [
         {
@@ -699,7 +707,7 @@
       "text": "O objeto parecia intacto e está quebrado.",
       "start": 27,
       "end": 31,
-      "reason": "A análise liga ‘está’ (presente) a uma oração coordenada sob ‘parecia’ (passado). Confira se a descrição continua no mesmo momento ou se passa ao presente do narrador. Consequências que continuam válidas e mudanças intencionais podem justificar a alternância.",
+      "reason": "‘está’ está no presente e vem ligado a ‘parecia’, que está no passado. Confira se as duas falam do mesmo momento. Se a segunda for algo que continua valendo hoje, ou uma mudança proposital, está certo.\n\nNa gramática: tempo verbal em orações coordenadas.",
       "source": "FONTE Morfossintático · coordinated_past_present",
       "rule": "coerencia_temporal",
       "category_code": "temporal_consistency",
@@ -737,7 +745,7 @@
         "end": 257
       },
       "excerpt": "está",
-      "message": "A análise liga ‘está’ (presente) a uma oração coordenada sob ‘parecia’ (passado). Confira se a descrição continua no mesmo momento ou se passa ao presente do narrador. Consequências que continuam válidas e mudanças intencionais podem justificar a alternância.",
+      "message": "‘está’ está no presente e vem ligado a ‘parecia’, que está no passado. Confira se as duas falam do mesmo momento. Se a segunda for algo que continua valendo hoje, ou uma mudança proposital, está certo.\n\nNa gramática: tempo verbal em orações coordenadas.",
       "layer": "linguistica",
       "evidence": [
         {
@@ -821,7 +829,7 @@
       "text": "Os operários construiam casas.",
       "start": 13,
       "end": 23,
-      "reason": "No eixo passado configurado/inferido, ‘construíam’ é uma leitura possível deste predicado. O léxico confirma essa forma acentuada; ‘construiam’ pode ter outro uso ou uma análise incerta. Confira o modo verbal e a intenção antes de alterar a acentuação.",
+      "reason": "Numa história contada no passado, aqui pode caber ‘construíam’, com acento (como em ‘caía’, ‘saía’). Sem acento, ‘construiam’ é outra forma do verbo. Confira qual você quis dizer.\n\nNa gramática: acentuação de verbos no imperfeito.",
       "source": "FONTE Morfossintático · acentuacao_contextual",
       "rule": "acentuacao_contextual",
       "category_code": "contextual_accentuation",
@@ -851,7 +859,7 @@
         "end": 291
       },
       "excerpt": "construiam",
-      "message": "No eixo passado configurado/inferido, ‘construíam’ é uma leitura possível deste predicado. O léxico confirma essa forma acentuada; ‘construiam’ pode ter outro uso ou uma análise incerta. Confira o modo verbal e a intenção antes de alterar a acentuação.",
+      "message": "Numa história contada no passado, aqui pode caber ‘construíam’, com acento (como em ‘caía’, ‘saía’). Sem acento, ‘construiam’ é outra forma do verbo. Confira qual você quis dizer.\n\nNa gramática: acentuação de verbos no imperfeito.",
       "layer": "linguistica",
       "evidence": [
         {
@@ -935,7 +943,7 @@
       "text": "As crianças distribuiam brinquedos.",
       "start": 12,
       "end": 23,
-      "reason": "No eixo passado configurado/inferido, ‘distribuíam’ é uma leitura possível deste predicado. O léxico confirma essa forma acentuada; ‘distribuiam’ pode ter outro uso ou uma análise incerta. Confira o modo verbal e a intenção antes de alterar a acentuação.",
+      "reason": "Numa história contada no passado, aqui pode caber ‘distribuíam’, com acento (como em ‘caía’, ‘saía’). Sem acento, ‘distribuiam’ é outra forma do verbo. Confira qual você quis dizer.\n\nNa gramática: acentuação de verbos no imperfeito.",
       "source": "FONTE Morfossintático · acentuacao_contextual",
       "rule": "acentuacao_contextual",
       "category_code": "contextual_accentuation",
@@ -965,7 +973,7 @@
         "end": 322
       },
       "excerpt": "distribuiam",
-      "message": "No eixo passado configurado/inferido, ‘distribuíam’ é uma leitura possível deste predicado. O léxico confirma essa forma acentuada; ‘distribuiam’ pode ter outro uso ou uma análise incerta. Confira o modo verbal e a intenção antes de alterar a acentuação.",
+      "message": "Numa história contada no passado, aqui pode caber ‘distribuíam’, com acento (como em ‘caía’, ‘saía’). Sem acento, ‘distribuiam’ é outra forma do verbo. Confira qual você quis dizer.\n\nNa gramática: acentuação de verbos no imperfeito.",
       "layer": "linguistica",
       "evidence": [
         {
@@ -1049,7 +1057,7 @@
       "text": "— O que? Tô surpreso..",
       "start": 4,
       "end": 7,
-      "reason": "O ‘que’ está no fim de uma pergunta ou exclamação, posição em que costuma ser tônico: ‘quê’. Confira se a grafia sem acento foi intencional.",
+      "reason": "No fim de pergunta ou exclamação, o ‘que’ é pronunciado forte e leva acento: ‘O quê?’.\n\nNa gramática: ‘quê’ tônico.",
       "source": "FONTE Linguístico · que_tonico_interrogativo",
       "rule": "que_tonico_interrogativo",
       "category_code": "que_tonico_interrogativo",
@@ -1064,7 +1072,7 @@
         "end": 426
       },
       "excerpt": "que",
-      "message": "O ‘que’ está no fim de uma pergunta ou exclamação, posição em que costuma ser tônico: ‘quê’. Confira se a grafia sem acento foi intencional.",
+      "message": "No fim de pergunta ou exclamação, o ‘que’ é pronunciado forte e leva acento: ‘O quê?’.\n\nNa gramática: ‘quê’ tônico.",
       "layer": "linguistica",
       "evidence": [
         {
@@ -1126,7 +1134,7 @@
       "text": "— O que? Tô surpreso..",
       "start": 20,
       "end": 22,
-      "reason": "Foram encontrados dois pontos finais seguidos. Confira se a intenção é um ponto final ou reticências (três pontos).",
+      "reason": "Há dois pontos seguidos. Confira se era um ponto só ou reticências (três pontos).\n\nNa gramática: pontuação duplicada.",
       "source": "FONTE Linguístico · pontuacao_duplicada",
       "rule": "pontuacao_duplicada",
       "category_code": "pontuacao_duplicada",
@@ -1141,7 +1149,7 @@
         "end": 441
       },
       "excerpt": "..",
-      "message": "Foram encontrados dois pontos finais seguidos. Confira se a intenção é um ponto final ou reticências (três pontos).",
+      "message": "Há dois pontos seguidos. Confira se era um ponto só ou reticências (três pontos).\n\nNa gramática: pontuação duplicada.",
       "layer": "linguistica",
       "evidence": [
         {

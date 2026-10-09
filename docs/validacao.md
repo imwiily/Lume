@@ -3,6 +3,106 @@
 Os registros abaixo pertencem às versões indicadas. Caminhos citados nos registros anteriores à 1.0 são da antiga pasta `LumeMac/` (correspondência em [README.md](../README.md#estrutura)); os comandos abaixo usam a raiz do repositório. As verificações do hotfix aparecem primeiro; os registros anteriores são mantidos para rastreabilidade.
 
 
+## Protocolo de métricas
+
+Desde 07/10/2026 ([plano](../.agent/plans/encerramento-editorial.md)), a pergunta principal é
+“dos alertas que interrompem o editor, quantos justificavam a interrupção?”, e não só “quantos
+erros do corpus o Lume encontrou?”. Os registros abaixo desta seção são anteriores e usam o
+critério antigo.
+
+Por ordem de importância:
+
+1. **Precisão das pendências**, medida nas decisões reais: erro confirmado ou corrigido ÷
+   decididos, por classe (regra × confiança) e no total. Alertas repetidos entre versões do mesmo
+   livro contam uma vez. Define a política de destino.
+2. **Pendências e impeditivos por 10 mil palavras.**
+3. **Falsos positivos e “estilo do autor” por 10 mil palavras**, e a proporção de intencionais.
+4. **Regressão de precisão:** uma mudança que baixa a precisão das pendências (no corpus ou nas
+   decisões reais) precisa de justificativa, como a perda de acertos.
+5. **Estabilidade:** a mesma versão no mesmo texto produz os mesmos IDs e destinos.
+6. **Auditoria:** achados promovidos a pendência e quantos se confirmaram como erro real. O número
+   de achados novos não é meta.
+7. **Cobertura** no corpus anotado, só nas categorias objetivas, como guarda contra regressão.
+
+Deixam de ser meta: o total de acertos no corpus sintético como número principal; “a Auditoria
+encontra cada vez menos”; o crescimento do corpus por caso isolado. Medidas para depois: alertas que
+levaram a alteração real (exige cruzar o registro de edições, hoje só no Pages) e custo editorial
+por alerta.
+
+Limites: as decisões vêm de poucos livros e de um autor; classes com menos de 20 decisões não têm
+precisão medida; o corpus é sintético e escrito junto com as regras.
+
+## FONTE 1.5.0 — estabilização linguística, validação final (09/10/2026)
+
+Registro completo: Fase 8 em `.agent/plans/fonte-estabilizacao.md`. Saídas em `build/f8/` (fora do
+Git). Motor nos fontes; nenhuma chamada à API; validação verbal reservada não consultada.
+
+- **Regressão:** 29 conjuntos (A, B, C e X com e sem o LT; 21 textos do corpus) e 3 textos
+  independentes idênticos à Fase 7b. Contra `9f0f6d8`, nenhum alerta que ficou mudou de ID ou de
+  destino; saíram só alertas de regras retiradas (105) e 1 do LT absorvido pela crase do FONTE.
+- **Pendências/observações** (sem o LT; por 10 mil palavras): A 36/6 (26,1/4,3); B 2/1 (8,0/4,0);
+  C 18/7 (57,5/22,4); X 13/11 (20,5/17,4). Nenhum impeditivo.
+- **Corpus de desenvolvimento** (mede funcionamento, não uso real): precisão das pendências 96,7%;
+  de todas as ocorrências 89,6%; alarmes falsos 17,6 por 10 mil palavras (5,0 nas pendências);
+  cobertura linguística 60/84 (regência 2/10 depois da retirada aprovada de “chegar em” e “pedir
+  para que”).
+- **Decisões reais** (650, 6 livros, 1 autor; decisões tomadas sobre versões anteriores): pendências
+  pela Política v2 85,4% (497/582); observações 18,2% (4/22). Classes medidas (n ≥ 20): tempo
+  verbal 91% (408), diálogo contextual 91% (32), gramática do LT 60% (30).
+- **Textos independentes** (193 mil palavras, grafia anterior a 1943): pendências 122,8 e observações
+  129,4 por 10 mil palavras (eram 127,2 e 180,3). Sem anotação: não medem precisão e não valem para
+  o português brasileiro contemporâneo.
+- **Compatibilidade:** os 58 relatórios, 31 arquivos de decisões e 3 memórias de livro reais abrem
+  com o app atual; herança real A 7, C 11 (13 com o LT), perdendo só decisões de regras retiradas;
+  `medir_precisao.py` continua contando essas decisões.
+- **Testes:** FONTE 503, pacotes 46, contrato Python, Coerencia 25, 8 verificações Swift,
+  `xcodebuild` Release.
+
+- **Histórico de decisões e “Limpar resíduos”** (aprovado pelo autor): a decisão só tem sentido
+  junto do relatório que a gerou. A limpeza passa a manter o relatório antigo que tem um alerta
+  decidido (no arquivo de decisões do mesmo SHA) que nenhum relatório mantido do livro mede; entre
+  relatórios antigos com as mesmas decisões, fica só o mais novo. **Retenção explícita:** esses
+  relatórios guardam trechos do manuscrito; o painel Armazenamento, o diálogo de confirmação e a
+  linha de estado dizem quantos ficaram e por quê. Numa cópia da pasta real: 63 → 39 relatórios;
+  `medir_precisao.py` igual antes e depois (650 decisões únicas, mesmas classes, sem duplicidade);
+  os 13 relatórios mais recentes e os 31 arquivos de decisões ficam; uma segunda limpeza não apaga
+  nada. A limpeza anterior deixaria 15 relatórios e tiraria 564 decisões da medição.
+  Testes: `DeskToolsCheck` (decisão de alerta que sumiu ou sem decisão no relatório mais recente →
+  fica; decisões representadas → sai; sem decisões → sai; estabilidade).
+
+Limitações aceitas nesta versão:
+- estrutura (fragmento) abaixo de 50% em menos de 20 decisões; gramática do LT com categorias
+  misturadas (Política v3, separada);
+- pontuação final ausente sem validação até as 19 decisões pendentes;
+- crase dativa e concordância dependem do modelo; “--” como travessão não é reconhecido;
+  correlação de tempos com principal impessoal; vírgula sujeito-verbo sem decisões.
+
+## Dois planos na narração, tratamento tu/você e explicações simples (07/10/2026)
+
+Plano: [`.agent/plans/dois-planos-e-tratamento.md`](../.agent/plans/dois-planos-e-tratamento.md).
+Nada foi enviado à API.
+
+- **Linha de base:** o motor do mesmo dia com as cinco mudanças de detecção desligadas por patch;
+  sem LanguageTool; cópias dos textos no scratchpad.
+- **Corpus `todos`:** linguística 65/84 → 66/85 (tratamento 1/1, nenhum erro perdido);
+  ocorrências 88 → 82; alarmes falsos 12 → 9; sobre trechos aceitáveis 10 → 6.
+- **Manuscritos:**
+  - A: 64 → 63; sai “sou” + predicado na voz do narrador, que é ambíguo.
+  - B: 15 → 15, sem diferença.
+  - C (outro livro do autor, narrado no presente): 29 → 29, sem diferença.
+  - Texto de terceiros (passado): 61 → 39; 22 saíram, nenhum entrou.
+- **Exemplos** (`examples/`): mesmos alertas, explicações novas.
+- **Testes:** 408 do analisador, 29 dos pacotes, contrato Python, 25 do Coerencia, contratos Swift
+  (exemplo Mestre e um relatório novo), mesa, edição, falsos positivos, decisões por livro, build
+  Debug do app.
+- **Limpar resíduos:** simulação do plano na pasta de dados real, sem apagar nada. Seriam
+  apagados 48 relatórios antigos, 466 registros e 99 configurações (108 MB); nada fora dessas
+  pastas.
+- **Limites:**
+  - interface não inspecionada em uso real (Reanalisar, Limpar resíduos, botões da mesa);
+  - “Olho”/“Corri… entro” no início da frase sem sujeito seguem sem alerta (limite do modelo);
+  - o corpus é sintético e escrito junto com as regras.
+
 ## Auditoria final com IA — medição no corpus (05/10/2026)
 
 Etapa 6 do [plano](../.agent/plans/auditor-final.md), autorizada pelo autor com teto de US$ 2,00.

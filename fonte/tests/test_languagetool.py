@@ -304,16 +304,95 @@ class FiltrosSegundoRelatorioTests(unittest.TestCase):
         respostas = {texto: [match(texto, "nada além disso", "VERB_COMMA_CONJUNCTION", "uncategorized", "PUNCTUATION")]}
         self.assertEqual(check([Block(1, texto)], respostas)[0], [])
 
-    def test_connector_message_keeps_correct_text(self):
-        # Mensagem sem a afirmação falsa passa como veio do LanguageTool.
+    def test_connector_message_is_plain(self):
+        # Mensagem sem a afirmação falsa: explicação simples de conectores entre vírgulas
+        # (antes passava como veio do LanguageTool; mudou com as explicações em linguagem simples).
         texto = "Não sobrou nada. Além disso estava escuro."
         encontrado = match(texto, "Além disso", "VERB_COMMA_CONJUNCTION", "uncategorized", "PUNCTUATION", ["Além disso,"])
         encontrado["message"] = "Esta locução deve ser separada por vírgulas."
         r, = check([Block(1, texto)], {texto: [encontrado]})[0]
-        self.assertEqual(r["reason"], "Esta locução deve ser separada por vírgulas.")
+        self.assertIn("ligam ideias", r["reason"])
+        self.assertTrue(r["reason"].endswith("\n\nNa gramática: vírgula com conectores."))
 
     def test_agora_sim_needs_no_commas(self):
         for texto in ["— Agora sim, dá para ouvir a banda.", "Agora sim eu entendi o recado."]:
             with self.subTest(texto=texto):
                 respostas = {texto: [match(texto, "Agora sim", "VERB_COMMA_CONJUNCTION", "grammar", "PUNCTUATION")]}
                 self.assertEqual(check([Block(1, texto)], respostas)[0], [])
+
+
+class PlainExplanationTests(unittest.TestCase):
+    """Mensagens do LanguageTool em linguagem do dia a dia, com o termo gramatical na linha final."""
+
+    def reason(self, text, word, rule_id, issue="grammar", category="GRAMMAR", replacements=(), message="Confira.",
+               category_name=None):
+        found = match(text, word, rule_id, issue, category, replacements)
+        found["message"] = message
+        if category_name:
+            found["rule"]["category"]["name"] = category_name
+        r, = check([Block(1, text)], {text: [found]})[0]
+        simple, _, term = r["reason"].partition("\n\nNa gramática: ")
+        self.assertTrue(simple and term.endswith("."), r["reason"])
+        return simple, term
+
+    def test_spelling_names_the_word_and_the_suggestion(self):
+        simple, term = self.reason("A jenela abriu.", "jenela", "MORFOLOGIK_RULE_PT_BR", "misspelling", "TYPOS",
+                                   ["janela"], "Encontrado possível erro de ortografia.")
+        self.assertIn("‘jenela’", simple)
+        self.assertIn("‘janela’", simple)
+        self.assertEqual(term, "ortografia.")
+
+    def test_por_que_porque_depends_on_the_written_form(self):
+        junto, _ = self.reason("Porque você saiu?", "Porque", "POR_QUE_PORQUE", message="Se “Porque” expressar…")
+        separado, _ = self.reason("Saí por que choveu.", "por que", "POR_QUE_PORQUE", message="Se “por que” expressar…")
+        self.assertIn("pergunta", junto)
+        self.assertIn("junto", separado)
+        self.assertNotEqual(junto, separado)
+
+    def test_rule_families_share_a_plain_text(self):
+        for rule_id in ("PT_COMPOUNDS_POST_REFORM_MEIO_DIA", "PT_COMPOUNDS_POST_REFORM_PORTA_RETRATO"):
+            with self.subTest(rule=rule_id):
+                simple, term = self.reason("Saiu ao meio dia.", "meio dia", rule_id, replacements=["meio-dia"],
+                                           message="Esta palavra é hifenizada.")
+                self.assertIn("hífen", simple)
+                self.assertIn("‘meio-dia’", simple)
+
+    def test_crase_message_follows_the_direction_of_the_fix(self):
+        tirar, _ = self.reason("Ela voltou à mexer no baú.", "à mexer", "CRASE_CONFUSION", replacements=["a mexer"])
+        pôr, _ = self.reason("Ela foi a feira cedo.", "a feira", "CRASE_CONFUSION_2", replacements=["à feira"])
+        self.assertIn("sem acento", tirar)
+        self.assertIn("‘à feira’", pôr)
+        self.assertNotIn("sem acento", pôr)
+
+    def test_unknown_rule_keeps_the_corrector_message_and_names_the_category(self):
+        simple, term = self.reason("O dado estava ali.", "dado", "REGRA_NOVA_QUALQUER",
+                                   message="Mensagem específica do corretor.", category_name="Confusão de palavras")
+        self.assertIn("Mensagem específica do corretor.", simple)
+        self.assertEqual(term, "confusão de palavras.")
+
+    def test_low_confidence_note_stays_before_the_term(self):
+        simple, term = self.reason("Ele sacou o taser.", "taser", "MORFOLOGIK_RULE_PT_BR", "misspelling", "TYPOS",
+                                   ["fazer"], "Encontrado possível erro de ortografia.")
+        self.assertIn("itálico", simple)
+        self.assertEqual(term, "ortografia.")
+
+
+class CategoriaOriginalTests(unittest.TestCase):
+    """Fase 6b (D3): a categoria e o tipo do LanguageTool ficam registrados à parte; severidade,
+    confiança, classe e destino não mudam por causa deles."""
+
+    def test_original_category_is_kept_apart(self):
+        from fonte.contracts import Manuscript, standardize
+        from fonte.politica import aplicar
+        text = "Ela parou,, e olhou a jannela."
+        blocks = [Block(1, text)]
+        results, _ = check(blocks, {text: [match(text, ",,", "DOUBLE_PUNCTUATION", "typographical", "PUNCTUATION", [","]),
+                                           match(text, "jannela", "MORFOLOGIK_RULE_PT_BR", "misspelling", "TYPOS", ["janela"])]})
+        self.assertEqual([r["languagetool"] for r in results],
+                         [{"regra": "DOUBLE_PUNCTUATION", "categoria": "PUNCTUATION", "tipo": "typographical"},
+                          {"regra": "MORFOLOGIK_RULE_PT_BR", "categoria": "TYPOS", "tipo": "misspelling"}])
+        padrao = standardize(results, "linguistic", Manuscript.capture(blocks))
+        mesa, _ = aplicar(padrao)
+        self.assertEqual([(f["severity"], f["confidence"], f["classe"]) for f in mesa],
+                         [("probable_error", "média", "languagetool:gramatica"),
+                          ("probable_error", "alta", "languagetool:ortografia")])

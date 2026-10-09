@@ -51,6 +51,20 @@ class Manuscript:
         }
 
 
+DESTINATIONS = ("diagnostico", "informacao", "pendencia")
+
+
+def check_destination(item):
+    """Destino e impedimento da política: impeditivo só numa pendência de severidade de erro."""
+    if item.get("destino") not in DESTINATIONS or type(item.get("impeditivo")) is not bool:
+        raise ValueError("Destino editorial inválido.")
+    if not isinstance(item.get("classe"), str) or not item["classe"] or not item.get("rule"):
+        raise ValueError("Alerta sem regra ou sem classe estatística.")
+    if item["impeditivo"] and (item["destino"] != "pendencia"
+                               or item.get("severity") not in ("confirmed_error", "probable_error")):
+        raise ValueError("Impeditivo exige pendência com severidade de erro.")
+
+
 class InvalidOccurrence(ValueError):
     """Ocorrência cujo trecho ou evidência não corresponde ao manuscrito capturado."""
 

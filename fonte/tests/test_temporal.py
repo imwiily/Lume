@@ -8,7 +8,8 @@ from fonte.linguistic import analyze as mechanical
 from fonte.pipeline import run
 from fonte.reader import Block
 from fonte.settings import validate, LEGACY_RULES
-from fonte.temporal import analyze, form
+from fonte.temporal import analyze
+from fonte.tempo import tempo_estrito as form
 
 
 def options(*rules):
@@ -107,13 +108,16 @@ class TemporalTests(unittest.TestCase):
         self.assertFalse(self.scan('Ele gostava de poesia, enquanto ela prefere romances.'))
 
     def test_nested_coordination_and_simple_coordination(self):
-        # Estado no presente coordenado a um passado: atenção editorial.
+        # Estado no presente coordenado a um passado: a implementação continua a mesma (atenção
+        # editorial), mas a relação está desativada desde a Fase 7b e não é emitida na análise.
         for text in ['Parecia estar ligado normalmente e não está desligado.',
                      'O objeto parecia intacto e está quebrado.']:
             with self.subTest(text=text):
-                f, = self.scan(text)
+                f, = analyze([Block(1, text)], self.nlp, options('coerencia_temporal', 'acentuacao_contextual'),
+                             'passado', desativadas=())
                 self.assertEqual(f['relation'], 'coordinated_past_present')
                 self.assertEqual(f['severity'], 'editorial_attention')
+                self.assertEqual(self.scan(text), [])
         # Duas ações do mesmo sujeito em tempos diferentes: desde a sequência temporal, provável
         # erro com confiança alta (antes, atenção editorial como os estados acima).
         f, = self.scan('O assistente abriu a mala e retira o equipamento.')
@@ -206,11 +210,15 @@ class TemporalTests(unittest.TestCase):
         self.assertEqual(blocks, before)
 
     def test_specific_temporal_alert_replaces_generic_same_verb(self):
-        found, _, _ = run([Block(1, 'Parecia estar ligado normalmente e não está desligado.')], lambda: self.nlp,
+        found, _, _ = run([Block(1, 'O assistente abriu a mala e retira o equipamento.')], lambda: self.nlp,
                           settings=options('tempo_verbal', 'coerencia_temporal'), tense='passado')
-        matching = [f for f in found if f['excerpt'] == 'está']
+        matching = [f for f in found if f['excerpt'] == 'retira']
         self.assertEqual(len(matching), 1)
         self.assertEqual(matching[0]['rule'], 'coerencia_temporal')
+        # Com a relação desativada (Fase 7b), o mesmo verbo fica só com o alerta genérico, uma vez.
+        found, _, _ = run([Block(1, 'Parecia estar ligado normalmente e não está desligado.')], lambda: self.nlp,
+                          settings=options('tempo_verbal', 'coerencia_temporal'), tense='passado')
+        self.assertEqual([(f['excerpt'], f['rule']) for f in found], [('está', 'tempo_verbal')])
 
     def test_disabled_rules_and_modes_do_not_load_model(self):
         loader = Mock(side_effect=AssertionError('Não carregar o modelo'))

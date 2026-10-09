@@ -123,8 +123,10 @@ class PipelineTests(unittest.TestCase):
 
     def test_strict_order_and_truthful_audit(self):
         events = []
-        blocks = [Block(1, 'Nada além de disso. Era melhor eu me preparar melhor. Lívia chegou. Lívia saiu. Lívya voltou.')]
-        settings = selected('construcao_invalida', 'estrutura', 'palavra_proxima', 'variacao_nome')
+        # Frase repetida no lugar da repetição próxima, retirada na Fase 7b: a etapa editorial continua com alerta.
+        blocks = [Block(1, 'Nada além de disso. Lívia chegou. Lívia saiu. Lívya voltou.'),
+                  Block(2, 'Ele começou a me explicar o mapa da região.'), Block(3, 'Ele começou a me explicar o mapa da região.')]
+        settings = selected('construcao_invalida', 'estrutura', 'frase_duplicada', 'variacao_nome')
         with patch('fonte.search.analyze', return_value=([], [], {'tempo': 'não analisado'})):
             findings, _, meta = run(blocks, Mock(), settings=settings, progress=events.append)
         expected = []
@@ -146,10 +148,11 @@ class PipelineTests(unittest.TestCase):
 
     def test_legacy_ids_preserved(self):
         from fonte.editorial import analyze as legacy
-        blocks = [Block(1, 'Era melhor eu me preparar melhor.')]
-        settings = selected('palavra_proxima')
+        blocks = [Block(1, 'Ele começou a me explicar o mapa da região.'), Block(2, 'Ele começou a me explicar o mapa da região.')]
+        settings = selected('frase_duplicada')
         old, _ = legacy(blocks, settings=settings)
         new, _, _ = run(blocks, Mock(), settings=settings)
+        self.assertTrue(old)
         self.assertEqual([f['id'] for f in old], [f['id'] for f in new])
 
     def test_legacy_settings_migration_preserves_all_disabled(self):

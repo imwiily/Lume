@@ -10,8 +10,11 @@ def linguistic(blocks, nlp, tense, settings):
     rules=options['rules']
     # As regras de estrutura e pontuação continuam restritas à narração.
     for allowed,active in [(options['tense_scopes'], ['tempo_verbal']),
-                           (['narracao'], ['estrutura','pontuacao_dialogo'])]:
+                           (['narracao'], ['estrutura','residuo_edicao','pontuacao_dialogo'])]:
         enabled=[r for r in active if rules[r]]
+        # Aspas configuradas como narração não marcam fala: não há inciso de fala a conferir depois delas.
+        if options['quotes_role']=='narracao':
+            enabled=[r for r in enabled if r!='pontuacao_dialogo']
         if not enabled or not allowed:
             continue
         findings,extra,meta=analyze(blocks,nlp,tense,True,masks_override=masks(blocks,roles,allowed),enabled_rules=enabled)

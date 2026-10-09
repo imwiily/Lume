@@ -23,6 +23,9 @@ fonte/.languagetool/
 # Projetos locais do Coerencia (capítulos e cache de julgamentos)
 coerencia/Projetos/
 
+# Grafo local do Graphify (gerado; consultas só no ambiente de desenvolvimento)
+graphify-out/
+
 # Segredos e configurações locais
 .env
 .env.*

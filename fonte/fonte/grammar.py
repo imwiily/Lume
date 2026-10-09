@@ -1,24 +1,38 @@
-"""Concordância, crase, homófonos, regência e vírgula com apoio sintático.
+"""Concordância, crase, homófonos, regência, vírgula, correlação de tempos,
+frase cortada e locuções, com apoio sintático.
 
 Cada regra cobre uma classe gramatical e se abstém diante de leituras
-alternativas plausíveis. Grafia (crase e homófonos) é revista também em falas;
-concordância, regência e vírgula entre sujeito e verbo só na narração, para não
+alternativas plausíveis. Grafia (crase e homófonos), correlação de tempos e frase
+cortada são revistas também em falas; concordância, regência, vírgula entre sujeito
+e verbo e locuções só na narração, para não
 formalizar a voz de personagens. Nenhuma regra usa nomes ou frases de obras.
 """
 from dataclasses import asdict
 import re
 
-from .analysis import finding, verbo_de_fala
+from .analysis import explicar, finding, lista_ou_rotulo
+from .elocucao import pede_completiva_confirmada, verbo_de_fala
 from .lexicon import FINITE, NONVERB, flags
-from .segments import classify
+from .verbo import certamente_verbo, conjugado_pelo_modelo, ha_forma_verbal, so_verbo_no_lexico
+from .tempo import TERMINACAO_CONDICIONAL, imperfeito_do_subjuntivo
+from .segments import classify, termina_em_travessao
 
-RULES = ("crase", "homofonos", "concordancia", "regencia", "virgula_sujeito_verbo")
+PORQUE_PERGUNTA = explicar("Em pergunta, escreve-se separado: ‘Por que você saiu?’. Junto (‘porque’) é para responder "
+                           "ou explicar: ‘Saí porque choveu’.", "por que / porque")
+MAS_MAIS = explicar("Aqui a palavra indica oposição, como ‘porém’, então é ‘mas’. ‘Mais’ é de quantidade: ‘mais café’.",
+                    "mas / mais")
+RULES = ("crase", "homofonos", "concordancia", "regencia", "virgula_sujeito_verbo",
+         "correlacao_tempos", "frase_cortada", "locucoes")
 SCOPES = {
     "crase": {"narracao", "dialogo", "pensamento"},
     "homofonos": {"narracao", "dialogo", "pensamento"},
     "concordancia": {"narracao"},
     "regencia": {"narracao"},
     "virgula_sujeito_verbo": {"narracao"},
+    # Correlação entre orações e frases cortadas valem também em falas: não são registro, são estrutura.
+    "correlacao_tempos": {"narracao", "dialogo", "pensamento"},
+    "frase_cortada": {"narracao", "dialogo", "pensamento"},
+    "locucoes": {"narracao"},
 }
 NUMBERS = ("uma|um|duas|dois|três|quatro|cinco|seis|sete|oito|nove|dez|onze|doze|treze|catorze|quatorze|"
            "quinze|dezesseis|dezessete|dezoito|dezenove|vinte|trinta|quarenta|cinquenta|sessenta|"
@@ -29,6 +43,9 @@ QUANTIFIERS = {"pouco", "muito", "bastante", "algum", "alguns", "algumas", "vár
 DATIVE = set("entregar dar contar dizer pedir mostrar oferecer enviar mandar explicar perguntar responder "
              "devolver emprestar levar trazer apresentar ensinar prometer agradecer comunicar revelar "
              "confessar escrever vender pagar doar sugerir recomendar relatar anunciar".split())
+# Destinatário expresso antes do “a”: contração com o artigo ou pronome átono dativo.
+DESTINATARIO = {"ao", "aos", "às", "lhe", "lhes", "me", "te", "nos", "vos"}
+PRONOMES_PREPOSICIONADOS = {"comigo", "contigo", "consigo", "conosco", "convosco"}
 COMMON_GENDER = {"chefe", "jovem", "colega", "intérprete", "rival", "mártir", "cliente", "hóspede"}
 LOCUTIONS = re.compile(r"\b(em direção|devido|graças|junto|frente|em frente|em relação|rumo|quanto|referente|"
                        r"em resposta|em homenagem|semelhante|igual|contrári[oa]|próxim[oa]|obediente|fiel)"
@@ -40,16 +57,14 @@ COLLECTIVE = {"maioria", "parte", "metade", "grupo", "porção", "conjunto", "ba
               # Quantificadores partitivos (“um monte de pássaros pousaram”): as duas concordâncias.
               "monte", "montão", "punhado", "infinidade", "dezena", "centena", "milhar", "milhão"}
 EACH = {"nenhum", "nenhuma", "cada", "qualquer", "ninguém"}
+# Cores que formam cor composta com o termo seguinte (a composta não varia em número).
+CORES = {"azul", "verde", "amarelo", "amarela", "vermelho", "vermelha", "roxo", "roxa", "branco", "branca", "preto",
+         "preta", "marrom", "lilás", "bege", "dourado", "dourada", "prateado", "prateada"}
 INVARIABLE = {"cinza", "rosa", "laranja", "vinho", "creme", "gelo", "salmão", "musgo", "oliva", "turquesa",
               "anil", "caqui", "abóbora", "simples", "reles", "grátis", "vermelho-escuro", "azul-marinho"}
 INTRANSITIVE = {"ser", "estar", "ficar", "parecer", "permanecer", "continuar", "tornar", "virar", "chegar", "sair",
                 "entrar", "voltar", "vir", "ir", "partir", "surgir", "aparecer", "nascer", "morrer", "cair", "correr",
                 "sorrir", "rir", "acordar", "dormir", "existir", "acontecer", "restar", "sobrar", "faltar"}
-NON_PLACE = {"hora", "horas", "tempo", "momento", "instante", "silêncio", "minuto", "minutos", "segundo",
-             "segundos", "dia", "dias", "semana", "semanas", "mês", "meses", "ano", "anos", "lugar", "vez",
-             "cima", "conclusão", "acordo", "consenso", "paz", "vão", "forma", "estado", "condição", "ponto",
-             "meio", "fim", "começo", "início", "final", "noite", "manhã", "tarde", "madrugada",
-             "época", "idade", "primeiro", "último", "prantos", "lágrimas"}
 
 
 def item(block, rule, category, start, end, reason, severity, score, suggestion=None, priority="Verificar"):
@@ -71,15 +86,6 @@ class Lemmas:
     verbo finito pelo léxico, recupera o lema sem alterar o texto."""
     nlp = None
     cache = {}
-
-
-def verbal(token):
-    """Verbo conjugado pelo modelo ou, quando ele erra a classe, pelo léxico
-    (forma só verbal, sem leitura nominal): “É porque…”, “a fila só crescia”."""
-    if token.pos_ in {"VERB", "AUX"} and "Fin" in token.morph.get("VerbForm"):
-        return True
-    value = flags(token.text)
-    return bool(value & FINITE and not value & NONVERB)
 
 
 def verb_lemma(token):
@@ -105,7 +111,7 @@ def crase(block, doc, emit):
     for pattern, replacement in fixed:
         for match in re.finditer(pattern, text, re.I):
             emit("crase", "Crase em locução", match.start(), match.end(), "probable_error", .9,
-                 f"Locução adverbial feminina que leva acento grave: ‘{replacement}’.",
+                 explicar(f"Esta expressão leva acento no ‘a’ (crase): ‘{replacement}’.", "crase em locução adverbial feminina"),
                  cased(match[0], replacement))
     for match in re.finditer(r"\bas vezes\b(?!\s+(?:que|em)\b)", text, re.I):
         before = text[:match.start()].split()
@@ -114,7 +120,8 @@ def crase(block, doc, emit):
                 "raras", "duas", "três", "tantas", "mesmas", "outras", "demais"}:
             continue
         emit("crase", "Crase em locução", match.start(), match.end(), "probable_error", .85,
-             "Na locução adverbial de frequência, usa-se ‘às vezes’. Sem acento, ‘as vezes’ é artigo e substantivo.",
+             explicar("No sentido de ‘de vez em quando’, escreve-se com acento: ‘às vezes’. Sem acento, ‘as vezes’ "
+                      "quer dizer ‘as ocasiões’.", "crase na locução ‘às vezes’"),
              cased(match[0], "às vezes"))
     # Hora marcada: “chegou as seis horas da manhã” → “às seis”.
     hour = re.compile(r"\b(as|a)\s+(" + NUMBERS + r")(?:\s+horas?)?(?:\s+e\s+\w+)?"
@@ -126,7 +133,7 @@ def crase(block, doc, emit):
         if before and re.sub(r"\W", "", before[-1].casefold()) in {"todas", "durante", "por", "das", "nas", "pelas", "as", "entre"}:
             continue
         emit("crase", "Crase antes de horas", match.start(), match.end(1), "probable_error", .9,
-             "Na indicação de hora marcada, a preposição ‘a’ se funde ao artigo: ‘às seis horas’, ‘à uma hora’.",
+             explicar("Com hora marcada, o ‘a’ leva acento: ‘às seis horas’, ‘à uma hora’.", "crase antes de horas"),
              cased(match[1], "à" if match[1].casefold() == "a" else "às"))
     for token in doc:
         low = token.lower_
@@ -137,7 +144,8 @@ def crase(block, doc, emit):
         if low == "à" and ("Inf" in nxt.morph.get("VerbForm") and nxt.lower_.endswith("r")
                            or nxt.lower_ in {"pé", "cavalo", "bordo", "prazo", "respeito", "lápis"}):
             emit("crase", "Crase indevida", token.idx, nxt.idx + len(nxt.text), "probable_error", .9,
-                 "Não há crase antes de verbo no infinitivo nem de palavra masculina: use ‘a’.",
+                 explicar("Antes de verbo (‘a correr’) ou de palavra masculina (‘a pé’), o ‘a’ não leva acento.",
+                          "crase indevida"),
                  cased(token.text, "a") + text[token.idx + 1:nxt.idx + len(nxt.text)])
         # “entregou o presente a irmã”: objeto direto já expresso, destinatário feminino com artigo.
         if low == "a" and nxt.pos_ == "NOUN" and "Plur" not in nxt.morph.get("Number") and (
@@ -151,15 +159,24 @@ def crase(block, doc, emit):
             if verb is None or verb.is_punct or verb_lemma(verb) not in DATIVE:
                 continue
             between = doc[verb.i + 1:token.i]
-            # Objeto pode ser adjetivo substantivado: “entregou o maior a tia”.
-            nominal = any(t.pos_ in {"NOUN", "PRON"} or (t.pos_ in {"ADJ", "NUM"} and t.i > 0 and doc[t.i - 1].pos_ == "DET")
+            # Destinatário já expresso (“contou ao filho a história”, “pagou-lhe a quantia”): o ‘a’ seguinte
+            # é artigo do objeto direto, não a preposição do destinatário.
+            if (any(t.lower_ in DESTINATARIO for t in between)
+                    or re.search(r"-(?:lhes?|me|te|nos|vos)\b", text[verb.idx:token.idx], re.I)):
+                continue
+            # Objeto pode ser adjetivo substantivado: “entregou o maior a tia”. Pronome preposicionado
+            # (“trazia comigo a ideia”) não é objeto direto.
+            nominal = any((t.pos_ in {"NOUN", "PRON"} and t.lower_ not in PRONOMES_PREPOSICIONADOS)
+                          or (t.pos_ in {"ADJ", "NUM"} and t.i > 0 and doc[t.i - 1].pos_ == "DET")
                           for t in between)
             if not nominal or any(
                     t.lower_ in {"à", "para", "e", "ou"} or (t.lower_ == "a" and t.pos_ == "ADP")
                     or t.is_punct for t in between):
                 continue
             emit("crase", "Crase ausente", token.idx, nxt.idx + len(nxt.text), "probable_error", .75,
-                 f"O verbo ‘{verb.text}’ já tem objeto direto; o destinatário feminino recebe a preposição ‘a’ somada ao artigo: ‘à {nxt.text}’.",
+                 explicar(f"Aqui ‘{nxt.text}’ parece ser quem recebe a ação de ‘{verb.text}’ (como em ‘entregou o livro à irmã’). "
+                          f"O ‘a’ que indica para quem se junta ao ‘a’ antes da palavra feminina: ‘à {nxt.text}’.",
+                          "crase com objeto indireto feminino"),
                  cased(token.text, "à") + text[token.idx + 1:nxt.idx + len(nxt.text)])
     for match in LOCUTIONS.finditer(text):
         word = next((t for t in doc if t.idx >= match.end()), None)
@@ -167,7 +184,8 @@ def crase(block, doc, emit):
                 or "Plur" in word.morph.get("Number") or word.lower_ == match[1].split()[-1].casefold()):
             continue
         emit("crase", "Crase ausente", match.start(2), word.idx + len(word.text), "probable_error", .85,
-             f"A locução ‘{match[1]} a’ pede preposição; diante de palavra feminina com artigo, use ‘à {word.text}’.",
+             explicar(f"Depois de ‘{match[1]}’ vem um ‘a’; antes de palavra feminina, ele se junta ao ‘a’ dela: "
+                      f"‘à {word.text}’.", "crase em locução prepositiva"),
              "à" + text[match.end(2):word.idx + len(word.text)])
 
 
@@ -179,32 +197,32 @@ def homophones(block, doc, emit):
         if etiqueta.search(match[2]):
             continue
         emit("homofonos", "Por que / porque", match.start(1), match.end(1), "probable_error", .9,
-             "Em pergunta direta, usa-se ‘por que’ (separado); ‘porque’ junto introduz explicação ou causa.",
-             "Por que")
+             PORQUE_PERGUNTA, "Por que")
     for match in re.finditer(r"\bporque(?=\s*\?)", text, re.I):
         emit("homofonos", "Por que / porque", match.start(), match.end(), "probable_error", .85,
-             "No fim de pergunta, a forma é ‘por quê’, separada e acentuada.", cased(match[0], "por quê"))
+             explicar("No fim da pergunta, escreve-se separado e com acento: ‘Você saiu por quê?’.", "por quê"),
+             cased(match[0], "por quê"))
     for match in re.finditer(r",\s+(mais)\s+(?=(?:não|nunca|ninguém|nada|ele|ela|eles|elas|eu|nós|você|vocês|isso|aquilo|logo|então|também|agora|quando|sem)\b)", text, re.I):
         emit("homofonos", "Mas / mais", match.start(1), match.end(1), "probable_error", .85,
-             "Após a vírgula, a palavra introduz oposição: a conjunção é ‘mas’. ‘Mais’ indica quantidade ou intensidade.",
-             cased(match[1], "mas"))
+             MAS_MAIS, cased(match[1], "mas"))
     for match in re.finditer(r"\bmau[- ](\w+?(?:ad|id)[oa]s?)\b", text, re.I):
         if match[1].casefold() in {"olhado"}:
             continue
         emit("homofonos", "Mal / mau", match.start(), match.end(), "probable_error", .9,
-             "Antes de particípio ou adjetivo formado dele, usa-se o advérbio ‘mal’ (oposto de ‘bem’); ‘mau’ é adjetivo (oposto de ‘bom’).",
+             explicar("Antes de palavras como ‘educado’ ou ‘feito’, usa-se ‘mal’, o contrário de ‘bem’ (‘mal-educado’). "
+                      "‘Mau’ é o contrário de ‘bom’.", "mal / mau"),
              cased(match[0], "mal") + match[0][3:])
     for match in re.finditer(r"\b(de|em) baixo(?=\s+d[aoe]s?\b)", text, re.I):
         joined = "debaixo" if match[1].casefold() == "de" else "embaixo"
         emit("homofonos", "Grafia de locução", match.start(), match.end(), "probable_error", .9,
-             f"Como advérbio de lugar seguido de ‘de’, escreve-se junto: ‘{joined}’.", cased(match[0], joined))
+             explicar(f"Neste sentido de lugar, escreve-se junto: ‘{joined}’.", "advérbio de lugar"), cased(match[0], joined))
     # Advérbio sozinho (“lá em baixo,”); “em baixo tom” segue como adjetivo.
     for match in re.finditer(r"\bem baixo(?=\s*(?:[.,;:!?…—–]|$))", text, re.I):
         emit("homofonos", "Grafia de locução", match.start(), match.end(), "probable_error", .9,
-             "Como advérbio de lugar, escreve-se junto: ‘embaixo’.", cased(match[0], "embaixo"))
+             explicar("Neste sentido de lugar, escreve-se junto: ‘embaixo’.", "advérbio de lugar"), cased(match[0], "embaixo"))
     for match in re.finditer(r"\bencima(?=\s+d[aoe]s?\b)", text, re.I):
         emit("homofonos", "Grafia de locução", match.start(), match.end(), "probable_error", .9,
-             "A locução se escreve separada: ‘em cima’.", cased(match[0], "em cima"))
+             explicar("Escreve-se separado: ‘em cima’.", "locução ‘em cima’"), cased(match[0], "em cima"))
     for token in doc:
         nxt = doc[token.i + 1] if token.i + 1 < len(doc) else None
         # “Saiu a pouco tempo” → “há”: tempo decorrido depois de verbo.
@@ -229,17 +247,18 @@ def homophones(block, doc, emit):
                     and previous.lower_ not in {"daqui", "dali", "daí", "faltava", "faltam", "falta", "chegar", "voltar"}
                     and (after is None or after.lower_ not in {"de", "da", "do", "das", "dos", "daqui", "depois", "mais", "antes", "atrás"})):
                 emit("homofonos", "Há / a", token.idx, unit.idx + len(unit.text), "probable_error", .85,
-                     "Para tempo já decorrido, usa-se o verbo ‘haver’: ‘há’ (ou ‘havia’, em narração no passado). ‘A’ indica tempo futuro ou distância.",
+                     explicar("Para tempo que já passou, usa-se ‘há’ (‘saiu há pouco tempo’), ou ‘havia’ numa história "
+                              "contada no passado. ‘A’ é para tempo que ainda vai chegar (‘daqui a pouco’) ou para distância.",
+                              "há / a (verbo haver)"),
                      cased(token.text, "há") + text[token.idx + 1:unit.idx + len(unit.text)])
         # “Mãe, porque ninguém avisou?”: sem verbo antes, só vocativo ou conjunção,
         # ainda é pergunta direta. Depois de uma oração (“saiu porque…?”) é causa.
         # O léxico confirma verbos que o modelo não marca no início da frase (“É porque…”).
         if (token.text == "porque" and "?" in doc.text[token.idx:token.sent.end_char]
                 and not etiqueta.search(doc.text[token.idx:token.sent.end_char])
-                and not any(verbal(t) for t in doc[token.sent.start:token.i])):
+                and not any(ha_forma_verbal(t) for t in doc[token.sent.start:token.i])):
             emit("homofonos", "Por que / porque", token.idx, token.idx + len(token.text), "probable_error", .85,
-                 "Em pergunta direta, usa-se ‘por que’ (separado); ‘porque’ junto introduz explicação ou causa.",
-                 "por que")
+                 PORQUE_PERGUNTA, "por que")
         # “…, mais a fila não parava”: há verbo conjugado no mesmo trecho, antes
         # de pontuação ou ‘que’; na soma (“os três, mais o motorista, …”) não há.
         if (token.lower_ == "mais" and token.i > 0 and doc[token.i - 1].text == "," and nxt is not None
@@ -249,23 +268,24 @@ def homophones(block, doc, emit):
                 if t.is_punct or t.lower_ in {"que", "qual", "quem", "onde"}:
                     break
                 clause.append(t)
-            if any(verbal(t) for t in clause[2:]):
+            if any(ha_forma_verbal(t) for t in clause[2:]):
                 emit("homofonos", "Mas / mais", token.idx, token.idx + len(token.text), "probable_error", .8,
-                     "Após a vírgula, a palavra introduz oposição: a conjunção é ‘mas’. ‘Mais’ indica quantidade ou intensidade.",
-                     cased(token.text, "mas"))
+                     MAS_MAIS, cased(token.text, "mas"))
         # “Aonde ele está?” → “Onde”: ‘aonde’ exige verbo de movimento.
         if token.lower_ == "aonde":
             verb = next((t for t in doc[token.i + 1:token.sent.end] if t.pos_ in {"VERB", "AUX"}), None)
             if verb is not None and verb.lemma_.casefold() in STATIC:
                 emit("homofonos", "Onde / aonde", token.idx, token.idx + len(token.text), "probable_error", .85,
-                     f"‘Aonde’ indica destino, com verbos de movimento; com ‘{verb.text}’, use ‘onde’.",
+                     explicar(f"‘Aonde’ é para destino, com verbos de movimento (‘aonde você vai?’). ‘{verb.text}’ não "
+                              "indica movimento, então a forma é ‘onde’.", "onde / aonde"),
                      cased(token.text, "onde"))
         # “um mal vizinho” → “mau”: adjetivo diante de substantivo.
         if (token.lower_ == "mal" and nxt is not None and nxt.pos_ == "NOUN" and token.i > 0
                 and doc[token.i - 1].lower_ in {"um", "o", "seu", "meu", "teu", "nosso", "esse", "este", "aquele", "tão", "muito", "que"}
                 and nxt.lower_ not in {"estar"}):
             emit("homofonos", "Mal / mau", token.idx, token.idx + len(token.text), "probable_error", .8,
-                 "Antes de substantivo, o adjetivo é ‘mau’ (oposto de ‘bom’); ‘mal’ é advérbio ou substantivo.",
+                 explicar("Antes de um nome, usa-se ‘mau’, o contrário de ‘bom’ (‘um mau vizinho’). ‘Mal’ é o contrário "
+                          "de ‘bem’.", "mal / mau"),
                  cased(token.text, "mau"))
 
 
@@ -293,6 +313,7 @@ def partitive(head):
 
 
 def agreement(block, doc, emit):
+    elided_subject_plural(doc, emit)
     # “Haviam turistas”: no sentido de existir, ‘haver’ é impessoal. Como
     # auxiliar (“haviam saído”) ou em “haviam de voltar”, concorda com o sujeito.
     for verb in doc:
@@ -302,10 +323,11 @@ def agreement(block, doc, emit):
         if after is None or after.is_punct or "Part" in after.morph.get("VerbForm") or after.lower_ == "de":
             continue
         emit("concordancia", "Haver impessoal", verb.idx, verb.idx + len(verb.text), "probable_error", .85,
-             f"No sentido de ‘existir’ ou ‘acontecer’, ‘haver’ fica no singular: ‘{cased(verb.text, singular(verb.lower_))}’.",
+             explicar(f"Quando ‘haver’ quer dizer ‘existir’ ou ‘acontecer’, ele fica no singular, mesmo que venham "
+                      f"várias coisas depois: ‘{cased(verb.text, singular(verb.lower_))}’.", "verbo haver impessoal"),
              cased(verb.text, singular(verb.lower_)))
     for verb in doc:
-        if verb.pos_ not in {"VERB", "AUX"} or "Fin" not in verb.morph.get("VerbForm"):
+        if not conjugado_pelo_modelo(verb):
             continue
         head = verb.head if verb.dep_ in {"cop", "aux", "aux:pass"} else verb
         subject = next((c for c in head.children if c.dep_ in {"nsubj", "nsubj:pass"}), None)
@@ -328,7 +350,7 @@ def agreement(block, doc, emit):
             if t.is_punct or t.pos_ in {"CCONJ", "SCONJ"} or t.lower_ == "que":
                 break
             clause.append(t)
-        if any(t.pos_ in {"VERB", "AUX"} and "Fin" in t.morph.get("VerbForm") for t in clause):
+        if any(conjugado_pelo_modelo(t) for t in clause):
             continue
         # Plural em português termina em -s; um nome próprio marcado como plural não conta.
         if subject.pos_ == "NOUN" and number(subject) == "Plur" and subject.lower_.endswith("s") and verb_number == "Sing":
@@ -338,13 +360,15 @@ def agreement(block, doc, emit):
             if verb.lemma_.casefold() == "ser" and not (head.pos_ in {"ADJ", "VERB"} or number(head) == "Plur"):
                 continue
             emit("concordancia", "Concordância verbal", subject.idx, verb.idx + len(verb.text), "probable_error", .75,
-                 f"O sujeito ‘{subject.text}’ está no plural, mas o verbo ‘{verb.text}’ está no singular.")
+                 explicar(f"‘{subject.text}’ está no plural, mas a ação, ‘{verb.text}’, está no singular. Quando quem faz "
+                          "a ação são vários, o verbo vai para o plural.", "concordância verbal"))
         # O modelo às vezes etiqueta ‘nenhuma’ como numeral (“Nenhuma das respostas…”). ‘Um/uma’ só
         # com partitivo (“uma das portas”), fora de “um dos que…”, que admite o plural.
         elif verb_number == "Plur" and subject.pos_ in {"DET", "PRON", "NUM"} and (
                 subject.lower_ in EACH or (subject.lower_ in {"um", "uma"} and partitive(subject))):
             emit("concordancia", "Concordância verbal", subject.idx, verb.idx + len(verb.text), "probable_error", .75,
-                 f"Com ‘{subject.text}’ como núcleo do sujeito, o verbo fica no singular; ‘{verb.text}’ está no plural.")
+                 explicar(f"Com ‘{subject.text}’ (um só), o verbo fica no singular; ‘{verb.text}’ está no plural.",
+                          "concordância verbal"))
         # Concordância por atração: núcleo singular com complemento “de + plural” e verbo no
         # plural (“a lista de objetos estavam”). Coletivos e partitivos (“a maioria dos alunos”)
         # admitem as duas concordâncias e ficam de fora.
@@ -354,10 +378,15 @@ def agreement(block, doc, emit):
               and verb_number == "Plur" and "3" in verb.morph.get("Person") and subject.lower_ not in COLLECTIVE
               and (partitive(subject) or any(c.dep_ == "det" and number(c) == "Sing" for c in subject.children))):
             emit("concordancia", "Concordância verbal", subject.idx, verb.idx + len(verb.text), "probable_error", .75,
-                 f"O núcleo do sujeito é ‘{subject.text}’, no singular; ‘{verb.text}’ está no plural"
-                 + (", talvez atraído pelo complemento no plural" if partitive(subject) else "") + ". Confira a concordância.")
+                 explicar(f"Quem faz a ação parece ser ‘{subject.text}’, no singular, mas ‘{verb.text}’ está no plural"
+                          + (", talvez puxado pela palavra no plural que vem logo depois" if partitive(subject) else "")
+                          + ". Confira.", "concordância verbal"))
     for token in doc:
         if token.pos_ != "ADJ" or token.lower_ in INVARIABLE:
+            continue
+        # Cor composta (“vivos azul ferrete”, “camisas verde garrafa”, “olhos azul claro”): invariável.
+        following = doc[token.i + 1] if token.i + 1 < len(doc) else None
+        if token.lower_ in CORES and following is not None and following.is_alpha and following.pos_ in {"ADJ", "NOUN"}:
             continue
         noun = token.head
         # Adjetivo imediatamente posposto ao substantivo que qualifica. Dentro
@@ -378,7 +407,8 @@ def agreement(block, doc, emit):
             # Predicativo antes do sujeito (“Estavam apagada as luzes”): o trecho vai do primeiro termo ao último.
             first, last = sorted((noun, token), key=lambda t: t.i)
             emit("concordancia", "Concordância nominal", first.idx, last.idx + len(last.text), "probable_error", .75,
-                 f"O adjetivo ‘{token.text}’ está no singular, mas se refere a ‘{noun.text}’, no plural.")
+                 explicar(f"‘{token.text}’ está no singular, mas descreve ‘{noun.text}’, que está no plural.",
+                          "concordância nominal"))
 
 
 def regency(block, doc, emit):
@@ -386,35 +416,83 @@ def regency(block, doc, emit):
         nxt = doc[token.i + 1] if token.i + 1 < len(doc) else None
         if nxt is None:
             continue
-        if token.lemma_.casefold() == "chegar" and token.pos_ == "VERB" and nxt.lower_ in {"em", "no", "na", "nos", "nas", "num", "numa"}:
-            noun = next((t for t in doc[nxt.i + 1:min(nxt.i + 4, len(doc))] if t.pos_ in {"NOUN", "PROPN"}), None)
-            if noun is None or noun.lower_ in NON_PLACE or any(t.is_punct for t in doc[nxt.i:noun.i]):
-                continue
-            # Questão de registro, não erro: sem sugestão, para não trocar a voz do autor.
-            emit("regencia", "Regência verbal", token.idx, nxt.idx + len(nxt.text), "editorial_attention", .6,
-                 "A regência tradicional de ‘chegar’, com sentido de destino, prefere a preposição ‘a’: ‘chegar a casa’, ‘chegar à estação’. "
-                 "No português brasileiro, porém, construções com ‘em’, como ‘chegar em casa’, são amplamente usadas. "
-                 "Considere alterar apenas se o texto exigir um registro normativo mais formal.", priority="Explorar")
+        # “Chegar em” e “pedir para que” foram retirados na Fase 7b: registro do português brasileiro,
+        # não erro. Fica o pronome reto como objeto, desvio da norma-padrão, só na narração.
         # “Ajudou ela a descer” → “ajudou-a”. Incisos de fala (“perguntou ela”) e
         # verbos sem objeto (“chegou ela”) têm o pronome como sujeito posposto.
         if (nxt.lower_ in {"ele", "ela", "eles", "elas"} and nxt.dep_ == "obj" and nxt.head == token
-                and token.pos_ == "VERB" and "Fin" in token.morph.get("VerbForm")
+                and token.pos_ == "VERB" and conjugado_pelo_modelo(token)
                 and not verbo_de_fala(token) and token.lemma_.casefold() not in INTRANSITIVE
-                and not block.text[:token.idx].rstrip().endswith(("—", "–"))):
+                and not termina_em_travessao(block.text[:token.idx])):
             clitic = {"ele": "o", "ela": "a", "eles": "os", "elas": "as"}[nxt.lower_]
             emit("regencia", "Pronome reto como objeto", token.idx, nxt.idx + len(nxt.text), "editorial_attention", .7,
-                 f"Na norma culta, o objeto direto é o pronome oblíquo: ‘{token.text}-{clitic}’ (ou ‘{clitic} {token.lower_}’). "
-                 "A forma com ‘ele/ela’ é comum no português brasileiro falado; confira o registro desejado.")
-        if token.lemma_.casefold() == "pedir" and token.pos_ == "VERB" and nxt.lower_ == "para" \
-                and token.i + 2 < len(doc) and doc[token.i + 2].lower_ == "que":
-            emit("regencia", "Regência verbal", token.idx, doc[token.i + 2].idx + 3, "editorial_attention", .7,
-                 "Na norma culta, pede-se algo a alguém: ‘pediu que’. ‘Pedir para que’ é comum na fala.",
-                 token.text + " que")
+                 explicar(f"Na escrita formal, ‘{token.text} {nxt.text}’ vira ‘{token.text}-{clitic}’ (ou ‘{clitic} "
+                          f"{token.lower_}’). A forma com ‘{nxt.text}’ é comum na fala; mude só se quiser um tom mais formal.",
+                          "pronome oblíquo como objeto direto"))
+
+
+RELATIVE_OPENERS = {"que", "onde", "cujo", "cuja", "cujos", "cujas"}
+def relative_subject_comma(doc, emit):
+    """Sujeito com oração relativa restritiva fechado por uma vírgula sem abertura (“a moça que cuidou do
+    jardim no verão, rega as flores”). Pela forma, porque a árvore costuma se perder nessas frases: o
+    trecho começa com determinante (depois de vírgula ou no início da frase), tem relativo e verbo
+    finito, e a vírgula vem logo antes de um verbo finito que concorda em número com o nome. Com
+    vírgula antes do relativo (relativa explicativa) ou verbo de fala (inciso), não há alerta."""
+    for sentence in doc.sents:
+        tokens = list(sentence)
+        for k, comma in enumerate(tokens):
+            if comma.text != "," or k + 1 >= len(tokens):
+                continue
+            verb = tokens[k + 1]
+            if not (certamente_verbo(verb) or (flags(verb.text) & FINITE and verb.pos_ in {"VERB", "AUX"})) or verbo_de_fala(verb):
+                continue
+            start = next((j + 1 for j in range(k - 1, -1, -1) if tokens[j].is_punct), 0)
+            segment = tokens[start:k]
+            rel = next((j for j, t in enumerate(segment) if t.lower_ in RELATIVE_OPENERS), None)
+            if (rel is None or rel < 2 or segment[0].pos_ != "DET" or segment[0].lower_ in {"todo", "toda"}
+                    or not any(certamente_verbo(t) for t in segment[rel + 1:])):
+                continue
+            noun = segment[rel - 1]
+            plural = noun.lower_.endswith("s")
+            if plural != verb.lower_.endswith(("m", "ão")):
+                continue
+            emit("virgula_sujeito_verbo", "Vírgula entre sujeito e verbo", comma.idx, comma.idx + 1, "probable_error", .7,
+                 explicar(f"O trecho com ‘{segment[rel].text}’ faz parte de quem pratica a ação. A vírgula no fim dele "
+                          "separa quem faz da ação, o que não se faz. Ou essa vírgula sai, ou entra outra também antes do "
+                          f"‘{segment[rel].text}’.", "vírgula entre sujeito e verbo"), "")
+
+
+LINKING_PLURAL = {"é": "são", "está": "estão", "fica": "ficam", "parece": "parecem", "continua": "continuam",
+                  "permanece": "permanecem", "anda": "andam", "segue": "seguem"}
+
+
+def elided_subject_plural(doc, emit):
+    """Verbo de ligação no singular, abrindo a frase sem sujeito expresso, com predicativo no plural
+    (“Parece tão nervosos.”): o sujeito elíptico é plural; o verbo concorda com ele."""
+    for verb in doc:
+        if verb.lower_ not in LINKING_PLURAL or verb.pos_ not in {"VERB", "AUX"}:
+            continue
+        head = verb.head if verb.dep_ in {"cop", "aux"} else verb
+        if any(c.dep_.startswith("nsubj") for c in list(head.children) + list(verb.children)):
+            continue
+        if any(not t.is_punct and t.pos_ != "ADV" for t in doc[verb.sent.start:verb.i]):
+            continue
+        rest = [t for t in doc[verb.i + 1:verb.sent.end] if not t.is_punct]
+        predicative = next((t for t in rest if t.pos_ != "ADV"), None)
+        participle = predicative is not None and "Part" in predicative.morph.get("VerbForm")
+        if (predicative is None or (predicative.pos_ != "ADJ" and not participle)
+                or "Plur" not in predicative.morph.get("Number")
+                or not predicative.lower_.endswith("s") or any(t.pos_ in {"NOUN", "PROPN", "PRON"} for t in rest)):
+            continue
+        plural = cased(verb.text, LINKING_PLURAL[verb.lower_])
+        emit("concordancia", "Concordância verbal", verb.idx, verb.idx + len(verb.text), "probable_error", .7,
+             explicar(f"‘{predicative.text}’ está no plural, então quem ‘{verb.lower_}’ são vários, mesmo sem aparecer "
+                      f"na frase. O verbo vai para o plural: ‘{plural}’.", "concordância com sujeito oculto"), plural)
 
 
 def subject_comma(block, doc, emit):
     for verb in doc:
-        if verb.pos_ not in {"VERB", "AUX"} or "Fin" not in verb.morph.get("VerbForm"):
+        if not conjugado_pelo_modelo(verb):
             continue
         head = verb.head if verb.dep_ in {"cop", "aux", "aux:pass"} else verb
         subject = next((c for c in head.children if c.dep_ in {"nsubj", "nsubj:pass"}), None)
@@ -426,6 +504,9 @@ def subject_comma(block, doc, emit):
         # “Que alívio, pensei…”: verbo em 1.ª ou 2.ª pessoa não tem um nome como sujeito.
         if set(verb.morph.get("Person")) & {"1", "2"}:
             continue
+        # Inciso de fala (“…, disse ele, …”): o verbo de fala não é o predicado do sujeito anterior.
+        if verbo_de_fala(verb) and verb.i + 1 < len(doc) and doc[verb.i + 1].pos_ in {"PRON", "PROPN"}:
+            continue
         words = [t for t in subject.subtree if not t.is_punct]
         if not words:
             continue
@@ -436,16 +517,173 @@ def subject_comma(block, doc, emit):
             continue
         comma = doc[last + 1]
         emit("virgula_sujeito_verbo", "Vírgula entre sujeito e verbo", comma.idx, comma.idx + 1, "probable_error", .75,
-             "Não se separa o sujeito do verbo por uma única vírgula. Se houver um inciso, ele precisa de vírgula também na abertura.",
-             "")
+             explicar("Não se coloca uma vírgula sozinha entre quem faz a ação e a ação (‘O menino, correu’). Se houver "
+                      "um comentário no meio, ele fica entre duas vírgulas.", "vírgula entre sujeito e verbo"), "")
+    relative_subject_comma(doc, emit)
+
+
+# Subordinantes que, com o imperfeito do subjuntivo, situam a oração no passado.
+CORRELATIVES = ("antes que", "ainda que", "mesmo que", "a menos que", "desde que", "sem que", "embora", "caso",
+                "se", "conquanto")
+
+
+def present_main(sentence, exclude):
+    """Verbo finito mais próximo da subordinada, fora dela, se estiver no presente do indicativo. O
+    mais próximo, e não a raiz: numa frase com fala e narração, ou com outra oração no meio (“numa
+    sala que, se soubesse antes, nunca teria aberto”), a subordinada se liga ao verbo vizinho."""
+    from .tempo import tempo_recuperado
+    from .lexicon import PAST, PRESENT
+    first, last = min(exclude), max(exclude)
+
+    def only_finite(t):
+        # Forma só verbal no léxico, sem etiqueta nominal do modelo (combinação própria desta regra).
+        return so_verbo_no_lexico(t) and t.pos_ not in {"NOUN", "PROPN", "PRON", "DET", "ADP", "CCONJ", "SCONJ", "NUM"}
+
+    def crosses_dash(t):
+        lo, hi = (t.i, first) if t.i < first else (last, t.i)
+        return any(x.text in {"—", "–"} for x in sentence.doc[lo:hi])
+
+    verbs = [t for t in sentence if t.i not in exclude and t.is_alpha and not crosses_dash(t)
+             and (conjugado_pelo_modelo(t)
+                  or tempo_recuperado(t) is not None or only_finite(t))]
+    if not verbs:
+        return None
+    nearest = min(verbs, key=lambda t: first - t.i if t.i < first else t.i - last)
+    value = flags(nearest.text)
+    if only_finite(nearest) and nearest.pos_ not in {"VERB", "AUX"}:
+        present = bool(value & PRESENT) and not value & PAST
+    else:
+        present = (("Ind" in nearest.morph.get("Mood") and "Pres" in nearest.morph.get("Tense"))
+                   or tempo_recuperado(nearest) == "present")
+    return nearest if present and not TERMINACAO_CONDICIONAL.search(nearest.lower_) else None
+
+
+
+
+def correlation(block, doc, emit):
+    """Subordinada com o imperfeito do subjuntivo (“antes que terminasse”, “embora fosse”, “se não
+    fosse”) presa a uma oração principal no presente do indicativo (“…, uma mão toca”). Com a
+    principal no presente, a correlação usual é o presente do subjuntivo (“antes que termine”); o
+    imperfeito situa a subordinada no passado. ‘Antes que’ e ‘se’ quase sempre pedem a correlação;
+    nos concessivos (‘embora’), um fato passado pode justificar o imperfeito."""
+    for sentence in doc.sents:
+        words = [t for t in sentence if not t.is_punct]
+        lowered = [t.lower_ for t in words]
+        for i, word in enumerate(words):
+            phrase = next((p for p in CORRELATIVES if lowered[i:i + len(p.split())] == p.split()), None)
+            # “Como se” pede sempre o imperfeito do subjuntivo (“diz como se estivesse”).
+            if phrase is None or (phrase == "se" and i > 0 and lowered[i - 1] in {"como", "nem"}):
+                continue
+            after = words[i + len(phrase.split()):]
+            verb = next((t for t in after[:6] if imperfeito_do_subjuntivo(t)), None)
+            if verb is None or any(t.text in {",", ";", "—", "–"} for t in doc[word.i:verb.i]):
+                continue
+            # A subordinada vai até a próxima vírgula; a principal está fora dela.
+            end = next((t.i for t in doc[verb.i:sentence.end] if t.text in {",", ";", "—"}), sentence.end)
+            main = present_main(sentence, set(range(word.i, end)))
+            if main is None:
+                continue
+            concessive = phrase in {"embora", "ainda que", "mesmo que", "conquanto"}
+            if phrase == "se":
+                # Depois de ‘se’ não há presente do subjuntivo: a condição vai ao futuro do subjuntivo
+                # (“se não for”) ou, hipótese irreal, fica no imperfeito com a principal no futuro do pretérito.
+                reason = explicar(
+                    f"A frase mistura dois jeitos de dizer a mesma coisa: ‘{main.text}’ fala do agora, e ‘se … "
+                    f"{verb.text}’ monta uma hipótese, que costuma vir com verbos como ‘seria’ ou ‘daria’. Costuma "
+                    "combinar assim:\n  • hipótese: ‘seria difícil, se não fosse…’\n  • agora: ‘é difícil, se não for…’\n"
+                    "Confira qual você quis dizer.",
+                    "correlação de tempos; com ‘se’ + imperfeito do subjuntivo, a principal vai ao futuro do pretérito; "
+                    "com a principal no presente, a condição vai ao futuro do subjuntivo")
+            else:
+                reason = (f"A ação principal, ‘{main.text}’, está no agora, mas ‘{verb.text}’ está numa forma que olha para "
+                          f"o passado. Com a ação principal no agora, ‘{phrase}’ costuma vir com a forma do agora (como "
+                          f"‘{phrase} seja’, ‘{phrase} termine’).")
+                if concessive:
+                    reason += " Se o fato aconteceu mesmo antes, a forma do passado está certa; confira."
+                reason = explicar(reason, "correlação de tempos; principal no presente pede o presente do subjuntivo")
+            emit("correlacao_tempos", "Correlação de tempos", verb.idx, verb.idx + len(verb.text),
+                 "editorial_attention" if concessive else "probable_error", .6 if concessive else .75, reason)
+
+
+# Palavras que não fecham uma frase: preposição simples ou contraída com artigo.
+OPEN_ENDINGS = {"de", "em", "com", "sem", "do", "da", "dos", "das", "no", "na", "nos", "nas", "pelo", "pela",
+                "pelos", "pelas", "ao", "aos", "num", "numa", "duma", "dum"}
+FINAL_PUNCTUATION = tuple(".!?…:;—–-)\"”’»*")
+
+
+def truncated(block, doc, emit):
+    """Frase cortada: termina em preposição ou contração (“até a casa da.”), em ‘cada’ logo depois de
+    verbo (“conta cada.”), ou o parágrafo não tem pontuação final. ‘Que’ maiúsculo depois de
+    reticências no meio da fala (“Eu disse… Que deixaria”) continua a oração anterior."""
+    text = block.text
+    for sentence in doc.sents:
+        words = [t for t in sentence if t.is_alpha]
+        last = words[-1] if words else None
+        closing = sentence.text.rstrip()[-1:]
+        if last is None or closing not in {".", "!", "?"}:
+            continue
+        after = text[last.idx + len(last.text):].lstrip()
+        if after[:1] not in {".", "!", "?"}:
+            continue
+        # Reticências em três pontos valem o mesmo que o caractere único “…”: interrupção deliberada.
+        if after.startswith(".."):
+            continue
+        previous = doc[last.i - 1] if last.i > sentence.start else None
+        if last.lower_ in OPEN_ENDINGS or (last.lower_ == "cada" and previous is not None
+                                           and previous.pos_ in {"VERB", "AUX"}):
+            emit("frase_cortada", "Frase cortada", last.idx, last.idx + len(last.text), "probable_error", .75,
+                 explicar(f"A frase termina em ‘{last.text}’, que pede uma palavra depois. Confira se faltou alguma coisa.",
+                          "frase incompleta"))
+    stripped = text.rstrip()
+    words = re.findall(r"[^\W\d_]+", stripped)
+    if (len(words) >= 4 and stripped[-1:].isalnum() and not stripped.endswith(FINAL_PUNCTUATION)
+            and any(certamente_verbo(t) for t in doc) and not lista_ou_rotulo(stripped)):
+        last = re.search(r"[^\W\d_]+$", stripped)
+        if last:
+            emit("frase_cortada", "Pontuação final ausente", last.start(), last.end(), "probable_error", .8,
+                 explicar("O parágrafo termina sem ponto.", "pontuação final"), last[0] + ".")
+    for match in re.finditer(r"(?:…|\.\.\.)\s+(Que)\b", text):
+        before = list(re.finditer(r"[^\W\d_]+(?:-[^\W\d_]+)*", text[:match.start()]))
+        rest = re.split(r"[.!?…]", text[match.start(1):], maxsplit=1)[0]
+        clause = doc.char_span(match.start(1), match.start(1) + len(rest), alignment_mode="contract")
+        verb = doc.char_span(before[-1].start(), before[-1].end(), alignment_mode="expand") if before else None
+        if (verb is not None and pede_completiva_confirmada(verb[0]) and clause is not None
+                and any(certamente_verbo(t) for t in clause if t.i != clause.start)):
+            emit("frase_cortada", "Maiúscula após reticências", match.start(1), match.end(1), "editorial_attention", .65,
+                 explicar("As reticências fazem uma pausa, mas a frase continua: o ‘que’ completa o que veio antes (‘eu "
+                          "prometi… que voltaria’), então fica com letra minúscula.", "maiúscula após reticências"), "que")
+
+
+EMBORA_NOMINAL = re.compile(r"\b(embora)\s+(?:o|a|os|as|um|uma|uns|umas|esse|essa|este|esta|aquele|aquela|tal|toda|todo)\s", re.I)
+
+
+def locutions(block, doc, emit):
+    """‘Ao invés de’ (= ao contrário de) em lugar de ‘em vez de’ (= no lugar de); ‘embora’, que
+    introduz oração, seguido só de um nome (“Embora a chuva, ela sai.”)."""
+    text = block.text
+    for match in re.finditer(r"\b(ao\s+invés)\s+d", text, re.I):
+        emit("locucoes", "Locução", match.start(1), match.end(1), "editorial_attention", .6,
+             explicar("‘Ao invés de’ quer dizer ‘ao contrário de’ e serve para coisas opostas (‘ao invés de subir, "
+                      "desceu’). Para ‘no lugar de’, usa-se ‘em vez de’.", "ao invés de / em vez de"),
+             cased(match[1], "em vez"))
+    for match in EMBORA_NOMINAL.finditer(text):
+        stop = re.search(r"[,;.!?…—]", text[match.end():])
+        span = doc.char_span(match.end(), match.end() + (stop.start() if stop else len(text) - match.end()),
+                             alignment_mode="contract")
+        if span is None or any(certamente_verbo(t) or t.pos_ in {"VERB", "AUX"} for t in span):
+            continue
+        emit("locucoes", "Locução", match.start(1), match.end(1), "probable_error", .75,
+             explicar("‘Embora’ pede um verbo depois (‘embora chovesse’). Antes de um nome sozinho, usa-se ‘apesar de’ "
+                      "(‘apesar da chuva’).", "conjunção concessiva"))
 
 
 CHECKS = (("crase", crase), ("homofonos", homophones), ("concordancia", agreement),
-          ("regencia", regency), ("virgula_sujeito_verbo", subject_comma))
+          ("regencia", regency), ("virgula_sujeito_verbo", subject_comma),
+          ("correlacao_tempos", correlation), ("frase_cortada", truncated), ("locucoes", locutions))
 
 
-def analyze(blocks, nlp, settings, docs=None, skip=()):
-    """`skip` recebe intervalos (parágrafo, início, fim) já apontados por outra fonte."""
+def analyze(blocks, nlp, settings, docs=None):
+    """Sem deduplicação com outras fontes: ela fica em `deduplicacao` (Fase 6a)."""
     rules = settings["rules"]
     active = [(name, check) for name, check in CHECKS if rules.get(name)]
     if not active:
@@ -461,8 +699,6 @@ def analyze(blocks, nlp, settings, docs=None, skip=()):
 
         def emit(rule, category, start, end, severity, score, reason, suggestion=None, priority="Verificar"):
             if labels[start] not in SCOPES[rule] or (start, end) in seen:
-                return
-            if any(p == block.number and s < end and e > start for p, s, e in skip):
                 return
             seen.add((start, end))
             out.append(item(block, rule, category, start, end, reason, severity, score, suggestion, priority))

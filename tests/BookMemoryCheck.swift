@@ -103,6 +103,37 @@ struct BookMemoryCheck {
         let future = String(decoding: data, as: UTF8.self).replacingOccurrences(of: "\"schema_version\" : 1", with: "\"schema_version\" : 2")
         try require((try? BookMemory.decode(Data(future.utf8))) == nil, "Versão desconhecida do livro deveria ser recusada.")
 
-        print("Decisões por livro validadas: mesmo texto, edição, inserção, repetições, pendentes, nome e JSON.")
+        // Estabilização de 07/10/2026: alertas que passaram a trazer `rule` (tempo verbal, estrutura…)
+        // herdam da memória gravada antes, quando a regra ainda vinha vazia. Só esses: outra regra no
+        // mesmo trecho não herda pela chave antiga.
+        let tense = Alert(id: "t1", paragraph: 4, text: "Ela abre a porta e saiu.", start: 4, end: 8,
+                          category: "Tempo verbal", rule: nil)
+        let oldMemory = BookMemory(report: try report("d", [tense]), decisions: ["t1": .intentional])
+        var tenseNow = tense; tenseNow.rule = "tempo_verbal"
+        try require(oldMemory.inherited(for: try report("e", [tenseNow])) == ["t1": .intentional],
+                    "Memória antiga deveria valer para o alerta que só ganhou a regra.")
+        var spelling = tense; spelling.rule = "ortografia"
+        try require(oldMemory.inherited(for: try report("f", [spelling])).isEmpty,
+                    "Uma regra que já existia não pode herdar pela chave sem regra.")
+        try require(BookMemory(report: try report("1", [tenseNow]), decisions: ["t1": .error])
+                        .inherited(for: try report("2", [tenseNow])) == ["t1": .error],
+                    "Memória nova continua valendo pela chave com regra.")
+
+        // Configuração salva antes de existir ‘residuo_edicao’: herda o valor de ‘estrutura’.
+        func settings(_ rules: [String: Bool]) throws -> SearchSettings {
+            var all = Dictionary(uniqueKeysWithValues: SearchRule.all.map { ($0.id, true) })
+            all.removeValue(forKey: "residuo_edicao")
+            for (key, value) in rules { all[key] = value }
+            var saved = SearchSettings()
+            saved.rules = all
+            return try SearchSettings.decode(try saved.encoded())
+        }
+        try require(try settings(["estrutura": false]).rules["residuo_edicao"] == false,
+                    "Sem a chave nova, o resíduo de edição deve seguir ‘estrutura’ desligada.")
+        try require(try settings([:]).rules["residuo_edicao"] == true, "Com ‘estrutura’ ligada, o resíduo fica ligado.")
+        try require(try settings(["estrutura": false, "residuo_edicao": true]).rules["residuo_edicao"] == true,
+                    "Valor salvo da chave nova prevalece.")
+
+        print("Decisões por livro validadas: mesmo texto, edição, inserção, repetições, pendentes, nome, JSON, chave antiga sem regra e herança de residuo_edicao.")
     }
 }

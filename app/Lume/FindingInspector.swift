@@ -14,6 +14,15 @@ struct FindingInspector: View {
     private var severity: FindingSeverity? { finding.severity.flatMap(FindingSeverity.init(rawValue:)) }
     private var currentIndex: Int? { store.filteredFindings.firstIndex { $0.id == finding.id } }
 
+    /// O destino dado pela política: o que este alerta pede do editor.
+    private var destinationNote: (text: String, symbol: String)? {
+        if finding.isBlocking { return ("Impeditivo: decida antes de encerrar a revisão.", "lock.fill") }
+        if finding.destination == .informacao {
+            return ("Observação: não pede decisão nem impede o encerramento. Decida só se quiser.", "eye")
+        }
+        return nil
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             header
@@ -26,6 +35,7 @@ struct FindingInspector: View {
                 }
             }
             manuscriptActions
+            if let conflict = store.decisionConflicts[finding.id] { conflictNote(conflict) }
             decisionSection
             details
             Text("Lume encontra. Lume explica. **O editor decide.**")
@@ -58,6 +68,11 @@ struct FindingInspector: View {
                     .disabled(currentIndex == nil || currentIndex == store.filteredFindings.count - 1)
             }.buttonStyle(.borderless)
             Text(finding.category).font(LumeFont.display(20, weight: .semibold)).fixedSize(horizontal: false, vertical: true)
+            if let note = destinationNote {
+                Label(note.text, systemImage: note.symbol).font(LumeFont.ui(11))
+                    .foregroundStyle(finding.isBlocking ? LumeTheme.error : LumeTheme.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             Text("\(finding.chapter) · § \(finding.paragraph)").font(LumeFont.ui(11.5)).foregroundStyle(LumeTheme.secondary)
                 .textSelection(.enabled)
             Text("“\(finding.segments.marked)”").font(LumeFont.display(15)).italic()
@@ -202,7 +217,7 @@ struct FindingInspector: View {
                 }
             }.disabled(store.isBusy)
             HStack {
-                Text("⌘1–⌘6 escolhem a decisão.").font(LumeFont.ui(10.5)).foregroundStyle(LumeTheme.tertiary)
+                Text("⌘1–⌘7 escolhem a decisão.").font(LumeFont.ui(10.5)).foregroundStyle(LumeTheme.tertiary)
                 Spacer()
                 Button { confirm() } label: { Label("Confirmar", systemImage: "checkmark") }
                     .buttonStyle(LumeButtonStyle())
@@ -210,6 +225,22 @@ struct FindingInspector: View {
                     .help("Confirma a sua avaliação e passa para o próximo alerta")
             }
         }
+    }
+
+    /// O motor juntou neste alerta ocorrências equivalentes que tinham decisões diferentes. O Lume não
+    /// escolhe entre elas; a divergência fica registrada mesmo depois da sua decisão.
+    private func conflictNote(_ entries: [String]) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Label("Decisões anteriores divergentes", systemImage: "exclamationmark.triangle")
+                .font(LumeFont.ui(12, weight: .semibold)).foregroundStyle(LumeTheme.amber)
+            Text("Este alerta reúne o mesmo fenômeno apontado antes por outra fonte, e as decisões tomadas não coincidem. "
+                 + "Nenhuma foi escolhida automaticamente.")
+                .font(LumeFont.ui(11.5)).foregroundStyle(LumeTheme.secondary).fixedSize(horizontal: false, vertical: true)
+            ForEach(entries, id: \.self) { entry in
+                Text("• \(entry)").font(LumeFont.ui(11.5)).textSelection(.enabled).fixedSize(horizontal: false, vertical: true)
+            }
+        }.padding(10).frame(maxWidth: .infinity, alignment: .leading)
+            .background(RoundedRectangle(cornerRadius: LumeRadius.medium).stroke(LumeTheme.amber.opacity(0.5)))
     }
 
     // MARK: Detalhes
@@ -223,6 +254,9 @@ struct FindingInspector: View {
                     }
                     Text("Etapa: \(finding.moduleTitle) · Classificação: \(finding.severityTitle)")
                     if let rule = finding.rule { Text("Regra: \(rule)") }
+                    if let detectores = finding.detectores, detectores.count > 1 {
+                        Text("Também apontado por: \(detectores.dropFirst().joined(separator: ", "))")
+                    }
                     Text("Prioridade: \(finding.priority)")
                     Text("Origem: \(finding.source)")
                 }.font(LumeFont.ui(11)).frame(maxWidth: .infinity, alignment: .leading).padding(.top, 6)
@@ -261,7 +295,7 @@ struct FindingInspector: View {
     }
 }
 
-/// Uma das decisões de `ReviewDecision`, com atalho ⌘1–⌘6.
+/// Uma das decisões de `ReviewDecision`, com atalho ⌘1–⌘7.
 struct DecisionChip: View {
     let decision: ReviewDecision
     let selected: Bool

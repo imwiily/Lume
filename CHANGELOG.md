@@ -2,6 +2,313 @@
 
 As seções antigas descrevem a cobertura e os resultados de cada entrega, não o estado atual. Nas seções anteriores à 1.0, caminhos citados são da antiga pasta `LumeMac/`; a correspondência com a estrutura atual está em [README.md](README.md#estrutura).
 
+## Em desenvolvimento
+
+**FONTE 1.5.0 — Estabilização linguística** (proposta; aguarda a aprovação do autor). Baseline
+estável de detecção, resultado das Fases 0 a 8 da estabilização (`.agent/plans/fonte-estabilizacao.md`):
+- **Núcleos compartilhados:** identificação verbal com três perguntas (`verbo.py`), tempo e modo
+  (`tempo.py`), segmentação entre fala e narração (`segments.py`), verbos de fala (`elocucao.py`)
+  e deduplicação por família de fenômeno, com a ocorrência absorvida registrada (`deduplicacao.py`).
+- **Identidade:** todo alerta traz `rule` e `classe`; IDs e herança de decisões preservados.
+- **LanguageTool:** categoria original registrada; indisponível vira análise parcial, não falha.
+- **Regras revisadas:** alarmes falsos demonstrados corrigidos por classe; estilo, registro e
+  exemplos isolados retirados (as chaves continuam aceitas); uma relação temporal desativada.
+- **Validação final:** 29 conjuntos de regressão idênticos à Fase 7b; nenhum impeditivo; nas
+  decisões reais, 85% de precisão nas pendências pela Política v2 (582 decisões de um autor). As
+  limitações aceitas estão em `docs/validacao.md`.
+- **Montagem:** passa a rodar também `DeduplicationCheck` e `PartialAnalysisCheck`.
+- **Limpar resíduos preserva o histórico de decisões:** um relatório antigo fica quando tem um
+  alerta decidido que o relatório mais recente do livro não mede. Esses relatórios guardam trechos
+  do manuscrito; o painel, a confirmação e a linha de estado dizem quantos ficaram.
+
+Ferramentas da mesa de leitura (só interface; o motor e os contratos não mudam).
+
+- **Copiar contexto:** copia o título do capítulo e todos os parágrafos mostrados na página.
+- **Copiar parágrafo marcado:** copia o parágrafo com o trecho destacado entre asteriscos e,
+  abaixo, “Por que acendemos esta luz”.
+- **Reanalisar:** na barra da mesa, analisa a obra de novo com as mesmas opções e mantém as
+  decisões já marcadas: pelo ID do alerta e, nos demais, pelo conteúdo idêntico. A confirmação
+  de envio à API continua valendo.
+- **Limpar resíduos** (em Motor): apaga relatórios, registros e configurações de leituras
+  antigas, depois de mostrar o espaço a liberar. Mantém o relatório aberto, o mais recente de cada
+  livro, os falsos positivos extraídos, as decisões, as cópias de segurança, os projetos com IA e
+  os motores.
+- Verificação nova: `tests/DeskToolsCheck.swift`.
+
+Falsos positivos morfossintáticos (FONTE), a partir de um livro narrado no presente:
+
+- **Verbo finito:** antes de dizer que um segmento não tem verbo finito, uma segunda validação
+  aceita a forma que o modelo e o léxico dão como finita, a que o léxico só conhece como verbo
+  (“havia”) e o homógrafo na posição do verbo (depois do grupo nominal sujeito ou de um relativo).
+  Na discordância entre as fontes, não há alerta.
+- **Fragmentos:** a mensagem ficou neutra; oposição (“por outro lado”), enumeração e paralelismo
+  contam como fragmento deliberado, sem alerta.
+- **Subordinada isolada** (“Quando as luzes se apagam.”): categoria própria
+  `incomplete_subordinate_clause`, confiança baixa, a partir de três palavras.
+- **Fronteira de oração:** o verbo que fecha uma relativa (“o porão em que dormem é…”) não forma
+  resíduo de edição com o verbo seguinte.
+- **Narração no presente:** passado em oração dependente (relativa, completiva, adverbial),
+  mais-que-perfeito composto e “devia/podia” + infinitivo não geram “Tempo verbal”; a relação
+  coordenada não usa como âncora um verbo de relativa ou um imperfeito modal; o mesmo desvio não
+  recebe dois alertas.
+- **Aspas de destaque** (até três palavras no meio da oração, sem verbo nem pontuação interna)
+  não ativam a regra de pontuação de diálogo.
+- **Nomes da obra:** plural e singular de um nome reconhecido, linhas de créditos e “Nomes
+  aceitos” valem para a grafia; termo desconhecido recorrente fica com confiança baixa.
+
+Classes de erro que escapavam às regras locais (FONTE), com três verificações novas, ligadas por
+padrão e desligáveis nos ajustes:
+
+- **Correlação de tempos** (`correlacao_tempos`): “antes que”, “embora”, “se”, “ainda que” etc. com
+  o imperfeito do subjuntivo e a oração principal no presente do indicativo. “Como se” fica de fora
+  (pede sempre o imperfeito); nas concessivas, só atenção editorial.
+- **Frase cortada** (`frase_cortada`): frase que termina em preposição, contração ou “cada” depois
+  de verbo; parágrafo sem pontuação final; “Que” maiúsculo depois de reticências quando a oração
+  continua (“Eu prometi… que voltaria”).
+- **Locuções** (`locucoes`): “ao invés de” onde a norma pede “em vez de”; “embora” seguido só de
+  um nome.
+- **Concordância:** verbo de ligação no singular, sem sujeito expresso, com predicativo no plural.
+- **Vírgula entre sujeito e verbo:** sujeito com oração relativa restritiva fechada por vírgula
+  sem abertura; incisos de fala (“…, disse ele, …”) deixaram de ser apontados.
+- **Variação de nomes:** o mesmo termo da obra com e sem maiúscula no meio da frase.
+- **Tempo verbal e estrutura:** forma só verbal ligada como complemento (“de uma havia”) mantém o
+  tempo; forma depois de “todo o” ou de preposição + artigo não conta como verbo.
+
+Explicações dos alertas em linguagem simples: cada uma diz o que acontece com palavras do dia a dia
+e, quando ajuda, um exemplo; o nome gramatical fica numa linha final (“Na gramática: …”), para quem
+quiser pesquisar. Vale para todas as regras do FONTE (as mensagens do LanguageTool e da IA têm texto
+próprio). Um teste garante o formato nos dois corpora; a detecção não mudou.
+Os relatórios de `examples/` (Mestre, Editorial, Temporal) foram regenerados: mesmos alertas,
+explicações novas.
+
+LanguageTool, a partir das marcações de falso positivo: sugestão de grafia a duas letras ou mais da
+palavra (“taser” → “fazer”) fica com confiança baixa e lembra que palavra estrangeira vai em itálico;
+gerúndio que descreve um nome (“os passos do lobo correndo cessam”) não é tratado como auxiliar.
+
+Encerramento editorial, primeira parte ([plano](.agent/plans/encerramento-editorial.md)): o objetivo
+do Lume passa a ser interromper o editor só com boa razão e deixar o manuscrito chegar ao fim.
+
+- **Documentação:** visão, `AGENTS.md`, arquitetura, validação e README com a nova definição de
+  sucesso (precisão antes de cobertura irrestrita, “Revisão concluída”, Auditoria como controle de
+  qualidade, nenhuma regra a partir de caso isolado).
+- **Medição:** `scripts/medir_precisao.py` calcula a precisão real de cada classe a partir das
+  decisões guardadas, sem gravar trechos. A avaliação do corpus mostra primeiro a precisão das
+  pendências (97% no corpus atual) e os alarmes falsos por 10 mil palavras.
+- **Política de destino v1** (`fonte/fonte/data/politica.json`): cada ocorrência leva `destino`
+  (`pendencia`, `informacao` ou `diagnostico`) e `impeditivo`. Repetição próxima e classes de
+  confiança baixa sem medição viram observações. Nenhuma classe é impeditiva nesta versão. IDs,
+  trechos e severidades não mudam, e as decisões continuam valendo. Manuscritos: A 63 → 37
+  pendências e 26 observações; B 15 → 2 e 13.
+- **Regra `tratamento` retirada** por decisão do autor (nasceu de um caso isolado). A chave
+  continua aceita nas configurações salvas, sem efeito.
+
+Estabilização do FONTE, Fase 7b: correção das fontes de alarme falso demonstradas e retirada de
+regras de estilo, registro e exemplo isolado.
+- **Restrições por classe linguística:**
+  - palavra dobrada (ênclise + homógrafo, “se se” com verbo, abreviatura);
+  - crase dativa (destinatário já expresso);
+  - frase cortada (“...” como “…”);
+  - vocativo, maiúscula depois de interjeição, “que, não” conclusivo, cor composta e verbo com
+    ênclise na grafia oscilante.
+- **Correções de classificação:**
+  - imperfeito separado do condicional e do subjuntivo pelo léxico;
+  - verbos de fala com ênclise e no mais-que-perfeito;
+  - o radical não contraria o lema de outro verbo onde o verbo de fala é condição do alerta;
+  - aspas como narração não passam pela pontuação de diálogo.
+- **Desativada:** a relação `coordinated_past_present` (2 acertos em 7 decisões). A implementação
+  fica.
+- **Retiradas** (as chaves continuam aceitas nas configurações antigas):
+  - repetição próxima, gerundismo, “chegar em” e “pedir para que”;
+  - prazos de uma cena e referentes literais.
+- **Mensagens:** concordância e crase dativa dizem “parece”.
+- **Medição:** `scripts/medir_precisao.py --languagetool` mede o LanguageTool por regra e
+  categoria original, sem mudar nada.
+- **Manuscritos reais (pendências/observações):** A 37/26 → 36/6; B 4/14 → 4/2; C 19/12 → 19/8;
+  X 17/33 → 17/18. Nenhum alerta que ficou mudou de ID. As decisões perdidas na herança são só as
+  dos alertas retirados.
+
+Estabilização do FONTE, Fase 6b (LanguageTool indisponível): quando o corretor pedido não inicia
+ou não responde, a análise do FONTE continua, em vez de parar sem relatório.
+- **No relatório:** fica registrado como análise parcial, com a etapa, o componente e o motivo. Os
+  metadados não dizem que o corretor rodou.
+- **No app:** a mesa e Etapas e alcance avisam que a análise foi parcial, e o título também.
+- **Encerramento:** encerrar uma análise parcial gera um registro próprio, que não vale para a
+  análise completa e não substitui um encerramento anterior.
+- **Verificações:** `tests/PartialAnalysisCheck.swift` e `fonte/tests/test_languagetool_indisponivel.py`.
+
+Estabilização do FONTE, Fase 6b (LanguageTool): cada alerta do LanguageTool registra a regra, a
+categoria e o tipo originais (`languagetool`). Severidade, confiança, classe e destino não mudam. A
+revisão da severidade automática “provável erro” fica registrada para uma fase própria.
+
+Estabilização do FONTE, Fase 6b (deduplicação): FONTE e LanguageTool só se juntam quando apontam o
+mesmo fenômeno.
+- **Critério:** mesma família (crase, pontuação duplicada, espaçamento, maiúscula inicial, palavra
+  duplicada), trecho em comum e a mesma correção. Antes, bastava tocar o mesmo trecho, e a
+  precedência se invertia entre as etapas.
+- **Identidade:** o alerta principal mantém ID, regra e classe e registra as fontes (`detectores`)
+  e as ocorrências juntadas (`absorvidos`). O app herda pelas identidades juntadas e não escolhe
+  entre decisões divergentes: mostra o conflito no inspetor e o guarda junto das decisões.
+- **Resultado:**
+  - nos 29 conjuntos, muda um alerta, em B com LanguageTool: a crase do FONTE passa a ser a
+    principal e absorve a do LanguageTool (mesmo trecho, mesma correção). O alerta tem o mesmo ID
+    que em B sem LanguageTool;
+  - destinos, decisões herdadas e as demais 28 análises não mudam.
+- Verificação nova: `tests/DeduplicationCheck.swift`.
+
+Estabilização do FONTE, Fase 6a: deduplicação entre detectores num só lugar
+(`deduplicacao.py`), sem mudar nenhum alerta.
+- **Mecanismos reunidos:**
+  - LanguageTool sob regra linguística;
+  - gramática sob LanguageTool;
+  - os dois cruzamentos entre tempo verbal e coerência temporal;
+  - mesmo ID entre etapas;
+  - Auditoria sobre alertas anteriores.
+
+  Cada um com o mesmo critério e a mesma precedência de antes; as supressões linguísticas ficam
+  nas regras.
+- **Código:** sai o parâmetro `skip` da gramática. A geração antiga de relações temporais e o ramo
+  de palavra dobrada de `analysis` ficam: testes e o relatório de referência dependem deles.
+- **Resultado:** os 29 conjuntos são iguais à Fase 5 em alertas, mensagens, metadados e avisos, e as
+  decisões herdadas também.
+
+Estabilização do FONTE, Fase 5: verbos de fala, pensamento e percepção numa só fonte
+(`elocucao.py`), sem mudar nenhum alerta.
+- **Categorias e perfis:** cada verbo tem uma categoria (elocução, pensamento, percepção ou só
+  pelo contexto); cada regra pede o seu perfil (inciso, verbos que pedem “que”, relato, comentário
+  do narrador, anúncio do narrador, “poder” + verbo de atestar), com as mesmas listas de antes.
+- **Duplicações removidas:** o reconhecimento pela forma (radical + terminação) existia duas
+  vezes; a verificação “lema ou forma” da vírgula repetia a mesma conta.
+- **Resultado:**
+  - as funções dão as mesmas respostas antes e depois em 857 mil formas do léxico e 224 mil
+    palavras em contexto;
+  - os 29 conjuntos são iguais à Fase 4 em alertas, metadados e avisos.
+
+Estabilização do FONTE, Fase 4: núcleo de segmentação entre fala e narração (`segments.py`), sem
+mudar nenhum alerta.
+- **Peças únicas:** percurso das aspas, travessões e hífen de diálogo, abertura de fala e inciso,
+  e tabelas de aspas.
+- **Duas leituras com as mesmas peças:** a atual (`classify`) e a antiga (`narrative_masks`), com
+  as diferenças entre elas registradas no plano.
+- **Resultado:**
+  - os segmentadores são idênticos aos anteriores em 189 combinações de texto e configuração;
+  - os 29 conjuntos são iguais à Fase 3 em alertas, metadados e avisos.
+- **Imperfeito:** a verificação do contrato de `imperfeito` achou um erro real, registrado para
+  correção posterior: todo futuro do pretérito passa como imperfeito.
+
+Estabilização do FONTE, Fase 3: núcleo de tempo e modo (`fonte/fonte/tempo.py`), sem mudar nenhum
+alerta.
+- **O que foi reunido:**
+  - as classificações de tempo que estavam espalhadas por `temporal.py`, `verbo.py`, `grammar.py`
+    e `analysis.py`;
+  - a terminação do condicional, antes repetida três vezes;
+  - a do imperfeito do subjuntivo, antes repetida duas vezes.
+- **Duas políticas estritas com nomes próprios:** `tempo_estrito` (relações temporais) e
+  `tempo_narrativo` (regra de tempo verbal). Elas diferem de propósito: a narrativa aceita o
+  passado só pelo léxico.
+- **Resultado:** 29 conjuntos idênticos a 9f0f6d8 e iguais à Fase 2b em alertas, mensagens,
+  sugestões, metadados e avisos. Os dez classificadores são idênticos aos anteriores em 12.687
+  palavras.
+
+Estabilização do FONTE, Fase 2b: reconhecimento verbal mais preciso no núcleo (`verbo.py`), sem
+nenhum alerta novo ou perdido nos textos de regressão.
+- **“Pode ser verbo”:** reconhece o futuro do subjuntivo igual ao infinitivo (“quando ele
+  cantar”) e o verbo no início de frase ou de fala seguido do complemento (“Preciso falar-lhe”).
+- **“Certamente verbo”:**
+  - confirma verbos que o modelo lia como nome ou adjetivo quando a sintaxe sustenta (“A garra
+    segura o menino”, “Uma nova era começa”, “e vale a pena”);
+  - deixa de confirmar nomes que o léxico só conhece como verbo (“A vida é longa”);
+  - a precisão se mantém.
+- **“Há forma verbal”:** deixa de aceitar nomes e interjeições que o léxico conhece como não
+  verbais (“Oh”, “perdão”).
+- **Evidência independente:** na validação congelada (consulta 1 de 3), a cobertura de “pode ser
+  verbo” foi de 0,962 para 0,981 e a taxa de não verbais em “há forma verbal”, de 0,091 para
+  0,018, sem falso positivo novo em “certamente verbo”.
+
+Estabilização do FONTE, Fase 2a: núcleo de identificação verbal (`fonte/fonte/verbo.py`), sem
+mudar nenhum alerta.
+- **Três operações distintas:**
+  - `certamente_verbo`, usada para alertar sobre um verbo;
+  - `pode_ser_verbo`, usada para não afirmar “sem verbo” na dúvida;
+  - `ha_forma_verbal`, usada como guarda.
+- **Ingredientes comuns:** leitura do modelo, forma conjugada pelo modelo, forma só verbal no
+  léxico e filtros nominais.
+- **Fim das definições espalhadas:** `lexicon.finite`, `analysis.verbo_finito_possivel` e
+  `grammar.verbal` deixam de existir fora do núcleo, e as verificações diretas de `"Fin"` passam
+  pelo núcleo.
+- **Resultado:** os 29 conjuntos de comparação são idênticos a 9f0f6d8 e byte a byte iguais à Fase 1.
+
+Estabilização do FONTE, Fases 0 e 1 ([plano](.agent/plans/fonte-estabilizacao.md)), sem mudar
+nenhum alerta:
+
+- **Comparação alerta a alerta:**
+  - `scripts/comparar_relatorios.py` compara IDs, destinos, classes, severidades e confianças, sem
+    trechos na saída;
+  - `avaliar_deteccao.py --guardar-relatorios` guarda o relatório de cada texto do corpus.
+- **Identidade, regra e classe separadas:**
+  - todo alerta passa a ter `rule` (tempo verbal, estrutura, resíduo de edição, pontuação de
+    diálogo e LanguageTool não tinham);
+  - o motor grava a `classe` estatística, com os mesmos nomes de antes, então as medições da
+    Política v2 continuam valendo;
+  - os IDs não mudam;
+  - no app, a memória do livro aceita a chave antiga desses alertas. Sem isso, a herança real
+    cairia de 28 para 21 decisões num livro e de 15 para 7 em outro.
+- **Resíduo de edição com configuração própria** (`residuo_edicao`): configurações salvas antes
+  herdam o valor de “Estrutura da frase”, no motor e no app.
+
+Encerramento editorial, segunda parte:
+
+- **Auditoria final como controle de qualidade** (política v2):
+  - confiança baixa vai sempre para o diagnóstico;
+  - as categorias experimentais começam no diagnóstico;
+  - ortografia, concordância, crase e regência começam como observação;
+  - a promoção depende só de dados, e nada da Auditoria é impeditivo.
+  - O prompt não mudou: nada é reenviado nem custa.
+- **Mesa em duas partes:**
+  - **Pendências** (padrão) e **Observações**, com a contagem de cada uma;
+  - **Impeditivos** em destaque no topo das pendências, sempre visíveis, mesmo zerados;
+  - observações mais discretas, com a etiqueta “Observação” em vez de “Pendente de decisão”;
+  - o diagnóstico do motor em Etapas e alcance, fora do fluxo editorial.
+- **Revisão concluída:** **Encerrar revisão** fica disponível quando nenhum impeditivo está sem
+  decisão. O registro guarda as pendências e observações abertas, a data e as versões do motor e
+  da política, e vale para o mesmo texto e a mesma política.
+- **Decisão “Corrigido”:** gravada pela correção no Pages. É o atalho ⌘7; os atalhos antigos não
+  mudam.
+- **Título da janela:** pendências sem decisão, no lugar de “X de Y avaliados”.
+- **Compatibilidade:** relatórios antigos abrem com tudo em Pendências, sem impeditivos, e as
+  decisões antigas continuam valendo.
+- **Verificação nova:** `tests/ClosureCheck.swift`. A montagem passa a rodar também a verificação
+  da mesa.
+
+Narração no passado com dois planos e marcas que não são narração (FONTE), a partir de um texto de
+terceiros (61 → 39 alertas, sem perder nenhum erro do corpus):
+
+- **Fala no meio do parágrafo:** cada linha (quebra de linha manual) pode abrir fala com travessão
+  ou hífen; a fala aberta continua na linha seguinte quando essa linha a fecha (“… - disse ela.”).
+- **Narrador que fala de si no presente:** “me chamo”, “sou” + nome ou adjetivo, “acho/sinto/confesso
+  que…”, “vou contar” e “quem eu sou” não geram tempo verbal. Ação da cena (“Abro a janela”, “Sinto
+  o frio”), passiva (“Sou empurrado”) e comentário depois de um passado na mesma frase continuam.
+- **Listas e rótulos** (“Equipe 2 Ana Rui”, “Parte 3”): sem tempo verbal nem pontuação final.
+- **‘era’ nome** depois de determinante e adjetivo, antes de verbo ou ‘de’ (“Uma nova era começa”).
+- **Tratamento** (`tratamento`, regra nova, ligada por padrão): ‘você’ com verbo na forma de ‘tu’
+  no mesmo trecho (“Você tinhas razão”), como atenção editorial. A mistura entre falas diferentes
+  do mesmo personagem continua fora do alcance local.
+
+Mensagens do LanguageTool em linguagem simples: as regras mais frequentes nos relatórios reais
+(ortografia, conectores, travessão, por que/porque, concordância, crase nos dois sentidos, hífen,
+palavras parecidas etc.) têm explicação própria; as demais mantêm a mensagem do corretor. Todas
+terminam com a linha “Na gramática:”. A identidade dos alertas não muda, e as decisões continuam.
+
+Coerência com IA: a instrução pede explicações curtas, com palavras do dia a dia, e o alerta ganha
+a linha “Na gramática: contradição de continuidade.” Mudar a instrução não reenvia capítulos: o
+reenvio depende só do texto, e o cache dos julgamentos não inclui a instrução; o estilo novo vale
+para capítulos novos ou alterados.
+
+Auditoria final com IA (instrução versão 4): nunca sugere mudança de estilo (sinônimo, frase
+reorganizada, repetição expressiva cortada, ritmo); a sugestão corrige só o erro, com a menor mudança.
+“Repetição” vale só para palavra dobrada por acidente (“o o”) — e o código descarta, contando como
+estilo, qualquer outra repetição que o modelo devolva. Explicações em linguagem simples, com o termo
+gramatical na linha final. A mudança de versão faz os capítulos serem auditados de novo.
+
 ## Lume 1.6 · FONTE 1.4.0 · Coerencia 1.2.0 — 05/10/2026
 
 Interface refeita a partir da referência do Stitch (“O manuscrito é papel. O Lume é instrumento.

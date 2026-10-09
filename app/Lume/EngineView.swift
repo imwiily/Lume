@@ -81,6 +81,19 @@ struct EngineView: View {
                             .font(LumeFont.ui(11.5)).foregroundStyle(LumeTheme.secondary)
                     }
                 }
+                Panel(padding: 20) {
+                    HStack(alignment: .center, spacing: 14) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Armazenamento").font(LumeFont.ui(13, weight: .semibold))
+                            Text("Cada análise guarda um relatório, um registro e uma configuração, com texto do manuscrito. A limpeza apaga os de leituras antigas e mantém o relatório aberto, o mais recente de cada livro, suas decisões e as cópias de segurança. Também ficam os relatórios antigos com decisões que o mais recente não tem, porque só eles permitem medir essas decisões; eles guardam trechos do manuscrito.")
+                                .font(LumeFont.ui(11.5)).foregroundStyle(LumeTheme.secondary).fixedSize(horizontal: false, vertical: true)
+                        }
+                        Spacer(minLength: 8)
+                        Button { store.cleanStorage() } label: { Label("Limpar resíduos…", systemImage: "trash") }
+                            .buttonStyle(LumeButtonStyle()).disabled(store.isBusy)
+                            .help("Mostra o espaço a liberar e pede confirmação antes de apagar")
+                    }
+                }
                 HStack {
                     Label("A análise do FONTE roda neste Mac.", systemImage: "lock").font(LumeFont.ui(11.5))
                         .foregroundStyle(LumeTheme.secondary)
@@ -158,6 +171,9 @@ struct CoverageSheet: View {
             }
             ScrollView {
                 VStack(alignment: .leading, spacing: 10) {
+                    if let partial = store.report?.metadata.analiseParcial {
+                        PartialNotice(partial: partial)
+                    }
                     if let memory = store.report?.metadata.narrativeSummary {
                         Panel(padding: 14) {
                             VStack(alignment: .leading, spacing: 4) {
@@ -180,6 +196,9 @@ struct CoverageSheet: View {
                                     .fixedSize(horizontal: false, vertical: true)
                             }
                         }
+                    }
+                    if let report = store.report {
+                        DiagnosticPanel(report: report)
                     }
                     ForEach(Array((store.report?.warnings ?? []).enumerated()), id: \.offset) { _, warning in
                         Text(warning).font(LumeFont.ui(11)).foregroundStyle(LumeTheme.secondary)
@@ -232,5 +251,44 @@ struct KeySheet: View {
             }
         }.padding(24).frame(width: 540).background(LumeTheme.canvas)
             .foregroundStyle(LumeTheme.ink).tint(LumeTheme.accent)
+    }
+}
+
+/// Diagnóstico do motor: achados fora da mesa (Auditoria de confiança baixa, categorias
+/// experimentais). Ficam aqui, em Etapas e alcance, só para consulta; não pedem decisão.
+struct DiagnosticPanel: View {
+    let report: EditorialReport
+    @State private var expanded = false
+
+    var body: some View {
+        let items = report.metadata.diagnostico ?? []
+        Panel(padding: 14) {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack {
+                    Text("Diagnóstico do motor").font(LumeFont.ui(13, weight: .semibold))
+                    Spacer()
+                    Text(report.metadata.politicaVersao.map { "Política v\($0)" } ?? "Relatório anterior à política")
+                        .font(LumeFont.ui(11)).foregroundStyle(LumeTheme.secondary)
+                }
+                Text(items.isEmpty
+                     ? "Nenhum achado ficou só no diagnóstico nesta leitura."
+                     : "\(items.count) achado(s) com evidência fraca ou em fase experimental ficaram fora da mesa. Servem para medir e melhorar o Lume; não pedem decisão nem impedem o encerramento.")
+                    .font(LumeFont.ui(12)).foregroundStyle(LumeTheme.ink.opacity(0.85)).fixedSize(horizontal: false, vertical: true)
+                if !items.isEmpty {
+                    DisclosureGroup(isExpanded: $expanded) {
+                        VStack(alignment: .leading, spacing: 6) {
+                            ForEach(items) { item in
+                                VStack(alignment: .leading, spacing: 1) {
+                                    Text("\(item.category) · \(item.chapter) · § \(item.paragraph)").font(LumeFont.ui(11, weight: .semibold))
+                                    Text(item.segments.marked).font(LumeFont.display(12)).foregroundStyle(LumeTheme.secondary)
+                                }
+                            }
+                        }.padding(.top, 4)
+                    } label: {
+                        Text("Ver achados").font(LumeFont.ui(11.5))
+                    }
+                }
+            }
+        }
     }
 }

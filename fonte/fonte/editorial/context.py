@@ -4,14 +4,15 @@ Janelas não atravessam capítulos/cortes explícitos. Evidências anteriores
 sustentam referências; parágrafos seguintes só ajudam a revisão humana.
 """
 import re
-from ..analysis import forma_de_fala, verbo_de_fala
-from ..lexicon import model_finite
-from ..segments import classify, spans
+from ..analysis import explicar
+from ..elocucao import forma_de_fala, verbo_de_fala, verbo_de_fala_confirmado
+from ..verbo import model_finite
+from ..segments import TRAVESSOES, classify, spans
 from .common import alert, evidence
 
-RULES = {'dialogo_contextual', 'referente_contextual', 'gerundismo'}
+# Gerundismo e “o objeto” depois de enumeração foram retirados na Fase 7b (registro; exemplo isolado).
+RULES = {'dialogo_contextual'}
 CUT = re.compile(r'\s*(?:\*{3}|—{3}|no dia seguinte\b|dias depois\b|na manhã seguinte\b)', re.I)
-GERUND = re.compile(r'\b(?:vou|vai|vamos|vão|vais|irei|irá|iremos|irão)\s+(?:poder\s+)?estar\s+[^\W\d_]+(?:ando|endo|indo)\b', re.I)
 
 
 def window(blocks, index):
@@ -35,16 +36,16 @@ def action_reason(speech, action):
     fixed = head[:1].upper() + head[1:]
     tail = speech.split()[-1] if speech.split() else ''
     if speech.endswith(('.', '!', '?', '…')):
-        problem = 'A fala já tem pontuação de encerramento; nesse caso, a ação deve começar com maiúscula.'
+        problem = 'A fala já termina com pontuação, então a ação começa com letra maiúscula.'
     else:
         tail = tail.rstrip(',;:') + '.' if tail else ''
         problem = ('Nesse caso, falta pontuação para encerrar a fala antes do travessão '
-                   '(ponto, interrogação, exclamação ou reticências, conforme a fala)'
-                   + ('' if head[:1].isupper() else ', e a ação deve começar com maiúscula') + '.')
+                   '(ponto, interrogação, exclamação ou reticências)'
+                   + ('' if head[:1].isupper() else ', e a ação começa com letra maiúscula') + '.')
     example = f'…{tail} — {fixed}…' if tail else f'— {fixed}…'
-    return (f'Após a fala, o trecho iniciado por “{head}…” parece ser uma ação narrativa independente, '
-            f'e não uma oração de elocução. {problem} Ex.: “{example}”. '
-            'Confira a pontuação adequada ao contexto; a lista de verbos de elocução é limitada.')
+    return explicar(f'Depois da fala, “{head}…” parece ser uma ação de quem narra, e não um “disse” ou “perguntou”. '
+                    f'{problem} Ex.: “{example}”. Confira; a lista de verbos de fala do Lume é limitada.',
+                    'pontuação de diálogo com travessão')
 
 
 def analyze(blocks, nlp, settings, *, docs=None):
@@ -72,19 +73,11 @@ def analyze(blocks, nlp, settings, *, docs=None):
             }
             if category == 'Ação narrativa após fala':
                 item['category_code'] = 'narrative_action_after_speech'
-            elif rule == 'referente_contextual':
-                item['category_code'] = 'ambiguous_reference'
             out.append(item)
-
-        if settings['rules']['gerundismo']:
-            for start, end, _ in spans(roles, ['narracao', 'dialogo', 'pensamento']):
-                for match in GERUND.finditer(block.text[start:end]):
-                    emit('gerundismo', 'Perífrase verbal possivelmente excessiva', start + match.start(), start + match.end(),
-                         'A sequência de auxiliares pode tornar a fala ou a prosa pesada. Considere uma forma mais direta, se a duração da ação não for relevante. Pode ser uma escolha legítima de aspecto ou de voz; não é erro obrigatório.')
 
         if settings['rules']['dialogo_contextual'] and settings['dialogue_dashes']:
             for start, end, role in spans(roles, ['narracao']):
-                if start == 0 or block.text[start - 1] not in '—–':
+                if start == 0 or block.text[start - 1] not in TRAVESSOES:
                     continue
                 fragment = block.text[start:end]
                 parsed = nlp(fragment)
@@ -103,7 +96,9 @@ def analyze(blocks, nlp, settings, *, docs=None):
                     emit('dialogo_contextual', 'Ação narrativa após fala', start + first.idx,
                          start + verb.idx + len(verb.text),
                          action_reason(block.text[:start - 1].rstrip(), fragment.lstrip()))
-                elif verbo_de_fala(verb) and end < len(block.text) and block.text[end] in '—–':
+                # A retomada é alerta com o verbo de fala como condição: o radical não vale contra o
+                # lema que o modelo deu a outro verbo.
+                elif verbo_de_fala_confirmado(verb) and end < len(block.text) and block.text[end] in TRAVESSOES:
                     continuation = block.text[end + 1:].lstrip()
                     if (continuation and continuation[0].isupper()
                             and not fragment.rstrip().endswith(('.', '!', '?', '…', ':'))):
@@ -111,25 +106,9 @@ def analyze(blocks, nlp, settings, *, docs=None):
                         if first_spoken is not None and first_spoken.pos_ == 'PROPN':
                             continue
                         emit('dialogo_contextual', 'Retomada de fala após inciso', start + verb.idx, end,
-                             'A fala recomeça com maiúscula após o inciso de elocução, sem pontuação de encerramento. Confira se falta um ponto antes do travessão ou se a fala continua a mesma frase; nomes próprios podem justificar a maiúscula.')
+                             explicar('Depois do “disse ele”, a fala volta com letra maiúscula, mas antes do travessão não '
+                                      'há ponto. Ou falta um ponto ali, ou a fala continua a mesma frase e a letra seria '
+                                      'minúscula. Nomes próprios ficam sempre com maiúscula.',
+                                      'pontuação de diálogo com travessão'))
 
-        if settings['rules']['referente_contextual']:
-            for target in doc:
-                if target.lower_ != 'objeto' or target.dep_ != 'obj' or target.i == 0 or doc[target.i - 1].lower_ != 'o':
-                    continue
-                # Só enumerações recentes, com pelo menos dois núcleos coordenados.
-                candidates = []
-                for prior in context[:context.index(block) + 1]:
-                    for token in by_number[prior.number]:
-                        if prior.number == block.number and token.idx >= target.idx:
-                            continue
-                        if token.pos_ == 'NOUN' and token.dep_ == 'conj' and token.head.pos_ == 'NOUN':
-                            candidates.extend([evidence(prior, token.head.idx, token.head.idx + len(token.head.text)),
-                                               evidence(prior, token.idx, token.idx + len(token.text))])
-                unique = {(e['paragraph'], e['start']): e for e in candidates}
-                if len(unique) >= 2:
-                    emit('referente_contextual', 'Objeto com antecedente possivelmente ambíguo',
-                         target.idx, target.idx + len(target.text),
-                         'Há uma enumeração nominal antes de “o objeto”. Qual dos elementos foi retomado? A janela curta não resolve a referência; confira se a cena já torna a escolha inequívoca.',
-                         list(unique.values()), 'author_query')
     return out

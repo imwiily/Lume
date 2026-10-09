@@ -99,8 +99,14 @@ class AuditScoreTests(unittest.TestCase):
         summary = bench.summarize([result, bench.score(self.text, [])])
         self.assertEqual(summary['auditoria'], {'achados': 1, 'erros_so_auditoria': 1, 'erros_perdidos_pelas_regras': 4,
                                                 'sobre_erros_ja_apontados': 0, 'neutros': 0, 'alarmes_falsos': 0,
-                                                'custo_usd': 0.05})
+                                                'diagnostico': 0, 'custo_usd': 0.05})
         self.assertIn('Auditoria final', bench.table(summary))
+
+    def test_audit_diagnostics_are_measured_but_not_shown(self):
+        diagnostico = [dict(finding(2, 10, 16, module='audit'), destino='diagnostico')]
+        result = bench.score(self.text, [], diagnostico)
+        self.assertEqual((result['auditoria']['achados'], result['auditoria']['diagnostico']), (1, 1))
+        self.assertEqual(result['ocorrencias'], 0)  # fora da mesa: não conta como ocorrência mostrada
 
     def test_without_audit_summary_has_no_audit_section(self):
         summary = bench.summarize([bench.score(self.text, [finding(1, 10, 17)])])
@@ -114,3 +120,19 @@ class AuditScoreTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class PrecisionSummaryTests(unittest.TestCase):
+    def test_precision_and_false_alarms_per_10k_words_come_first(self):
+        results = [{'erros': [], 'ocorrencias': 4, 'verdadeiras': 3, 'neutras': 0, 'controle': False,
+                     'alarmes_falsos': [{}], 'palavras': 2000, 'auditoria': {}}]
+        summary = bench.summarize(results)
+        self.assertEqual((summary['precisao'], summary['alarmes_falsos_por_10k_palavras']), (.75, 5.0))
+        self.assertTrue(bench.table(summary).startswith('Precisão das pendências'))
+
+    def test_observations_leave_the_queue_precision(self):
+        results = [{'erros': [], 'ocorrencias': 4, 'verdadeiras': 3, 'neutras': 0, 'controle': False,
+                     'alarmes_falsos': [{}], 'palavras': 2000, 'auditoria': {},
+                     'pendencias_verdadeiras': 3, 'pendencias_alarmes_falsos': 0}]
+        summary = bench.summarize(results)
+        self.assertEqual((summary['precisao'], summary['precisao_pendencias']), (.75, 1.0))

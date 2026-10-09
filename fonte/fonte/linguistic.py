@@ -6,7 +6,7 @@ Trechos de papéis diferentes nunca são concatenados.
 """
 from dataclasses import asdict
 import re
-from .analysis import finding
+from .analysis import explicar, finding
 from .lexicon import FINITE, FUTURE, NONVERB, PAST, flags
 from .segments import classify, spans
 
@@ -14,33 +14,38 @@ RULES = {
     "vocativo": [],
     "capitalizacao_contextual": [
         (r"(?<=[?!])[ \t]+(eu|tu|ele|ela|nós|vós|eles|elas|você|vocês)\b", "Inicial após pergunta ou exclamação", "probable_error", .85,
-         "Após a pergunta ou exclamação, o pronome parece iniciar uma nova frase. Confira se a continuação é independente antes de usar maiúscula.", None),
+         explicar("Depois de ‘?’ ou ‘!’, o pronome parece começar uma frase nova, que pediria letra maiúscula. Confira "
+                  "se a frase continua ou se começa outra.", "maiúscula após pergunta ou exclamação"), None),
     ],
     "construcao_invalida": [
         (r"\balém[ \t]+de[ \t]+disso\b", "Construção inválida", "confirmed_error", .99,
-         "A locução é ‘além disso’. Há uma preposição ‘de’ excedente nesta construção.", "além disso"),
+         explicar("A expressão é ‘além disso’; o ‘de’ está sobrando.", "locução ‘além disso’"), "além disso"),
     ],
     "pontuacao_duplicada": [
         (r",{2,}|;{2,}", "Pontuação duplicada", "confirmed_error", .98,
-         "O mesmo sinal foi repetido. Confira a digitação; uma única ocorrência costuma ser suficiente.", None),
+         explicar("O mesmo sinal aparece repetido. Confira a digitação; um só costuma bastar.", "pontuação duplicada"), None),
         (r"(?<!\.)\.{2}(?!\.)", "Dois pontos finais", "probable_error", .9,
-         "Foram encontrados dois pontos finais seguidos. Confira se a intenção é um ponto final ou reticências (três pontos).", None),
+         explicar("Há dois pontos seguidos. Confira se era um ponto só ou reticências (três pontos).", "pontuação duplicada"), None),
     ],
     "que_tonico_interrogativo": [
         (r"\bque(?=[ \t]*[?!])", "Acento em ‘quê’ interrogativo", "probable_error", .95,
-         "O ‘que’ está no fim de uma pergunta ou exclamação, posição em que costuma ser tônico: ‘quê’. Confira se a grafia sem acento foi intencional.", "quê"),
+         explicar("No fim de pergunta ou exclamação, o ‘que’ é pronunciado forte e leva acento: ‘O quê?’.", "‘quê’ tônico"), "quê"),
     ],
     "espacamento": [
         (r"(?<=\w) {2,}(?=\w)", "Espaço repetido", "probable_error", .9,
-         "Há mais de um espaço entre palavras. Confira se o espaçamento é intencional.", " "),
+         explicar("Há mais de um espaço entre as palavras.", "espaçamento"), " "),
         (r"(?<=\w) +(?=[,;])", "Espaço antes de pontuação", "probable_error", .9,
-         "Há espaço antes de vírgula ou ponto e vírgula. Confira a digitação.", ""),
+         explicar("Há um espaço antes da vírgula ou do ponto e vírgula.", "espaçamento antes de pontuação"), ""),
     ],
     "virgula_que_nao": [
         (r"\bque,[ \t]+não\b", "Vírgula após ‘que’", "probable_error", .85,
-         "A vírgula parece separar ‘que’ da oração iniciada por ‘não’. Confira se há um inciso ou uma interrupção intencional antes de removê-la.", None),
+         explicar("A vírgula separa o ‘que’ do ‘não’ que vem logo depois (‘que, não’). Só cabe se houver uma pausa ou um "
+                  "comentário no meio; confira.", "vírgula após ‘que’"), None),
     ],
 }
+
+# Interjeições: depois delas, a exclamação pode continuar a frase em minúscula.
+INTERJEICOES = "ah|oh|ó|ai|ui|eh|ei|olá|ufa|puxa|nossa|hein|ora|oba|opa|psiu|credo|oxalá|céus"
 
 # Chamamento inicial + pronome de tratamento ou proibição curta. Não tenta
 # decidir casos ambíguos como “Helena saiu” nem usa nomes de uma obra.
@@ -69,23 +74,30 @@ def vocatives(block, start, text):
             continue
         yield vocative_item(block, start + match.start('name'), start + match.end('apposto'),
                             f"{match['name']}, {match['apposto']},",
-                            "O nome inicial e o aposto que o qualifica parecem chamar o interlocutor antes de um pedido. "
-                            "Se forem vocativo, separe-os por vírgulas; confira se não são o sujeito da frase.")
+                            explicar("O nome no começo parece chamar alguém antes de um pedido (‘Ana, minha filha, "
+                                     "venha’). Quando se chama alguém, o nome fica entre vírgulas. Confira se não é quem "
+                                     "faz a ação.", "vocativo"))
     for match in VOCATIVE.finditer(text):
         name = match['name']
         primeira = name.split()[0]
         if primeira.casefold() in INTRODUCERS:
             continue
-        # “Achei você”: uma forma que o léxico só conhece como verbo não é chamamento.
+        # “Achei você”: uma forma que o léxico só conhece como verbo não é chamamento. Numa pergunta,
+        # o verbo homógrafo com o sujeito invertido (“Quer você sair?”, “Pode você esperar?”) também não.
         valor = flags(primeira)
         if valor & FINITE and not valor & NONVERB:
             continue
+        fim = re.search(r"[.!?…]", text[match.end():])
+        if valor & FINITE and fim is not None and fim[0] == "?":
+            continue
         yield vocative_item(block, start + match.start('name'), start + match.end('name'), name + ",",
-                            "O nome inicial parece chamar o interlocutor, antes de um pronome de tratamento ou de uma proibição. Se for vocativo, separe-o por vírgula; confira se não é o sujeito da frase.")
+                            explicar("O nome no começo parece chamar alguém (‘Pedro, não faça isso’). Quando se chama "
+                                     "alguém, o nome fica separado por vírgula. Confira se não é quem faz a ação.", "vocativo"))
     for match in ADDRESS.finditer(text):
         yield vocative_item(block, start + match.start('lead'), start + match.end('name'),
                             match['lead'] + ", " + match['name'],
-                            "Depois de resposta ou cumprimento, o chamamento ao interlocutor é vocativo e se separa por vírgula.")
+                            explicar("Depois de uma resposta ou cumprimento (‘Sim’, ‘Oi’), o nome de quem é chamado fica "
+                                     "separado por vírgula: ‘Oi, Ana’.", "vocativo"))
 
 
 def vocative_item(block, start, end, suggestion, reason):
@@ -117,6 +129,14 @@ def analyze(blocks, settings):
                         # “que, não obstante o frio, ...” é um inciso possível.
                         if rule == "virgula_que_nao" and re.match(
                                 r"\s*(?:obstante\b|só\b|apenas\b|,)", text[match.end():], re.I):
+                            continue
+                        # Locução conclusiva (“pelo que, não…”, “de modo que, não…”): a vírgula fecha o conectivo.
+                        if rule == "virgula_que_nao" and re.search(
+                                r"\b(?:pelo|de\s+(?:modo|maneira|forma|sorte))\s+$", text[:match.start()], re.I):
+                            continue
+                        # Depois de interjeição (“Ah! tu…”, “Oh! você…”), a frase pode seguir em minúscula.
+                        if rule == "capitalizacao_contextual" and re.search(
+                                r"(?:^|[.!?…:;—–\"“«]\s*)(?:" + INTERJEICOES + r")[!?]$", text[:match.start()], re.I):
                             continue
                         suggestion = replacement
                         if rule == "capitalizacao_contextual":

@@ -3,23 +3,33 @@ from copy import deepcopy
 import json
 from pathlib import Path
 
+# Chaves da primeira versão das configurações (identificam ‘desativar todas’ nos arquivos antigos).
+LEGACY_RULES = ['tempo_verbal', 'estrutura', 'pontuacao_dialogo', 'palavra_consecutiva',
+                'palavra_proxima', 'frase_duplicada', 'variacao_nome', 'duracao_suspensao',
+                'adiamento_amanha', 'referente_proximidade', 'pronome_apos_corte']
 RULES = ['tempo_verbal', 'estrutura', 'pontuacao_dialogo', 'palavra_consecutiva',
-         'palavra_proxima', 'frase_duplicada', 'variacao_nome', 'duracao_suspensao',
-         'adiamento_amanha', 'referente_proximidade', 'pronome_apos_corte']
-LEGACY_RULES = RULES[:]
+         'frase_duplicada', 'variacao_nome', 'pronome_apos_corte']
 NEW_RULES = ['construcao_invalida', 'pontuacao_duplicada', 'espacamento', 'virgula_que_nao',
              'que_tonico_interrogativo', 'coerencia_temporal', 'acentuacao_contextual',
-             'vocativo', 'capitalizacao_contextual', 'dialogo_contextual',
-             'referente_contextual', 'gerundismo']
+             'vocativo', 'capitalizacao_contextual', 'dialogo_contextual']
 RULES += NEW_RULES
 # Regras da memória narrativa heurística, removida em 29/09/2026. Configurações
 # antigas que as mencionam continuam válidas; essas chaves são ignoradas.
 RETIRED_RULES = ['memoria_narrativa', 'conflito_habilidade', 'conflito_objeto', 'conflito_cronologia',
-                 'coerencia_generica']
+                 'coerencia_generica',
+                 # Retirada em 07/10/2026 por decisão do autor: nasceu de um caso isolado.
+                 'tratamento',
+                 # Retiradas na estabilização (Fase 7b): estilo ou registro (repetição próxima,
+                 # gerundismo) e regras literais de exemplo isolado (prazos de uma cena, referentes).
+                 'palavra_proxima', 'gerundismo', 'duracao_suspensao', 'adiamento_amanha',
+                 'referente_proximidade', 'referente_contextual']
 # Classes gramaticais com apoio sintático (fonte/grammar.py). Ligadas por padrão,
 # como as anteriores; ‘desativar todas’ de configurações antigas continua valendo.
-GRAMMAR_RULES = ['crase', 'homofonos', 'concordancia', 'regencia', 'virgula_sujeito_verbo']
+GRAMMAR_RULES = ['crase', 'homofonos', 'concordancia', 'regencia', 'virgula_sujeito_verbo',
+                 'correlacao_tempos', 'frase_cortada', 'locucoes']
 RULES += GRAMMAR_RULES
+# Separada de 'estrutura' em 07/10/2026: sem a chave, a configuração herda o valor de 'estrutura'.
+RULES += ['residuo_edicao']
 SCOPES = ['narracao', 'dialogo', 'pensamento']
 DEFAULT = {
     'schema_version': 1,
@@ -54,6 +64,9 @@ def validate(value):
     # Preserva ‘desativar todas’ em configurações da versão anterior.
     if set(LEGACY_RULES).issubset(rules) and not any(rules.values()):
         result['rules'] = {r: False for r in RULES}
+    # Configurações anteriores à separação: o resíduo de edição seguia 'estrutura' e continua seguindo.
+    if 'residuo_edicao' not in rules:
+        result['rules']['residuo_edicao'] = result['rules']['estrutura']
     for key in ['tense_scopes','repetition_scopes']:
         if not isinstance(result[key], list) or any(x not in SCOPES for x in result[key]):
             raise ValueError('Áreas de busca inválidas: ' + key)
