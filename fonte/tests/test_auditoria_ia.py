@@ -309,6 +309,7 @@ class AuditCoreTests(unittest.TestCase):
         self.assertTrue(resumo['interrompida'])
         self.assertEqual(resumo['enviados'], 1)
         self.assertTrue(any('teto' in a.lower() for a in avisos))
+        self.assertTrue(any('Teto de gasto atingido.' in a and 'teto de gasto' in a for a in avisos))  # mostra o motivo e a reserva
 
     def test_other_api_errors_fail_the_stage(self):
         from coerencia.modelo import ErroModelo

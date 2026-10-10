@@ -552,6 +552,45 @@ Leitura de Pages conferida nos fontes; a montagem completa está registrada ao f
   de decisões na reanálise) foi compilado, mas não exercitado no app; permissão de
   Automação pedida pelo app empacotado; documento já aberto no Pages; manuscritos reais.
 
+## Lume 1.8 — integridade documental da correção no Pages (10/10/2026)
+
+Só documentos sintéticos descartáveis; nenhum manuscrito real, nenhuma chamada à API.
+
+- **P2 (falha ao salvar decisões depois da correção):** antes, o erro de `autosave()` acionava a
+  restauração do arquivo com o histórico já gravado. Agora as fases são separadas
+  (`ManuscriptEditor.commit`): só falha de Pages, de conferência ou de gravação do histórico
+  restaura; falha das decisões é aviso, e a reabertura reconcilia (`ManuscriptEditor.reconcile`).
+- **P3:** quando a restauração falha, `antes.pages` é movido para `Recuperacao/` (0700/0600) e o
+  caminho é informado; a pasta de trabalho temporária não é apagada nesse caso. Pasta de
+  trabalho criada com permissão 0700.
+- **R1 (comprovado no Pages real):** com o documento já aberto pelo autor, uma falha injetada
+  depois de apagar os caracteres deixou `modified=true` com o parágrafo truncado na janela.
+  Correção: a edição é recusada se o documento está aberto; o script confere o resultado e a
+  contagem de parágrafos antes de salvar e fecha sem salvar em qualquer erro.
+- **R2 (Pages real):** 13 casos de Unicode (emoji, acento combinado, letra base de acento
+  combinado, fora do plano básico, travessões, início, fim, inserção) e 3 de formatação (fonte
+  de cada caractere fora do trecho e de outros parágrafos preservada, com troca do mesmo tamanho,
+  de outro tamanho e dentro de negrito): sem divergência.
+- **Limites:** a conferência do motor compara só texto e itálico (ver
+  [arquitetura](arquitetura.md#correção-no-manuscrito-pages)). A formatação foi conferida só pela
+  fonte de cada caractere, só no Pages 15.3.1 em macOS 27.0.1, só com documentos sintéticos criados por
+  script; não foram exercitados tabelas, imagens, notas, alterações controladas nem documentos
+  de versões antigas do Pages. O fluxo pela interface (botão, confirmação, mensagens) compilou,
+  mas não foi exercitado manualmente.
+- Teste com o Pages real: `fonte/.venv/bin/python tests/pages_real_check.py` (abre janelas do
+  Pages; exige a permissão de Automação).
+
+### Lume 1.8 — homologação da entrega (10/10/2026)
+
+- Aprovados: FONTE 503 testes; Coerencia 44; `tests/` 53 e pacotes de motor 14; contratos Python e
+  Swift; `EditCheck.swift`; demais verificações Swift; `tests/pages_real_check.py` 21/21; builds
+  Debug e Release; corpus de detecção da 1.8 idêntico ao da `main` (1.7).
+- **A interface gráfica não foi validada manualmente.** O proprietário dispensou o roteiro
+  `docs/testing/checklist-interface-1.8.md` (decisão consciente e definitiva). O fluxo pela
+  interface (botão, confirmação, mensagens, cópia pelo app, reabertura, restauração do motor) não
+  foi exercitado por uma pessoa nem pela automação.
+- Sem chamadas pagas à API e sem manuscritos reais em nenhuma etapa.
+
 ## Lume 1.0 / FONTE 1.0.0 — 29/09/2026
 
 - `scripts/montar-lume.command` completo: 216 testes do analisador, 25 dos pacotes e 29 do Coerencia

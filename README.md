@@ -7,11 +7,11 @@ O Lume lê manuscritos do Word (.docx) e do Pages (.pages) e aponta:
 - tempo verbal da narração (passado ou presente);
 - palavra repetida em sequência, frase duplicada, diálogos e variações de nomes.
 
-Contradições narrativas são verificadas pela **Coerência com IA** (Claude), opcional. A **Auditoria final com IA** (Claude), também opcional, relê o livro depois das regras como controle de qualidade: só achados sólidos chegam ao editor. Sugestões e decisões ficam nos relatórios; o texto continua sendo do autor. A análise nunca altera o arquivo. Em documentos do Pages, o autor pode gravar a correção de um alerta no próprio arquivo (**Corrigir no manuscrito**): o Lume guarda antes uma cópia em `~/Library/Application Support/FONTE/Copias/`, usa o Pages para trocar só o trecho destacado e confere o resultado. Em **Editar parágrafo**, o autor reescreve o parágrafo do alerta e o Lume grava só a parte alterada.
+Contradições narrativas são verificadas pela **Coerência com IA** (Claude), opcional. A **Auditoria final com IA** (Claude), também opcional, relê o livro depois das regras como controle de qualidade: só achados sólidos chegam ao editor. Sugestões e decisões ficam nos relatórios; o texto continua sendo do autor. A análise nunca altera o arquivo. Em documentos do Pages, o autor pode gravar a correção de um alerta no próprio arquivo (**Corrigir no manuscrito**): o Lume guarda antes uma cópia em `~/Library/Application Support/FONTE/Copias/`, usa o Pages para trocar só o trecho destacado e confere o resultado. O documento precisa estar **fechado** no Pages: o Lume recusa corrigir um arquivo que o autor tem aberto. Em **Editar parágrafo**, o autor reescreve o parágrafo do alerta e o Lume grava só a parte alterada.
 
 ![Início do Lume](docs/identidade/previa-inicio-claro.png)
 
-Versão atual: **Lume 1.7 · FONTE 1.5.0 · Coerencia 1.2.0** — novidades no [CHANGELOG](CHANGELOG.md).
+Versão atual: **Lume 1.8 · FONTE 1.5.0 · Coerencia 1.2.0** — novidades no [CHANGELOG](CHANGELOG.md).
 
 ## Estrutura
 

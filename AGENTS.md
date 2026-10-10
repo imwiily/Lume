@@ -43,7 +43,7 @@ aprovam um patch novo.
    Única exceção: a correção que o autor pede no app, alerta por alerta, num documento do
    Pages. Ela troca só o trecho destacado (ou, se o autor escolher **Editar parágrafo**, só a
    parte alterada daquele parágrafo), guarda antes uma cópia do arquivo, é conferida
-   pelo motor (só aquele parágrafo mudou) e é desfeita se a conferência falhar. Nenhuma
+   pelo motor (texto e itálico dos demais parágrafos do corpo; formatação e elementos não lidos não são conferidos) e é desfeita se a conferência falhar. O Lume não corrige um documento que o autor tem aberto no Pages. Nenhuma
    correção é aplicada automaticamente ou em lote.
 2. Preservar o pipeline modular. Etapas posteriores consomem resultados anteriores
    sem reescrevê-los; uma falha interrompe as etapas dependentes.

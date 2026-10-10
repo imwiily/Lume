@@ -103,6 +103,9 @@ struct EditCheck {
         try require(try decoder.decode(EditLog.self, from: encoder.encode(log)).edits.first?.after == "durante a", "Histórico não é relido.")
         print("Cálculo das correções validado.")
 
+        try await commitChecks()
+        print("Fases da correção, falhas injetadas e reconciliação validadas.")
+
         guard CommandLine.arguments.count == 7 else { return }
         let document = URL(fileURLWithPath: CommandLine.arguments[1])
         let paragraph = Int(CommandLine.arguments[2])!, start = Int(CommandLine.arguments[3])!, end = Int(CommandLine.arguments[4])!
@@ -112,5 +115,115 @@ struct EditCheck {
         try await ManuscriptEditor.runPages(document: document, paragraph: paragraph, plan: plan)
         try require(try ManuscriptEditor.sha256(document) != before, "O Pages não gravou a correção.")
         print(plan.resultText)
+    }
+
+    // MARK: Fases da correção com falhas injetadas (nenhum Pages, nenhum manuscrito real)
+
+    struct Injected: Error, LocalizedError { let text: String; var errorDescription: String? { text } }
+
+    static func commitChecks() async throws {
+        let manager = FileManager.default
+        let root = manager.temporaryDirectory.appendingPathComponent("lume-editcheck-" + UUID().uuidString, isDirectory: true)
+        try manager.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? manager.removeItem(at: root) }
+        let original = Data("manuscrito original".utf8), corrected = Data("manuscrito corrigido".utf8)
+        func sha(_ data: Data) -> String { try! ManuscriptEditor.sha256(write(data)) }
+        func write(_ data: Data) throws -> URL {
+            let url = root.appendingPathComponent(UUID().uuidString); try data.write(to: url); return url
+        }
+        let expected = sha(original)
+        var calls: [String] = []
+        struct Scenario {
+            var writeFails = false, writeChangesDocument = false, recordFails = false, persistFails = false, restoreFails = false
+        }
+        func run(_ scenario: Scenario, rescue: URL? = nil) async -> (Result<ManuscriptEditor.Commit, Error>, document: URL, previous: URL, calls: [String]) {
+            calls = []
+            let document = try! write(original), previous = try! write(original)
+            let outcome: Result<ManuscriptEditor.Commit, Error>
+            do {
+                outcome = .success(try await ManuscriptEditor.commit(
+                    document: document, previous: previous, expectedSHA: expected, backup: "/copia/original.pages",
+                    write: {
+                        calls.append("write")
+                        if scenario.writeChangesDocument || !scenario.writeFails { try corrected.write(to: document) }
+                        if scenario.writeFails { throw Injected(text: "Pages falhou") }
+                    },
+                    record: { calls.append("record"); if scenario.recordFails { throw Injected(text: "disco cheio no histórico") } },
+                    persist: { calls.append("persist"); if scenario.persistFails { throw Injected(text: "disco cheio nas decisões") } },
+                    restore: { target, source in
+                        calls.append("restore")
+                        if scenario.restoreFails { throw Injected(text: "sem permissão") }
+                        _ = try FileManager.default.replaceItemAt(target, withItemAt: source)
+                    },
+                    preserve: { ManuscriptEditor.preserve($0, in: rescue ?? root.appendingPathComponent("recuperacao", isDirectory: true)) }))
+            } catch { outcome = .failure(error) }
+            return (outcome, document, previous, calls)
+        }
+        func failure(_ outcome: Result<ManuscriptEditor.Commit, Error>) -> ManuscriptEditor.EditFailure? {
+            if case .failure(let error) = outcome { return error as? ManuscriptEditor.EditFailure }
+            return nil
+        }
+
+        // 1. Tudo certo: documento corrigido, histórico e decisões gravados, sem restauração.
+        var r = await run(Scenario())
+        try require((try? r.0.get()) == .recorded && r.calls == ["write", "record", "persist"], "Caminho feliz incorreto.")
+        try require(try Data(contentsOf: r.document) == corrected, "Documento deveria ficar corrigido.")
+
+        // 2. P2: falha só nas decisões depois do histórico: o manuscrito NÃO volta; só aviso.
+        r = await run(Scenario(persistFails: true))
+        try require((try? r.0.get()) == .decisionsUnsaved("disco cheio nas decisões"), "Falha de decisões deveria ser só aviso.")
+        try require(!r.calls.contains("restore") && r.calls == ["write", "record", "persist"], "Não pode restaurar por falha de decisões.")
+        try require(try Data(contentsOf: r.document) == corrected, "O documento corrigido tem de permanecer.")
+
+        // 3. Falha ao gravar o histórico: o arquivo anterior é restaurado e as decisões não são tocadas.
+        r = await run(Scenario(recordFails: true))
+        try require(failure(r.0)?.recovery == .restored && r.calls == ["write", "record", "restore"], "Falha do histórico deveria restaurar.")
+        try require(try Data(contentsOf: r.document) == original, "O documento deveria voltar ao original.")
+
+        // 4. Falha do Pages sem mudar o arquivo: nada a restaurar.
+        r = await run(Scenario(writeFails: true))
+        try require(failure(r.0)?.recovery == .untouched && !r.calls.contains("restore"), "Arquivo intacto não pede restauração.")
+
+        // 5. Falha da conferência depois de o Pages salvar: restaura.
+        r = await run(Scenario(writeFails: true, writeChangesDocument: true))
+        try require(failure(r.0)?.recovery == .restored && r.calls == ["write", "restore"], "Arquivo alterado deveria ser restaurado.")
+        try require(try Data(contentsOf: r.document) == original, "Restauração incorreta.")
+
+        // 6. P3: a restauração falha; a cópia anterior é preservada, com caminho e permissão corretos.
+        let rescue = root.appendingPathComponent("recuperacao-p3", isDirectory: true)
+        r = await run(Scenario(recordFails: true, restoreFails: true), rescue: rescue)
+        guard let broken = failure(r.0), case .restoreFailed(let kept) = broken.recovery else {
+            throw FonteError.message("Falha de restauração deveria informar a cópia preservada.")
+        }
+        try require(try Data(contentsOf: URL(fileURLWithPath: kept)) == original, "A cópia preservada deve ser a anterior à correção.")
+        try require(kept.hasPrefix(rescue.path) && !manager.fileExists(atPath: r.previous.path), "A cópia deve sair da pasta temporária.")
+        let folderMode = (try manager.attributesOfItem(atPath: URL(fileURLWithPath: kept).deletingLastPathComponent().path)[.posixPermissions] as? NSNumber)?.intValue
+        let fileMode = (try manager.attributesOfItem(atPath: kept)[.posixPermissions] as? NSNumber)?.intValue
+        try require(folderMode == 0o700 && fileMode == 0o600, "A cópia preservada deve ser só do usuário.")
+        let message = broken.localizedDescription
+        try require(message.contains(kept) && message.contains("/copia/original.pages") && message.contains("disco cheio no histórico"),
+                    "A mensagem deve trazer a causa e os dois caminhos.")
+        try require(try Data(contentsOf: r.document) == corrected, "Sem restauração, o documento segue como está (copia preservada).")
+
+        // 7. Se nem mover a cópia for possível, ela continua no lugar original (e a pasta de trabalho é mantida).
+        let blocked = root.appendingPathComponent("arquivo-no-lugar-da-pasta"); try Data().write(to: blocked)
+        r = await run(Scenario(recordFails: true, restoreFails: true), rescue: blocked)
+        guard let stuck = failure(r.0), case .restoreFailed(let still) = stuck.recovery else {
+            throw FonteError.message("Falha ao mover deveria manter a cópia no lugar.")
+        }
+        try require(still == r.previous.path && manager.fileExists(atPath: still), "A cópia deve continuar onde estava.")
+
+        // 8. Reabertura: histórico gravado, decisão não salva → “Corrigido”; decisões já tomadas ficam.
+        let edits = [edit(0, 1, "a", "à"), AppliedEdit(finding: "y", paragraph: 2, start: 0, end: 1, before: "a", after: "b", date: Date()),
+                     AppliedEdit(finding: "ausente", paragraph: 3, start: 0, end: 1, before: "a", after: "b", date: Date())]
+        let before: [String: ReviewDecision] = ["y": .accepted, "z": .falsePositive]
+        let merged = ManuscriptEditor.reconcile(before, with: edits, ids: ["x", "y", "z"])
+        try require(merged.decisions["x"] == .corrected && merged.changed == 1, "Correção sem decisão deveria virar Corrigido.")
+        try require(merged.decisions["y"] == .accepted && merged.decisions["z"] == .falsePositive, "Decisões existentes devem ser preservadas.")
+        try require(merged.decisions["ausente"] == nil, "Alerta fora do relatório não entra nas decisões.")
+        let again = ManuscriptEditor.reconcile(merged.decisions, with: edits, ids: ["x", "y", "z"])
+        try require(again.changed == 0 && again.decisions == merged.decisions, "A reconciliação deve ser idempotente.")
+        let withError = ManuscriptEditor.reconcile(["x": .error], with: [edit(0, 1, "a", "à")], ids: ["x"])
+        try require(withError.decisions["x"] == .corrected, "‘Erro confirmado’ corrigido no manuscrito vira Corrigido.")
     }
 }

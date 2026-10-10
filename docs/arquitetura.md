@@ -53,12 +53,29 @@ somente leitura. `ReviewStore.applyCorrection` segue esta ordem:
    correções já gravadas nele; trecho que toca uma correção anterior é recusado;
 3. na primeira correção, confirma com o autor e copia o arquivo para
    `Copias/<sha256 do relatório>/`;
-4. o Pages (AppleScript via `osascript`) confere o texto do parágrafo e troca o trecho, um
-   caractere por vez, preservando a formatação; documento aberto com alterações não salvas
-   ou parágrafo diferente do esperado interrompem sem gravar;
-5. o motor (`conferir-edicao`, só leitura) confirma que apenas aquele parágrafo mudou e
-   devolve `LUME_EDICAO {"sha256": …}`; se falhar, o arquivo anterior é restaurado;
-6. `Edicoes/<sha256 do relatório>.json` registra origem, hash atual, cópia e correções.
+4. o Pages (AppleScript via `osascript`) só edita um documento **fechado**: se o autor já o tem
+   aberto, a correção é recusada (a análise não é afetada). O script confere o texto do
+   parágrafo, troca o trecho um caractere por vez, preservando a formatação, e só salva se o
+   parágrafo ficou exatamente como pedido e o número de parágrafos não mudou; qualquer falha
+   fecha o documento sem salvar;
+5. o motor (`conferir-edicao`, só leitura) confirma que os demais parágrafos mantêm o mesmo
+   texto e itálico e devolve `LUME_EDICAO {"sha256": …}`; se falhar, o arquivo anterior é
+   restaurado (ver limites abaixo);
+6. `Edicoes/<sha256 do relatório>.json` registra origem, hash atual, cópia e correções;
+7. as decisões são salvas. Se só este passo falhar, o manuscrito e o histórico **não** são
+   revertidos: o Lume avisa que as decisões não foram salvas, mantém-nas na tela como não
+   salvas, e ao reabrir o relatório a correção do histórico vira a decisão “Corrigido”.
+
+`ManuscriptEditor.commit` implementa as fases 4–7. Se a restauração do arquivo falhar, a cópia
+imediatamente anterior à correção é movida para `Application Support/FONTE/Recuperacao/`
+(pasta e arquivo só do usuário) e o caminho é mostrado ao autor; ela não é apagada.
+
+**O que a conferência do motor não prova.** `conferir-edicao` compara só o **texto e o itálico**
+dos parágrafos do corpo (os mesmos campos que a análise lê). Estilo de parágrafo, outros atributos
+de caractere (negrito, fonte, cor), imagens, tabelas, cabeçalhos, rodapés, notas, comentários e
+layout **não** são comparados, e o Pages reescreve o arquivo inteiro ao salvar. Que texto e
+itálico passem não significa que todo o resto do documento foi preservado; a cópia anterior às
+correções é a garantia para o resto. Ampliar a conferência está planejado para a 1.9.
 
 O relatório aberto não é reescrito: ele continua mostrando o texto analisado. Ao analisar de
 novo o arquivo corrigido, os alertas de ID idêntico (mesmo parágrafo, texto, regra e trecho)

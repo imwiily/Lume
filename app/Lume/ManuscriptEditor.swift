@@ -158,6 +158,7 @@ enum ManuscriptEditor {
         set b to (item 4 of argv) as integer
         set novo to texto(item 5 of argv)
         set esperado to texto(item 6 of argv)
+        set resultado to texto(item 7 of argv)
         -- A referência é criada fora do bloco do Pages: só assim o app, que roda isolado,
         -- recebe permissão para abrir o arquivo no lugar (senão abre uma cópia sem título).
         set arquivo to (POSIX file docPath) as alias
@@ -169,12 +170,15 @@ enum ManuscriptEditor {
                     if (POSIX path of ((file of x) as alias)) is alvo then set aberto to true
                 end try
             end repeat
+            -- Documento que o autor já tem aberto não é editado: uma falha no meio da troca deixaria o
+            -- parágrafo incompleto na janela dele, e isso não se desfaz com segurança por aqui.
+            if aberto then error "LUME_ABERTO"
             set d to open arquivo
             if d is missing value then error "LUME_NAO_ABRIU"
             try
                 if (POSIX path of ((file of d) as alias)) is not alvo then error "LUME_NAO_ABRIU"
-                if aberto and (modified of d) then error "LUME_MODIFICADO"
                 tell d
+                    set total to count of paragraphs of body text
                     considering case, diacriticals, hyphens, punctuation and white space
                         if ((paragraph n of body text) as text) is not esperado then error "LUME_DIFERENTE"
                     end considering
@@ -182,24 +186,117 @@ enum ManuscriptEditor {
                         set character k of paragraph n of body text to ""
                     end repeat
                     set character a of paragraph n of body text to novo
+                    -- Só salva se o parágrafo ficou exatamente como pedido e nenhum outro surgiu ou sumiu.
+                    considering case, diacriticals, hyphens, punctuation and white space
+                        if ((paragraph n of body text) as text) is not resultado then error "LUME_RESULTADO"
+                    end considering
+                    if (count of paragraphs of body text) is not total then error "LUME_RESULTADO"
                 end tell
                 save d
             on error m
-                if not aberto then close d saving no
+                -- O documento foi aberto por este script: tudo o que há nele é desta troca; descarta sem salvar.
+                try
+                    close d saving no
+                end try
                 error m
             end try
-            if not aberto then close d saving no
+            close d saving no
         end tell
     end run
     """
+
+    /// O que aconteceu com o arquivo quando uma correção falhou.
+    enum Recovery: Equatable {
+        case untouched
+        case restored
+        /// A restauração falhou; a cópia imediatamente anterior à correção foi preservada neste caminho.
+        case restoreFailed(kept: String)
+    }
+
+    struct EditFailure: LocalizedError {
+        let cause: String
+        let recovery: Recovery
+        /// Cópia feita antes da primeira correção do relatório.
+        let backup: String
+        var errorDescription: String? {
+            switch recovery {
+            case .untouched: return cause
+            case .restored: return cause + "\n\nO manuscrito foi devolvido ao estado anterior a esta correção."
+            case .restoreFailed(let kept):
+                return cause + "\n\nNão foi possível restaurar o manuscrito automaticamente. A cópia imediatamente anterior a esta correção foi preservada em:\n\(kept)\nA cópia anterior a todas as correções está em:\n\(backup)"
+            }
+        }
+    }
+
+    enum Commit: Equatable {
+        /// Documento, histórico e decisões gravados.
+        case recorded
+        /// Documento e histórico gravados; só as decisões não foram salvas (mensagem do erro).
+        case decisionsUnsaved(String)
+    }
+
+    /// Guarda a cópia imediatamente anterior numa pasta durável (permissão só do usuário), fora da
+    /// pasta temporária. Se não conseguir mover, devolve o caminho original, que continua existindo.
+    static func preserve(_ file: URL, in root: URL) -> URL {
+        let manager = FileManager.default
+        do {
+            let folder = root.appendingPathComponent(UUID().uuidString, isDirectory: true)
+            try manager.createDirectory(at: folder, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
+            let kept = folder.appendingPathComponent("antes-da-correcao." + file.pathExtension)
+            try manager.moveItem(at: file, to: kept)
+            try? manager.setAttributes([.posixPermissions: 0o600], ofItemAtPath: kept.path)
+            return kept
+        } catch { return file }
+    }
+
+    /// Reabertura: uma correção que consta no histórico mas cuja decisão não chegou a ser salva
+    /// (falha de disco, encerramento no meio) vale como “Corrigido”. Decisões já tomadas, de qualquer
+    /// tipo diferente de pendente/erro, ficam como estão; alertas fora do relatório são ignorados.
+    static func reconcile(_ decisions: [String: ReviewDecision], with edits: [AppliedEdit], ids: Set<String>)
+        -> (decisions: [String: ReviewDecision], changed: Int) {
+        var result = decisions, changed = 0
+        for edit in edits where ids.contains(edit.finding) && [.pending, .error].contains(result[edit.finding] ?? .pending) {
+            result[edit.finding] = .corrected
+            changed += 1
+        }
+        return (result, changed)
+    }
+
+    /// Fases de uma correção: (1) alterar o documento e conferir, (2) gravar o histórico, (3) salvar
+    /// as decisões. Falha em (1) ou (2) devolve o arquivo ao estado anterior; falha em (3) não mexe
+    /// no manuscrito, já corrigido e registrado, e é só avisada. Se a restauração falhar, a cópia
+    /// anterior é preservada e o caminho informado.
+    static func commit(document: URL, previous: URL, expectedSHA: String, backup: String,
+                       write: () async throws -> Void, record: () throws -> Void, persist: () throws -> Void,
+                       restore: (URL, URL) throws -> Void = { _ = try FileManager.default.replaceItemAt($0, withItemAt: $1) },
+                       preserve: (URL) -> URL) async throws -> Commit {
+        do {
+            try await write()
+            try record()
+        } catch {
+            let cause = error.localizedDescription
+            guard (try? sha256(document)) != expectedSHA else {
+                throw EditFailure(cause: cause, recovery: .untouched, backup: backup)
+            }
+            do {
+                try restore(document, previous)
+            } catch {
+                throw EditFailure(cause: cause, recovery: .restoreFailed(kept: preserve(previous).path), backup: backup)
+            }
+            throw EditFailure(cause: cause, recovery: .restored, backup: backup)
+        }
+        do { try persist() } catch { return .decisionsUnsaved(error.localizedDescription) }
+        return .recorded
+    }
 
     /// Executa a troca no Pages. Roda fora da fila principal; lança a mensagem para o autor.
     static func runPages(document: URL, paragraph: Int, plan: EditPlan) async throws {
         // Dentro do parágrafo o Pages usa U+2028 onde o relatório mostra quebra de linha.
         let expected = plan.currentText.replacingOccurrences(of: "\n", with: "\u{2028}")
+        let result = plan.resultText.replacingOccurrences(of: "\n", with: "\u{2028}")
         func codes(_ text: String) -> String { text.unicodeScalars.map { String($0.value) }.joined(separator: ",") }
         let arguments = ["-e", script, document.path, String(paragraph), String(plan.first), String(plan.last),
-                         codes(plan.replacement), codes(expected)]
+                         codes(plan.replacement), codes(expected), codes(result)]
         let (status, output): (Int32, String) = try await withCheckedThrowingContinuation { continuation in
             DispatchQueue.global(qos: .userInitiated).async {
                 do {
@@ -218,8 +315,11 @@ enum ManuscriptEditor {
             }
         }
         guard status != 0 else { return }
-        if output.contains("LUME_MODIFICADO") {
-            throw FonteError.message("O documento está aberto no Pages com alterações não salvas. Salve ou feche o documento e tente de novo.")
+        if output.contains("LUME_ABERTO") {
+            throw FonteError.message("Este documento está aberto no Pages. Salve e feche o documento no Pages e tente de novo. A análise e a leitura dos alertas não são afetadas; o Lume só grava correções num documento fechado, para nunca deixar um parágrafo incompleto na sua janela. Nada foi alterado.")
+        }
+        if output.contains("LUME_RESULTADO") {
+            throw FonteError.message("O Pages não produziu exatamente o texto pedido; a correção não foi salva e o documento foi fechado sem salvar. Nada foi alterado.")
         }
         if output.contains("LUME_NAO_ABRIU") {
             throw FonteError.message("O Pages não conseguiu abrir este arquivo para edição. Feche no Pages qualquer janela sem título que tenha surgido, sem salvar. Nada foi alterado.")
