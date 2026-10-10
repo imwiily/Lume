@@ -267,12 +267,12 @@ enum ManuscriptEditor {
     /// no manuscrito, já corrigido e registrado, e é só avisada. Se a restauração falhar, a cópia
     /// anterior é preservada e o caminho informado.
     static func commit(document: URL, previous: URL, expectedSHA: String, backup: String,
-                       write: () async throws -> Void, record: () throws -> Void, persist: () throws -> Void,
+                       write: () async throws -> Void, record: @MainActor () throws -> Void, persist: @MainActor () throws -> Void,
                        restore: (URL, URL) throws -> Void = { _ = try FileManager.default.replaceItemAt($0, withItemAt: $1) },
                        preserve: (URL) -> URL) async throws -> Commit {
         do {
             try await write()
-            try record()
+            try await record()
         } catch {
             let cause = error.localizedDescription
             guard (try? sha256(document)) != expectedSHA else {
@@ -285,7 +285,7 @@ enum ManuscriptEditor {
             }
             throw EditFailure(cause: cause, recovery: .restored, backup: backup)
         }
-        do { try persist() } catch { return .decisionsUnsaved(error.localizedDescription) }
+        do { try await persist() } catch { return .decisionsUnsaved(error.localizedDescription) }
         return .recorded
     }
 

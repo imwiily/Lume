@@ -133,6 +133,7 @@ struct EditCheck {
         }
         let expected = sha(original)
         var calls: [String] = []
+        var offMain: [String] = []  // fases que mexem no estado da interface precisam rodar na thread principal
         struct Scenario {
             var writeFails = false, writeChangesDocument = false, recordFails = false, persistFails = false, restoreFails = false
         }
@@ -148,8 +149,8 @@ struct EditCheck {
                         if scenario.writeChangesDocument || !scenario.writeFails { try corrected.write(to: document) }
                         if scenario.writeFails { throw Injected(text: "Pages falhou") }
                     },
-                    record: { calls.append("record"); if scenario.recordFails { throw Injected(text: "disco cheio no histórico") } },
-                    persist: { calls.append("persist"); if scenario.persistFails { throw Injected(text: "disco cheio nas decisões") } },
+                    record: { MainActor.assertIsolated(); calls.append("record"); if !Thread.isMainThread { offMain.append("record") }; if scenario.recordFails { throw Injected(text: "disco cheio no histórico") } },
+                    persist: { MainActor.assertIsolated(); calls.append("persist"); if !Thread.isMainThread { offMain.append("persist") }; if scenario.persistFails { throw Injected(text: "disco cheio nas decisões") } },
                     restore: { target, source in
                         calls.append("restore")
                         if scenario.restoreFails { throw Injected(text: "sem permissão") }
@@ -168,6 +169,8 @@ struct EditCheck {
         var r = await run(Scenario())
         try require((try? r.0.get()) == .recorded && r.calls == ["write", "record", "persist"], "Caminho feliz incorreto.")
         try require(try Data(contentsOf: r.document) == corrected, "Documento deveria ficar corrigido.")
+
+        try require(offMain.isEmpty, "record/persist mexem no estado da interface e rodaram fora da thread principal: \(offMain).")
 
         // 2. P2: falha só nas decisões depois do histórico: o manuscrito NÃO volta; só aviso.
         r = await run(Scenario(persistFails: true))
