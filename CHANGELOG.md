@@ -2,6 +2,27 @@
 
 As seções antigas descrevem a cobertura e os resultados de cada entrega, não o estado atual. Nas seções anteriores à 1.0, caminhos citados são da antiga pasta `LumeMac/`; a correspondência com a estrutura atual está em [README.md](README.md#estrutura).
 
+## Lume 1.8.1 · FONTE 1.5.0 · Coerencia 1.2.0 — 10/10/2026
+
+Correção de um encerramento inesperado ao gravar uma correção em documento do Pages. FONTE e
+Coerencia **mantêm 1.5.0 e 1.2.0**; detectores, regras, prompts e contratos JSON não mudaram.
+
+**Causa.** `ManuscriptEditor.commit` é assíncrono e não isolado; chamava `record` e `persist`, closures
+síncronas criadas na interface, na thread cooperativa do Swift. `ReviewStore.autosave` alterava então
+propriedades `@Published` fora da thread principal, o SwiftUI reconstruía o menu principal fora dela e
+o AppKit abortava (SIGABRT). Ocorria na última fase, depois de o Pages gravar, de o motor conferir e de
+o histórico ser escrito: manuscrito e cópia de segurança não eram afetados; só as decisões podiam ficar
+sem salvar (o histórico as reconcilia ao reabrir o relatório). Era uma corrida, não falhava em toda edição.
+
+**Correção.** `record` e `persist` passam a `@MainActor` e são chamadas com `await`; o compilador
+impede chamá-las de outro contexto. A execução do Pages e do motor continua fora da fila principal.
+`tests/EditCheck.swift` passa a exigir a execução dessas fases no `MainActor` (falha sem a correção).
+
+**Limitações verificadas.** `SWIFT_VERSION = 5.0` não verifica isolamento em tempo de execução: outras
+closures síncronas chamadas de contextos não isolados não foram auditadas além do caminho da correção.
+A correção foi validada por teste automatizado, build e Pages real em documentos sintéticos; a
+confirmação pela interface gráfica depende de verificação manual.
+
 ## Lume 1.8 · FONTE 1.5.0 · Coerencia 1.2.0 — 10/10/2026
 
 Versão de correções de segurança financeira e integridade documental. O FONTE e o Coerencia
