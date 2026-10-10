@@ -2,6 +2,15 @@
 
 As seções antigas descrevem a cobertura e os resultados de cada entrega, não o estado atual. Nas seções anteriores à 1.0, caminhos citados são da antiga pasta `LumeMac/`; a correspondência com a estrutura atual está em [README.md](README.md#estrutura).
 
+## Em desenvolvimento — Lume 1.8 (sem número de versão alterado)
+
+Branch `release/lume-1.8`; roadmap em [docs/roadmap.md](docs/roadmap.md).
+
+**Orçamento da API.** O teto de gasto passa a reservar o pior caso de cada chamada antes de enviá-la,
+cobra escrita e leitura de cache por tarifas próprias e usa o modelo que respondeu; repetições e
+tempo esgotado entram na conta. Detalhes, limites e alternativas em
+[docs/orcamento-api.md](docs/orcamento-api.md).
+
 ## Lume 1.7 · FONTE 1.5.0 · Coerencia 1.2.0 — 09/10/2026
 
 O Lume 1.7 embute o FONTE 1.5.0 (tag `fonte-v1.5.0`) e a Política editorial v2. O Coerencia não

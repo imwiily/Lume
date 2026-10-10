@@ -95,7 +95,7 @@ def analisar(blocks, pasta, documento="manuscrito", modelo="claude-sonnet-5-5", 
     if rodada.get("interrompida"):
         faltam = rodada["a_enviar"] - rodada["enviados"]
         avisos.append(f"Coerência com IA: teto de gasto atingido. {faltam} capítulo(s) e parte dos julgamentos ficaram "
-                      "para a próxima análise; o que foi lido está salvo.")
+                      f"para a próxima análise; o que foi lido está salvo. {rodada['interrompida']}")
     avisos.append(f"Coerência com IA ({modelo}): {rodada['enviados']} de {rodada['capitulos']} capítulos enviados à "
                   f"Anthropic; custo estimado US$ {rodada['custo_usd']:.4f}. Contradições são suspeitas para avaliação "
                   "humana, não erros confirmados.")

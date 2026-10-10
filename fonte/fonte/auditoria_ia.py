@@ -263,7 +263,7 @@ def auditar(blocks, anteriores, avancar=None, *, tempo="passado", configuracao=N
     atuais = {}
     achados, descartes, aceitos, novos = Counter(), Counter(), [], []
     falhas = Counter()
-    interrompida = False
+    interrompida, motivo_teto = False, ""
     reaproveitados = 0
     estado = {"cliente": cliente, "ja_chamadas": len(cliente.chamadas) if cliente else 0}
 
@@ -354,8 +354,8 @@ def auditar(blocks, anteriores, avancar=None, *, tempo="passado", configuracao=N
         else:
             try:
                 itens, completo = pedir(titulo, contexto, proprios)
-            except TetoAtingido:
-                interrompida = True
+            except TetoAtingido as erro:
+                interrompida, motivo_teto = True, str(erro)
                 break
             except ErroModelo as erro:
                 guardar()
@@ -389,7 +389,7 @@ def auditar(blocks, anteriores, avancar=None, *, tempo="passado", configuracao=N
         avisos.append(f"Auditoria final com IA: o modelo recusou {falhas['recusa']} trecho(s), que ficaram sem auditoria.")
     if interrompida:
         avisos.append("Auditoria final com IA: teto de gasto atingido; os trechos restantes ficam para a próxima "
-                      "análise, e o que já foi auditado está guardado.")
+                      f"análise, e o que já foi auditado está guardado. {motivo_teto}")
     avisos.append(f"Auditoria final com IA ({nome}): {len(pedidos)} trecho(s), {len(chamadas)} pedido(s) à "
                   f"Anthropic e {reaproveitados} reaproveitado(s) da análise anterior sem custo; custo estimado "
                   f"US$ {custo:.4f}; {len(novos)} achado(s) novo(s), {sum(descartes.values())} descartado(s). "
