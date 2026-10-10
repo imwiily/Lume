@@ -24,13 +24,13 @@ def load_model():
 def coherence_options(command):
     command.add_argument("--coerencia-projeto", type=Path, help="Pasta de projeto da Coerência com IA deste manuscrito")
     command.add_argument("--coerencia-modelo", default="claude-sonnet-5-5",
-                         help="Modelo do Claude (claude-sonnet-5-5, claude-opus-5-5, claude-haiku-4-5)")
+                         help="Modelo do Claude (claude-sonnet-5-5, claude-opus-5-5, claude-haiku-4-5, claude-haiku-5-5 experimental)")
 
 
 def audit_options(command):
     command.add_argument("--auditoria-projeto", type=Path, help="Pasta de projeto da Auditoria final com IA deste manuscrito")
     command.add_argument("--auditoria-modelo", default="claude-opus-5-5",
-                         help="Modelo do Claude (claude-opus-5-5, claude-sonnet-5-5, claude-haiku-4-5)")
+                         help="Modelo do Claude (claude-opus-5-5, claude-sonnet-5-5, claude-haiku-4-5, claude-haiku-5-5 experimental)")
     command.add_argument("--auditoria-esforco", default="medium", choices=["low", "medium", "high", "xhigh", "max"])
 
 

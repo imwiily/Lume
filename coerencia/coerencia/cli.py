@@ -146,7 +146,7 @@ def avaliar(args):
             continue
         paragrafos = carregar_caso(caso, corpus)
         print(f"\n== {caso['id']}")
-        contradicoes, segundos, _ = rodar(paragrafos, modelo, pasta / caso["id"], args.cena)
+        contradicoes, segundos, analise = rodar(paragrafos, modelo, pasta / caso["id"], args.cena)
         usados, acertos = set(), []
         for gabarito in caso["contradicoes"]:
             indice = next((i for i, d in enumerate(contradicoes) if i not in usados and casa(d, gabarito)), None)
@@ -159,10 +159,15 @@ def avaliar(args):
         total["alarmes_falsos"] += len(falsos); total["segundos"] += segundos
         linhas.append({"caso": caso["id"], "encontradas": sum(acertos), "esperadas": len(acertos),
                        "alarmes_falsos": [{"a": f["a"], "b": f["b"], "explicacao": f["explicacao"]} for f in falsos],
-                       "perdidas": [g for g, ok in zip(caso["contradicoes"], acertos) if not ok], "segundos": segundos})
+                       "perdidas": [g for g, ok in zip(caso["contradicoes"], acertos) if not ok], "segundos": segundos,
+                       "trechos_descartados": len(analise.descartes)})
         print(f"   → {sum(acertos)}/{len(acertos)} contradições, {len(falsos)} alarmes falsos, {segundos:.0f} s")
     total["custo_usd"] = round(sum(c.get("custo_usd", 0) for c in modelo.chamadas), 4)
-    resumo = {"modelo": args.modelo, "modelo_juiz": args.modelo_juiz, "pensar": args.pensar, "total": total, "casos": linhas, "chamadas": len(modelo.chamadas)}
+    for campo in ("tokens_entrada", "tokens_cache", "tokens_saida", "tokens_cache_criacao"):
+        total[campo] = sum(c.get(campo, 0) or 0 for c in modelo.chamadas)
+    resumo = {"modelo": args.modelo, "modelo_juiz": args.modelo_juiz, "pensar": args.pensar, "esforco": args.esforco,
+              "modelos_usados": sorted({c.get("modelo_usado") for c in modelo.chamadas if c.get("modelo_usado")}),
+              "total": total, "casos": linhas, "chamadas": len(modelo.chamadas)}
     (pasta / "avaliacao.json").write_text(json.dumps(resumo, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"\nTOTAL {args.modelo}{' (raciocínio)' if args.pensar else ''}: {total['encontradas']}/{total['esperadas']} contradições, "
           f"{total['alarmes_falsos']} alarmes falsos, {total['segundos'] / 60:.1f} min, US$ {total['custo_usd']:.4f}")
@@ -174,9 +179,9 @@ def main(argv=None):
     raiz.add_argument("--version", action="version", version=__version__)
     comum = argparse.ArgumentParser(add_help=False)
     comum.add_argument("--modelo", default="claude-sonnet-5-5",
-                       help="claude-sonnet-5-5 (padrão), claude-opus-5-5, claude-haiku-4-5 ou um modelo do Ollama local")
+                       help="claude-sonnet-5-5 (padrão), claude-opus-5-5, claude-haiku-4-5, claude-haiku-5-5 (experimental) ou um modelo do Ollama local")
     comum.add_argument("--esforco", default="medium", choices=["low", "medium", "high", "xhigh", "max"],
-                       help="Profundidade de raciocínio do Claude (Opus/Sonnet 5.5)")
+                       help="Profundidade de raciocínio do Claude (Opus/Sonnet/Haiku 5.5)")
     comum.add_argument("--pensar", action="store_true", help="Ollama: ativa o modo de raciocínio (mais lento)")
     comum.add_argument("--modelo-juiz", help="Modelo só para os julgamentos (ex.: leitura com Sonnet, juiz com Opus)")
     comum.add_argument("--teto", type=float, help="Gasto máximo em US$ nesta execução; para antes de ultrapassar")

@@ -225,6 +225,7 @@ def analyze(text, work, engine, extra):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument('--conjunto', choices=['desenvolvimento', 'validacao', 'todos'], default='desenvolvimento')
+    parser.add_argument('--texto', action='append', help='Só este texto do corpus (pode repetir)')
     parser.add_argument('--saida', type=Path, required=True, help='Pasta nova para resultados')
     parser.add_argument('--engine', type=Path, help='Executável do motor; sem ele, usa os fontes de fonte/')
     parser.add_argument('--languagetool', action='store_true', help='Repassa --languagetool ao motor')
@@ -234,6 +235,7 @@ def main(argv=None):
     parser.add_argument('--auditoria', action='store_true',
                         help='Roda a Auditoria final com IA em cada texto (chama a API da Anthropic e custa dinheiro)')
     parser.add_argument('--auditoria-modelo', default='claude-opus-5-5')
+    parser.add_argument('--auditoria-esforco', default='medium', choices=['low', 'medium', 'high', 'xhigh', 'max'])
     parser.add_argument('--auditoria-teto-texto', type=float, default=0.2, help='Teto em US$ por texto')
     parser.add_argument('--auditoria-teto-total', type=float, default=1.0,
                         help='Teto em US$ da rodada: para antes de um texto que poderia ultrapassá-lo')
@@ -245,10 +247,10 @@ def main(argv=None):
     if args.auditoria:
         # Pasta de projeto nova por texto: nada é reaproveitado de rodadas anteriores.
         extra += ['--auditoria-ia', '--auditoria-projeto', '{projeto}', '--auditoria-modelo', args.auditoria_modelo,
-                  '--auditoria-teto', f'{args.auditoria_teto_texto:.2f}']
+                  '--auditoria-esforco', args.auditoria_esforco, '--auditoria-teto', f'{args.auditoria_teto_texto:.2f}']
     results, engine_version, languagetool, spent = [], None, None, 0.0
     with tempfile.TemporaryDirectory() as temporary:
-        for text in load(sets):
+        for text in (t for t in load(sets) if not args.texto or t['id'] in args.texto):
             if args.auditoria and not within_budget(spent, args.auditoria_teto_texto, args.auditoria_teto_total):
                 print(f"Teto total da auditoria (US$ {args.auditoria_teto_total:.2f}) alcançado com US$ {spent:.4f}; "
                       f"textos restantes não foram avaliados.", flush=True)

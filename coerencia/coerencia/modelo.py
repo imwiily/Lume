@@ -6,6 +6,7 @@ enviadas vai aos servidores da Anthropic; com o Ollama, nada sai do computador.
 """
 import json
 import os
+from pathlib import Path
 import subprocess
 import time
 from urllib.error import HTTPError, URLError
@@ -102,10 +103,20 @@ PRECOS = {
     "claude-opus-5-5": (4.00, 20.00, 0.20),
     "claude-sonnet-5-5": (2.00, 10.00, 0.20),
     "claude-haiku-4-5": (1.00, 5.00, 0.10),
+    # Faixa de prompts até 100 mil tokens; acima disso vale OFICIAL_LONGA.
+    "claude-haiku-5-5": (0.10, 0.50, 0.01),
 }
+# Contabilidade completa, por milhão: (entrada, escrita de cache 5 min, leitura de cache, saída).
+# Haiku 5.5: a tarifa depende do tamanho do prompt (entrada + leituras e escritas de cache).
+OFICIAL = {"claude-opus-5-5": (4.00, 5.00, 0.20, 20.00), "claude-sonnet-5-5": (2.00, 2.50, 0.10, 10.00),
+           "claude-haiku-5-5": (0.10, 0.125, 0.01, 0.50)}
+OFICIAL_LONGA = {"claude-haiku-5-5": (100_000, (0.50, 0.625, 0.05, 2.50))}
 # Modelos que aceitam esforço e retomada automática em outro modelo quando o
 # pedido é recusado pelos classificadores de segurança.
 ATUAIS = {"claude-opus-5-5", "claude-sonnet-5-5"}
+# Experimental: aceita esforço, mas não tem retomada automática (`fallbacks` seria recusado) e
+# nunca pode ser respondido por outro modelo sem que isso apareça como erro.
+EXPERIMENTAIS = {"claude-haiku-5-5"}
 
 
 SERVICO_KEYCHAIN = "coerencia-anthropic"
@@ -163,10 +174,39 @@ class Claude:
         except self.anthropic.APIConnectionError as erro:
             raise ErroModelo("Sem conexão com a API da Anthropic.") from erro
 
+    def completa(self):
+        """Contabilidade completa (escrita de cache incluída): modelos experimentais e execuções
+        com orçamento global. Fora disso o cálculo da versão estável fica como estava."""
+        return self.modelo in EXPERIMENTAIS or isinstance(self.orcamento, OrcamentoGlobal)
+
+    def tarifa(self, tokens_entrada):
+        """(entrada, escrita de cache 5 min, leitura de cache, saída) por milhão, para um prompt desse
+        tamanho. Tarifas da página de preços da Anthropic (conferida em 10/10/2026)."""
+        limite, longa = OFICIAL_LONGA.get(self.modelo, (None, None))
+        if limite and tokens_entrada > limite:
+            return longa
+        if self.modelo in OFICIAL:
+            return OFICIAL[self.modelo]
+        entrada, saida, cache = PRECOS.get(self.modelo, (0, 0, 0))
+        return entrada, entrada * 1.25, cache, saida
+
     def custo(self, chamada):
+        if self.completa() and (self.modelo in OFICIAL):
+            entrada, escrita, leitura, saida = self.tarifa(chamada["tokens_entrada"])
+            criacao = chamada.get("tokens_cache_criacao", 0)
+            normal = chamada["tokens_entrada"] - chamada["tokens_cache"] - criacao
+            return (normal * entrada + chamada["tokens_cache"] * leitura + criacao * escrita
+                    + chamada["tokens_saida"] * saida) / 1e6
         entrada, saida, cache = PRECOS.get(self.modelo, (0, 0, 0))
         return ((chamada["tokens_entrada"] - chamada["tokens_cache"]) * entrada
                 + chamada["tokens_cache"] * cache + chamada["tokens_saida"] * saida) / 1e6
+
+    def custo_maximo(self, sistema, usuario, max_tokens):
+        """Teto conservador de uma chamada, antes de enviá-la: 2,5 caracteres por token (o tokenizador
+        novo gera ~30% mais), tudo cobrado como escrita de cache, e a saída inteira até `max_tokens`."""
+        tokens = int((len(sistema) + len(usuario)) / 2.5) + 1
+        _, escrita, _, saida = self.tarifa(tokens)
+        return (tokens * escrita + max_tokens * saida) / 1e6
 
     def json(self, sistema, usuario, esquema, etapa):
         pedido = {
@@ -180,10 +220,18 @@ class Claude:
             pedido["output_config"]["effort"] = self.esforco
             pedido.update(betas=["server-side-fallback-2026-07-01"], fallbacks="default")
             criar = self.cliente.beta.messages.create
+        elif self.modelo in EXPERIMENTAIS:
+            pedido["output_config"]["effort"] = self.esforco
+            criar = self.cliente.messages.create
         else:
             criar = self.cliente.messages.create
         if self.orcamento:
-            self.orcamento.conferir()
+            # Com contabilidade completa, confere também o pior caso da própria chamada.
+            extra = self.custo_maximo(sistema, usuario, pedido["max_tokens"]) if self.completa() else 0
+            self.orcamento.conferir(extra)
+            if isinstance(self.orcamento, OrcamentoGlobal):
+                self.orcamento.contexto = {"modelo_pedido": self.modelo, "esforco": self.esforco, "etapa": etapa,
+                                           "custo_maximo_usd": round(extra, 6)}
         inicio = time.monotonic()
         try:
             resposta = criar(**pedido)
@@ -200,11 +248,19 @@ class Claude:
         entrada = (uso.input_tokens or 0) + cache + (getattr(uso, "cache_creation_input_tokens", 0) or 0)
         chamada = {"etapa": etapa, "segundos": round(time.monotonic() - inicio, 1), "tokens_entrada": entrada,
                    "tokens_cache": cache, "tokens_saida": uso.output_tokens or 0, "modelo_usado": resposta.model,
-                   "pedido": getattr(resposta, "_request_id", None)}
+                   "pedido": getattr(resposta, "_request_id", None),
+                   "tokens_cache_criacao": getattr(uso, "cache_creation_input_tokens", 0) or 0}
         chamada["custo_usd"] = round(self.custo(chamada), 6)
         self.chamadas.append(chamada)
         if self.orcamento:
+            if isinstance(self.orcamento, OrcamentoGlobal):
+                self.orcamento.contexto.update({k: chamada[k] for k in (
+                    "modelo_usado", "pedido", "tokens_entrada", "tokens_cache", "tokens_cache_criacao",
+                    "tokens_saida", "segundos")})
             self.orcamento.gasto += chamada["custo_usd"]
+        if self.modelo in EXPERIMENTAIS and not str(resposta.model).startswith(self.modelo):
+            raise ErroModelo(f"Pediu {self.modelo}, mas respondeu {resposta.model} (etapa {etapa}, pedido "
+                             f"{chamada['pedido']}). Sem substituição silenciosa de modelo.")
         if resposta.stop_reason == "refusal":
             raise Recusa(f"O modelo recusou a etapa {etapa} (pedido {chamada['pedido']}).")
         if resposta.stop_reason == "max_tokens":
@@ -222,10 +278,53 @@ class Orcamento:
     def __init__(self, teto):
         self.teto, self.gasto = teto, 0.0
 
-    def conferir(self):
-        if self.gasto >= self.teto:
+    def conferir(self, proxima=0.0):
+        """Para antes da chamada se o gasto já bateu o teto ou se o pior caso dela o ultrapassaria."""
+        if self.gasto >= self.teto or self.gasto + proxima > self.teto:
             raise TetoAtingido(f"Teto de gasto atingido (US$ {self.gasto:.4f} de US$ {self.teto:.2f}). "
                              "O que já foi lido ficou salvo na pasta de saída.")
+
+
+class OrcamentoGlobal(Orcamento):
+    """Teto local da execução + limite acumulado entre execuções, guardado em arquivo (experimento).
+    Cada chamada paga é registrada com o modelo que respondeu; antes de enviar, o pior caso da própria
+    chamada precisa caber no que resta. Ativado só por LUME_ORCAMENTO_GLOBAL (arquivo) e _LIMITE."""
+
+    def __init__(self, teto, arquivo, limite):
+        super().__init__(teto if teto else float("inf"))
+        self.arquivo, self.limite, self.contexto = Path(arquivo), float(limite), {}
+
+    def _ler(self):
+        try:
+            return json.loads(self.arquivo.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return {"limite_usd": self.limite, "gasto_usd": 0.0, "chamadas": []}
+
+    def gasto_global(self):
+        return self._ler()["gasto_usd"]
+
+    @property
+    def gasto(self):
+        return self._gasto
+
+    @gasto.setter
+    def gasto(self, valor):
+        delta = valor - getattr(self, "_gasto", 0.0)
+        self._gasto = valor
+        if delta > 0:
+            dados = self._ler()
+            dados["gasto_usd"] = round(dados["gasto_usd"] + delta, 6)
+            dados["chamadas"].append({"custo_usd": round(delta, 6), **self.contexto})
+            self.arquivo.parent.mkdir(parents=True, exist_ok=True)
+            self.arquivo.write_text(json.dumps(dados, ensure_ascii=False, indent=1), encoding="utf-8")
+
+    def conferir(self, proxima=0.0):
+        if self.gasto >= self.teto:
+            raise TetoAtingido(f"Teto da execução atingido (US$ {self.gasto:.4f} de US$ {self.teto:.2f}).")
+        restante = self.limite - self.gasto_global()
+        if proxima > restante:
+            raise TetoAtingido(f"Orçamento global do experimento: o pior caso desta chamada (US$ {proxima:.4f}) "
+                               f"excede o que resta (US$ {restante:.4f} de US$ {self.limite:.2f}). Nada foi enviado.")
 
 
 class Dupla:
@@ -249,6 +348,9 @@ def criar_modelo(nome, pensar=False, contexto=16384, esforco="medium", juiz=None
     """`claude-*` usa a API da Anthropic; qualquer outro nome, o Ollama local.
     Com `juiz`, a leitura usa `nome` e os julgamentos usam `juiz`."""
     orcamento = Orcamento(teto) if teto else None
+    if os.environ.get("LUME_ORCAMENTO_GLOBAL"):
+        orcamento = OrcamentoGlobal(teto, os.environ["LUME_ORCAMENTO_GLOBAL"],
+                                    os.environ.get("LUME_ORCAMENTO_GLOBAL_LIMITE", "0.50"))
 
     def um(n):
         if n.startswith("claude-"):
