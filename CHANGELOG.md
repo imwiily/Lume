@@ -11,8 +11,9 @@ Coerencia **mantêm 1.5.0 e 1.2.0**; detectores, regras, prompts e contratos JSO
 síncronas criadas na interface, na thread cooperativa do Swift. `ReviewStore.autosave` alterava então
 propriedades `@Published` fora da thread principal, o SwiftUI reconstruía o menu principal fora dela e
 o AppKit abortava (SIGABRT). Ocorria na última fase, depois de o Pages gravar, de o motor conferir e de
-o histórico ser escrito: manuscrito e cópia de segurança não eram afetados; só as decisões podiam ficar
-sem salvar (o histórico as reconcilia ao reabrir o relatório). Era uma corrida, não falhava em toda edição.
+o histórico ser escrito: manuscrito, cópia de segurança, histórico e arquivo de decisões já estavam
+gravados; o app caía ao atualizar o indicador de “decisões não salvas” (última linha de `autosave`).
+Era uma corrida: em uma sessão com 11 correções, 2 encerraram o app (mesma pilha nas duas).
 
 **Correção.** `record` e `persist` passam a `@MainActor` e são chamadas com `await`; o compilador
 impede chamá-las de outro contexto. A execução do Pages e do motor continua fora da fila principal.
