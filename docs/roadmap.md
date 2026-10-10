@@ -15,5 +15,8 @@ entram na 1.8 sem decisão própria.
 ## 1.8 — andamento
 
 - [x] Orçamento da API (Coerência e Auditoria final): ver [orcamento-api.md](orcamento-api.md).
-- [ ] Segurança das atualizações.
-- [ ] Integridade documental.
+- [x] Segurança das atualizações: auditada em 10/10/2026; três problemas de baixa gravidade
+  (limpeza de `Engines/` e `.staging-*`, mensagem de link pendente, impressão digital do pacote)
+  transferidos para a 1.9.
+- [x] Integridade documental (correção no Pages): ver [validacao.md](validacao.md).
+- Entregue em 10/10/2026 sem validação manual da interface (decisão do proprietário).

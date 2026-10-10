@@ -2,20 +2,48 @@
 
 As seções antigas descrevem a cobertura e os resultados de cada entrega, não o estado atual. Nas seções anteriores à 1.0, caminhos citados são da antiga pasta `LumeMac/`; a correspondência com a estrutura atual está em [README.md](README.md#estrutura).
 
-## Em desenvolvimento — Lume 1.8 (sem número de versão alterado)
+## Lume 1.8 · FONTE 1.5.0 · Coerencia 1.2.0 — 10/10/2026
 
-Branch `release/lume-1.8`; roadmap em [docs/roadmap.md](docs/roadmap.md).
+Versão de correções de segurança financeira e integridade documental. O FONTE e o Coerencia
+**mantêm os números 1.5.0 e 1.2.0**: não são lançamentos independentes. O motor embutido, porém,
+inclui as correções de orçamento descritas abaixo (`coerencia/modelo.py`) e dois avisos reescritos
+(`auditoria_ia.py`, `coerencia_ia.py`); por isso ele **não é idêntico** ao da tag `fonte-v1.5.0`. As
+regras editoriais, os prompts e os contratos JSON não mudaram: o corpus de detecção produz resultado
+idêntico ao da 1.7 (60/84 linguística, 0/14 narrativa).
 
-**Orçamento da API.** O teto de gasto passa a reservar o pior caso de cada chamada antes de enviá-la,
-cobra escrita e leitura de cache por tarifas próprias e usa o modelo que respondeu; repetições e
-tempo esgotado entram na conta. Detalhes, limites e alternativas em
-[docs/orcamento-api.md](docs/orcamento-api.md).
+**Orçamento da API (Coerência e Auditoria final).** O teto de gasto passa a reservar o pior caso de
+cada chamada antes de enviá-la, cobra escrita e leitura de cache por tarifas próprias (conferidas na
+página oficial de preços) e usa o modelo que respondeu; a retomada automática soma a tentativa
+recusada e a do destino; repetições e tempo esgotado entram na conta; `teto 0` envia nada. Quando o
+saldo não comporta a chamada, o aviso diz que ela não foi enviada e qual teto mínimo a liberaria.
+Detalhes, limites e alternativas em [docs/orcamento-api.md](docs/orcamento-api.md).
 
 **Integridade documental (correção no Pages).** Falha ao salvar decisões depois da correção não
 restaura mais o manuscrito e é reconciliada ao reabrir; a cópia anterior não é apagada quando a
-restauração falha; o Lume recusa corrigir um documento aberto no Pages, confere o resultado antes
-de salvar e descarta sem salvar qualquer falha. Limites da conferência documentados em
-[docs/arquitetura.md](docs/arquitetura.md#correção-no-manuscrito-pages).
+restauração falha (fica em `Recuperacao/`, só do usuário); o Lume recusa corrigir um documento
+aberto no Pages, confere o resultado antes de salvar e descarta sem salvar qualquer falha. Limites
+da conferência em [docs/arquitetura.md](docs/arquitetura.md#correção-no-manuscrito-pages).
+
+**Verificação desta entrega.** Os testes automatizados passaram: FONTE (503), Coerencia (44),
+empacotamento e atualizações, contratos Python e Swift, `EditCheck.swift` (falhas injetadas) e as
+21 conferências com o Pages real em documentos sintéticos (Unicode, formatação, documento aberto,
+falha injetada). **A interface gráfica deste candidato não foi validada manualmente**: o
+proprietário dispensou o roteiro de `docs/testing/checklist-interface-1.8.md`. Fluxos de interface
+(botões, confirmações, mensagens, reabertura do app) compilam e têm lógica testada, mas não foram
+exercitados por uma pessoa.
+
+**Limitações conhecidas (1.9).**
+- A conferência da correção compara só texto e itálico do corpo; estilo, outros atributos,
+  imagens, tabelas, cabeçalhos, notas e layout não são comparados.
+- Matar o `osascript` ou o Pages no meio da troca pode deixar o documento aberto por ele com
+  alterações em memória (o arquivo em disco permanece intacto).
+- Encerrar o app entre o salvamento do Pages e a gravação do histórico deixa o documento sem
+  histórico (a cópia de segurança permanece).
+- O pior caso de uma chamada com retomada (~US$ 0,57 a 0,72) exige teto maior que isso para enviar;
+  os destinos reais da retomada não são publicados.
+- Atualização de motores: `Engines/` acumula pacotes antigos e interrupções deixam pastas
+  órfãs; link simbólico pendente dá mensagem pouco clara.
+- Validado só no Pages 15.3.1 e macOS 27.0.1, com documentos sintéticos.
 
 ## Lume 1.7 · FONTE 1.5.0 · Coerencia 1.2.0 — 09/10/2026
 

@@ -580,6 +580,17 @@ Só documentos sintéticos descartáveis; nenhum manuscrito real, nenhuma chamad
 - Teste com o Pages real: `fonte/.venv/bin/python tests/pages_real_check.py` (abre janelas do
   Pages; exige a permissão de Automação).
 
+### Lume 1.8 — homologação da entrega (10/10/2026)
+
+- Aprovados: FONTE 503 testes; Coerencia 44; `tests/` 53 e pacotes de motor 14; contratos Python e
+  Swift; `EditCheck.swift`; demais verificações Swift; `tests/pages_real_check.py` 21/21; builds
+  Debug e Release; corpus de detecção da 1.8 idêntico ao da `main` (1.7).
+- **A interface gráfica não foi validada manualmente.** O proprietário dispensou o roteiro
+  `docs/testing/checklist-interface-1.8.md` (decisão consciente e definitiva). O fluxo pela
+  interface (botão, confirmação, mensagens, cópia pelo app, reabertura, restauração do motor) não
+  foi exercitado por uma pessoa nem pela automação.
+- Sem chamadas pagas à API e sem manuscritos reais em nenhuma etapa.
+
 ## Lume 1.0 / FONTE 1.0.0 — 29/09/2026
 
 - `scripts/montar-lume.command` completo: 216 testes do analisador, 25 dos pacotes e 29 do Coerencia
