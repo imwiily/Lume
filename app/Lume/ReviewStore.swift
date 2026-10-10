@@ -346,10 +346,16 @@ final class ReviewStore: ObservableObject {
             carried = restored.values.filter { $0 != .pending }.count - before
         }
         let ids = Set(loaded.findings.map(\.id))
+        // Correção gravada no manuscrito e no histórico cuja decisão não chegou a ser salva
+        // (falha de disco ou encerramento no meio): o histórico é a fonte, a decisão vira “corrigido”.
+        let log = readEditLog(loaded.sha256)
+        let reconciliation = ManuscriptEditor.reconcile(restored, with: log?.edits ?? [], ids: ids)
+        restored = reconciliation.decisions
+        let reconciled = reconciliation.changed
         report = loaded; reportURL = url; decisions = restored
         decisionConflicts = history.conflicts.filter { ids.contains($0.key) }
         falsePositivesURL = falsePositivesFile(next: url).flatMap { manager.fileExists(atPath: $0.path) ? $0 : nil }
-        editLog = readEditLog(loaded.sha256)
+        editLog = log
         analysisStages = loaded.metadata.stages ?? []
         screen = .review; analysisFailed = false
         closure = readClosure(for: loaded)
@@ -360,7 +366,7 @@ final class ReviewStore: ObservableObject {
         hasUnsavedDecisions = false
         let counts = ReviewTally(findings: loaded.findings, decision: { restored[$0.id] ?? .pending })
         status = "\(counts.pending) pendências e \(counts.observations) observações. Avalie as pendências no contexto."
-        if inherited > 0 || carried > 0 || !decisionConflicts.isEmpty {
+        if inherited > 0 || carried > 0 || reconciled > 0 || !decisionConflicts.isEmpty {
             try autosave()
             status = "\(counts.pending) pendências e \(counts.observations) observações. \(inherited + carried) decisões mantidas nos alertas que não mudaram desde a análise anterior."
         }
@@ -518,53 +524,65 @@ final class ReviewStore: ObservableObject {
                     throw FonteError.message("A cópia de segurança não confere com o manuscrito analisado. Nada foi alterado.")
                 }
             }
+            // Pasta só do usuário: guarda cópias do manuscrito, que pode ser confidencial.
             let work = manager.temporaryDirectory.appendingPathComponent("lume-edicao-" + UUID().uuidString, isDirectory: true)
-            try manager.createDirectory(at: work, withIntermediateDirectories: true)
+            try manager.createDirectory(at: work, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
             let previous = work.appendingPathComponent("antes." + document.pathExtension)
             let expected = work.appendingPathComponent("esperado.txt")
             try manager.copyItem(at: document, to: previous)
             try Data(plan.resultText.utf8).write(to: expected)
+            let rescue = try supportDirectory("Recuperacao")
             let log = try supportDirectory("Registros").appendingPathComponent(UUID().uuidString + ".txt")
             let arguments = engineArguments + ["conferir-edicao", previous.path, document.path,
                                                "--paragrafo", String(finding.paragraph), "--esperado", expected.path]
             isBusy = true; jobLabel = "Gravando a correção no Pages…"; errorText = nil; logURL = log
             Task {
-                defer { isBusy = false; jobLabel = ""; try? manager.removeItem(at: work) }
+                // A pasta de trabalho só some quando nada nela é necessário para recuperar o manuscrito.
+                var keepWork = false
+                defer { isBusy = false; jobLabel = ""; if !keepWork { try? manager.removeItem(at: work) } }
+                var current = ""
                 do {
-                    try await ManuscriptEditor.runPages(document: document, paragraph: finding.paragraph, plan: plan)
-                    let result = try await runner.run(executable: python, arguments: arguments, directory: directory, logURL: log)
-                    let prefix = "LUME_EDICAO "
-                    let current = try ManuscriptEditor.sha256(document)
-                    guard result.exitCode == 0,
-                          let line = PythonRunner.tail(log).split(separator: "\n").last(where: { $0.hasPrefix(prefix) }),
-                          let checked = try? JSONDecoder().decode([String: String].self, from: Data(line.dropFirst(prefix.count).utf8)),
-                          checked["sha256"] == current, current != expectedSHA else {
-                        throw FonteError.message("A conferência da correção falhou: o resultado não é exatamente a troca pedida. Se o motor selecionado for anterior a esta versão do Lume, use Motor de análise → Restaurar embutido.\n\n\(String(PythonRunner.tail(log).suffix(600)))")
+                    let outcome = try await ManuscriptEditor.commit(
+                        document: document, previous: previous, expectedSHA: expectedSHA, backup: backup.path,
+                        write: {
+                            try await ManuscriptEditor.runPages(document: document, paragraph: finding.paragraph, plan: plan)
+                            let result = try await self.runner.run(executable: python, arguments: arguments, directory: directory, logURL: log)
+                            let prefix = "LUME_EDICAO "
+                            current = try ManuscriptEditor.sha256(document)
+                            guard result.exitCode == 0,
+                                  let line = PythonRunner.tail(log).split(separator: "\n").last(where: { $0.hasPrefix(prefix) }),
+                                  let checked = try? JSONDecoder().decode([String: String].self, from: Data(line.dropFirst(prefix.count).utf8)),
+                                  checked["sha256"] == current, current != expectedSHA else {
+                                throw FonteError.message("A conferência da correção falhou: o resultado não é exatamente a troca pedida. Se o motor selecionado for anterior a esta versão do Lume, use Motor de análise → Restaurar embutido.\n\n\(String(PythonRunner.tail(log).suffix(600)))")
+                            }
+                        },
+                        record: {
+                            var updated = self.editLog ?? EditLog(origem: report.sha256, atual: current, documento: document.lastPathComponent, copia: backup.path)
+                            updated.atual = current
+                            updated.edits.append(AppliedEdit(finding: finding.id, paragraph: finding.paragraph, start: start, end: end,
+                                                             before: before, after: replacement, date: Date()))
+                            let encoder = JSONEncoder()
+                            encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
+                            encoder.dateEncodingStrategy = .iso8601
+                            try encoder.encode(updated).write(to: self.editLogURL(report.sha256), options: .atomic)
+                            self.editLog = updated  // só depois de gravado
+                        },
+                        persist: {
+                            if [.pending, .error].contains(self.decision(for: finding)) { self.decisions[finding.id] = .corrected }
+                            self.hasUnsavedDecisions = true  // só volta a falso quando o salvamento der certo
+                            try self.autosave()
+                        },
+                        preserve: { ManuscriptEditor.preserve($0, in: rescue) })
+                    switch outcome {
+                    case .recorded:
+                        status = "Correção gravada no manuscrito. A cópia anterior às correções está guardada."
+                    case .decisionsUnsaved(let reason):
+                        errorText = "A correção foi gravada no manuscrito e no histórico de correções, mas as decisões não foram salvas: \(reason)\n\nElas continuam na tela, marcadas como não salvas. Resolva o problema (espaço em disco ou permissão) e marque qualquer decisão para salvar de novo. Se fechar o Lume antes, o histórico reconcilia esta correção ao reabrir o relatório."
+                        status = "Correção gravada no manuscrito. As decisões NÃO foram salvas."
                     }
-                    var updated = editLog ?? EditLog(origem: report.sha256, atual: current, documento: document.lastPathComponent, copia: backup.path)
-                    updated.atual = current
-                    updated.edits.append(AppliedEdit(finding: finding.id, paragraph: finding.paragraph, start: start, end: end,
-                                                     before: before, after: replacement, date: Date()))
-                    let encoder = JSONEncoder()
-                    encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
-                    encoder.dateEncodingStrategy = .iso8601
-                    try encoder.encode(updated).write(to: editLogURL(report.sha256), options: .atomic)
-                    editLog = updated
-                    if [.pending, .error].contains(decision(for: finding)) { decisions[finding.id] = .corrected }
-                    try autosave()
-                    status = "Correção gravada no manuscrito. A cópia anterior às correções está guardada."
                 } catch {
-                    // Qualquer falha devolve o arquivo ao estado anterior a esta correção.
-                    var restored = ""
-                    if (try? ManuscriptEditor.sha256(document)) != expectedSHA {
-                        do {
-                            _ = try manager.replaceItemAt(document, withItemAt: previous)
-                            restored = "\n\nO manuscrito foi devolvido ao estado anterior a esta correção."
-                        } catch {
-                            restored = "\n\nNão foi possível restaurar o manuscrito automaticamente. A cópia anterior às correções está em \(backup.path)."
-                        }
-                    }
-                    errorText = error.localizedDescription + restored
+                    if let failure = error as? ManuscriptEditor.EditFailure, case .restoreFailed = failure.recovery { keepWork = true }
+                    errorText = error.localizedDescription
                     status = "A correção não foi gravada."
                 }
             }

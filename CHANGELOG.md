@@ -11,6 +11,12 @@ cobra escrita e leitura de cache por tarifas próprias e usa o modelo que respon
 tempo esgotado entram na conta. Detalhes, limites e alternativas em
 [docs/orcamento-api.md](docs/orcamento-api.md).
 
+**Integridade documental (correção no Pages).** Falha ao salvar decisões depois da correção não
+restaura mais o manuscrito e é reconciliada ao reabrir; a cópia anterior não é apagada quando a
+restauração falha; o Lume recusa corrigir um documento aberto no Pages, confere o resultado antes
+de salvar e descarta sem salvar qualquer falha. Limites da conferência documentados em
+[docs/arquitetura.md](docs/arquitetura.md#correção-no-manuscrito-pages).
+
 ## Lume 1.7 · FONTE 1.5.0 · Coerencia 1.2.0 — 09/10/2026
 
 O Lume 1.7 embute o FONTE 1.5.0 (tag `fonte-v1.5.0`) e a Política editorial v2. O Coerencia não
