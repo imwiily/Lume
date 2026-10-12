@@ -22,6 +22,9 @@ MODELO_PADRAO, ESFORCO_PADRAO = "claude-sonnet-5-5", "medium"
 # Cobertura máxima desta etapa (≈ 120 mil tokens a 2,5 caracteres por token). Acima disso a análise global
 # NÃO é feita: o resultado diz isso, em vez de truncar o texto.
 LIMITE_CARACTERES = 300_000
+# Janela de contexto assumida (conservadora; o repositório não registra a do modelo): o pedido inteiro, medido em
+# tokens estimados, mais a saída reservada, precisa caber nela.
+JANELA_TOKENS = 200_000
 MAX_APONTAMENTOS = 30
 MINIMO_PALAVRAS = 2
 SAIDA_ESPERADA_TOKENS = 6000  # suposição não calibrada (inclui o raciocínio, cobrado como saída)
@@ -121,20 +124,38 @@ def pedido(paragrafos, titulo, inacabada):
 
 
 def estimar(paragrafos, modelo=MODELO_PADRAO, esforco=ESFORCO_PADRAO, titulo="manuscrito", inacabada=False,
-            limite_caracteres=LIMITE_CARACTERES):
+            limite_caracteres=LIMITE_CARACTERES, janela_tokens=JANELA_TOKENS):
     """Cobertura e custo da chamada, sem rede. `custo_maximo_usd` é a reserva que o teto precisa cobrir."""
     caracteres = sum(len(p.texto) for p in paragrafos)
     texto = pedido(paragrafos, titulo, inacabada)
-    cabe = caracteres <= limite_caracteres
+    cabe, motivo, tokens = cobertura_possivel(paragrafos, titulo, inacabada, limite_caracteres, janela_tokens)
     cliente = Claude(modelo, esforco=esforco, cliente=object())          # só tarifa; nada é enviado
-    tokens = int((len(SISTEMA) + len(texto) + len(json.dumps(ESQUEMA))) / CARACTERES_POR_TOKEN) + 1
-    entrada, escrita, _, saida = tarifa(modelo)
+    _, escrita, _, saida = tarifa(modelo)
+    sem_retomada = (tokens * escrita + MAX_TOKENS * saida) / 1e6
     return {"modelo": modelo, "esforco": esforco, "paragrafos": len(paragrafos), "caracteres": caracteres,
-            "limite_caracteres": limite_caracteres, "cabe_em_uma_leitura": cabe, "tokens_entrada_estimados": tokens,
+            "limite_caracteres": limite_caracteres, "janela_tokens": janela_tokens, "cabe_em_uma_leitura": cabe,
+            "motivo_se_nao_cabe": motivo, "tokens_entrada_estimados": tokens,
             "custo_esperado_usd": round((tokens * escrita + SAIDA_ESPERADA_TOKENS * saida) / 1e6, 4) if cabe else None,
+            "custo_maximo_sem_retomada_usd": round(sem_retomada, 4) if cabe else None,
             "custo_maximo_usd": round(cliente.custo_maximo(SISTEMA, texto, ESQUEMA, MAX_TOKENS), 4) if cabe else None,
-            "premissa": f"Saída esperada de {SAIDA_ESPERADA_TOKENS} tokens (suposição não calibrada); o máximo usa "
-                        f"{MAX_TOKENS} e a reserva da retomada automática."}
+            "premissa": f"Esperado: entrada + {SAIDA_ESPERADA_TOKENS} tokens de saída (suposição não calibrada, inclui "
+                        f"raciocínio). Máximo reservado: entrada + {MAX_TOKENS} tokens de saída, mais a recusa "
+                        "cobrada e a retomada automática no modelo mais caro; é o que o teto precisa cobrir, não o gasto previsto."}
+
+
+def cobertura_possivel(paragrafos, titulo="manuscrito", inacabada=False, limite_caracteres=LIMITE_CARACTERES,
+                       janela_tokens=JANELA_TOKENS):
+    """(cabe, motivo, tokens_de_entrada). Conta o pedido inteiro (instruções, esquema e marcadores [§N]) e a saída
+    reservada, não só os caracteres dos parágrafos."""
+    caracteres = sum(len(p.texto) for p in paragrafos)
+    tokens = int((len(SISTEMA) + len(pedido(paragrafos, titulo, inacabada)) + len(json.dumps(ESQUEMA)))
+                 / CARACTERES_POR_TOKEN) + 1
+    if caracteres > limite_caracteres:
+        return False, f"O manuscrito tem {caracteres} caracteres e o limite desta etapa é {limite_caracteres}.", tokens
+    if tokens + MAX_TOKENS > janela_tokens:
+        return False, (f"O pedido estimado ({tokens} tokens) mais a saída reservada ({MAX_TOKENS}) excede a janela "
+                       f"assumida de {janela_tokens} tokens."), tokens
+    return True, None, tokens
 
 
 # ---- verificação das evidências -------------------------------------------------------------------------
@@ -165,10 +186,11 @@ def verificar_evidencia(paragrafos, evidencia):
     trecho_inexistente, paragrafo_incorreto, ambigua."""
     numero, trecho = evidencia.get("paragrafo"), evidencia.get("trecho")
     saida = {"paragrafo": numero, "trecho": trecho, "papel": evidencia.get("papel"), "valida": False, "motivo": None}
-    if not isinstance(numero, int) or isinstance(numero, bool) or not 1 <= numero <= len(paragrafos) or not isinstance(trecho, str):
+    # O número é o do FONTE (identifica o parágrafo; há saltos onde havia linhas vazias), não a posição na lista.
+    bloco = next((p for p in paragrafos if p.numero == numero), None) if isinstance(numero, int) and not isinstance(numero, bool) else None
+    if bloco is None or not isinstance(trecho, str):
         saida["motivo"] = "paragrafo_inexistente"
         return saida
-    bloco = paragrafos[numero - 1]
     if len(trecho.split()) < MINIMO_PALAVRAS:
         saida["motivo"] = "trecho_curto"
         return saida
@@ -259,11 +281,15 @@ def conferir(resposta, paragrafos):
 # ---- execução -----------------------------------------------------------------------------------------
 
 def _chave_cache(paragrafos, modelo, esforco, titulo, inacabada):
-    return hashlib.sha256("|".join([VERSAO_PROMPT, modelo, esforco, titulo, str(inacabada), assinatura(paragrafos)])
-                          .encode("utf-8")).hexdigest()
+    # Tudo que muda a resposta bruta: instruções, esquema, versões, modelo, esforço, saída máxima e texto.
+    partes = [VERSAO_PROMPT, VERSAO_RESULTADO, hashlib.sha256(SISTEMA.encode("utf-8")).hexdigest(),
+              hashlib.sha256(json.dumps(ESQUEMA, sort_keys=True).encode("utf-8")).hexdigest(), str(MAX_TOKENS),
+              modelo, esforco, titulo, str(inacabada), assinatura(paragrafos)]
+    return hashlib.sha256("|".join(partes).encode("utf-8")).hexdigest()
 
 
-def auditar(paragrafos, cliente, titulo="manuscrito", inacabada=False, limite_caracteres=LIMITE_CARACTERES, pasta=None):
+def auditar(paragrafos, cliente, titulo="manuscrito", inacabada=False, limite_caracteres=LIMITE_CARACTERES, pasta=None,
+            janela_tokens=JANELA_TOKENS):
     """Uma leitura global. `cliente` tem `.json(sistema, usuario, esquema, etapa)`, `.modelo` e `.chamadas`
     (um `coerencia.modelo.Claude` já com teto). Não altera `paragrafos`. Nunca levanta por falha do modelo:
     a cobertura registra o que de fato aconteceu."""
@@ -281,10 +307,10 @@ def auditar(paragrafos, cliente, titulo="manuscrito", inacabada=False, limite_ca
     if not paragrafos:
         resultado["cobertura"]["motivo"] = "manuscrito sem parágrafos"
         return resultado
-    if caracteres > limite_caracteres:
+    cabe, motivo, _ = cobertura_possivel(paragrafos, titulo, inacabada, limite_caracteres, janela_tokens)
+    if not cabe:
         resultado["cobertura"]["motivo"] = (
-            f"O manuscrito tem {caracteres} caracteres e o limite desta etapa é {limite_caracteres}. "
-            "Nada foi enviado: a leitura global não foi feita e este resultado não cobre a obra.")
+            motivo + " Nada foi enviado: a leitura global não foi feita e este resultado não cobre a obra.")
         return resultado
     chave = _chave_cache(paragrafos, modelo, esforco, titulo, inacabada)
     arquivo = Path(pasta) / "cache-global.json" if pasta else None

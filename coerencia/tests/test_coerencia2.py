@@ -186,6 +186,18 @@ class Verificacao(unittest.TestCase):
         self.assertEqual(bloco[e["inicio"]:e["fim"]], e["texto_original"])
         self.assertTrue(aud.verificar_evidencia(ler_paragrafos(textos), ev(2, "saiu - sem olhar para trás"))["valida"])
 
+    def test_numeracao_com_saltos_do_fonte(self):
+        # O FONTE numera todos os parágrafos do arquivo e pula os vazios: os números não são posições.
+        from coerencia.leitura import Paragrafo
+        ps = [Paragrafo(1, "Capítulo 1", "Capítulo 1", True), Paragrafo(2, "Marcos tinha os olhos verdes.", "Capítulo 1"),
+              Paragrafo(5, "Os olhos castanhos de Marcos brilharam.", "Capítulo 1"), Paragrafo(6, "Fim.", "Capítulo 1")]
+        e = aud.verificar_evidencia(ps, ev(5, "olhos castanhos de Marcos"))
+        self.assertTrue(e["valida"])
+        self.assertEqual(e["texto_original"], "olhos castanhos de Marcos")
+        self.assertEqual(aud.verificar_evidencia(ps, ev(3, "olhos castanhos de Marcos"))["motivo"], "paragrafo_inexistente")
+        self.assertEqual(aud.verificar_evidencia(ps, ev(4, "olhos castanhos de Marcos"))["motivo"], "paragrafo_inexistente")
+        self.assertEqual(aud.verificar_evidencia(ps, ev(2, "olhos castanhos de Marcos"))["motivo"], "paragrafo_incorreto")
+
     def test_formato_invalido_e_descartado(self):
         r = rodar(CASO_1_CONTRADICAO, ModeloSimulado({"apontamentos": [{"categoria": "inventada"}, "texto", None],
                                                       "fenomenos_descartados": []}))
@@ -243,6 +255,37 @@ class Infraestrutura(unittest.TestCase):
             alterado = ModeloSimulado(resposta())
             rodar(CASO_1_CONTRADICAO[:-1] + ["Os olhos azuis de Marcos."], alterado, pasta=pasta)
             self.assertEqual(len(alterado.pedidos), 1)           # texto mudou: cache não vale
+
+    def test_janela_considera_pedido_inteiro_e_saida_reservada(self):
+        # Poucos caracteres de texto, mas o pedido estimado não cabe na janela: nada é enviado.
+        modelo = ModeloSimulado(resposta())
+        ps = ler_paragrafos(["Capítulo 1"] + ["Ele foi." for _ in range(400)])
+        r = aud.auditar(ps, modelo, janela_tokens=aud.MAX_TOKENS + 3000)
+        self.assertEqual((r["cobertura"]["tipo"], modelo.pedidos), ("nao_realizada", []))
+        self.assertIn("janela", r["cobertura"]["motivo"])
+        e = aud.estimar(ps, janela_tokens=aud.MAX_TOKENS + 3000)
+        self.assertEqual((e["cabe_em_uma_leitura"], e["custo_maximo_usd"]), (False, None))
+
+    def test_cache_invalida_com_instrucoes_esquema_modelo_esforco_e_texto(self):
+        from unittest import mock
+        ps = ler_paragrafos(CASO_1_CONTRADICAO)
+        base = aud._chave_cache(ps, "claude-sonnet-5-5", "medium", "t", False)
+        self.assertEqual(base, aud._chave_cache(ps, "claude-sonnet-5-5", "medium", "t", False))
+        self.assertNotEqual(base, aud._chave_cache(ps, "claude-opus-5-5", "medium", "t", False))
+        self.assertNotEqual(base, aud._chave_cache(ps, "claude-sonnet-5-5", "high", "t", False))
+        self.assertNotEqual(base, aud._chave_cache(ps, "claude-sonnet-5-5", "medium", "t", True))
+        with mock.patch.object(aud, "SISTEMA", aud.SISTEMA + " Nova regra."):
+            self.assertNotEqual(base, aud._chave_cache(ps, "claude-sonnet-5-5", "medium", "t", False))
+        with mock.patch.object(aud, "ESQUEMA", {**aud.ESQUEMA, "required": ["apontamentos"]}):
+            self.assertNotEqual(base, aud._chave_cache(ps, "claude-sonnet-5-5", "medium", "t", False))
+        for campo in ("VERSAO_PROMPT", "VERSAO_RESULTADO"):
+            with mock.patch.object(aud, campo, "outra"):
+                self.assertNotEqual(base, aud._chave_cache(ps, "claude-sonnet-5-5", "medium", "t", False))
+
+    def test_reserva_maxima_nao_e_o_gasto_esperado(self):
+        e = aud.estimar(ler_paragrafos(CASO_1_CONTRADICAO))
+        self.assertLess(e["custo_esperado_usd"], e["custo_maximo_sem_retomada_usd"])
+        self.assertLess(e["custo_maximo_sem_retomada_usd"], e["custo_maximo_usd"])
 
     def test_estimativa_sem_rede(self):
         e = aud.estimar(ler_paragrafos(CASO_1_CONTRADICAO))

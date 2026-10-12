@@ -48,7 +48,7 @@ def executar(args):
     e = aud.estimar(paragrafos, args.modelo, args.esforco, nome, args.inacabada, args.limite)
     print(json.dumps({"estimativa": e}, ensure_ascii=False), flush=True)
     if not e["cabe_em_uma_leitura"]:
-        raise SystemExit("O manuscrito excede o limite desta etapa: nada foi enviado (leitura global não realizada).")
+        raise SystemExit(f"{e['motivo_se_nao_cabe']} Nada foi enviado (leitura global não realizada).")
     if e["custo_maximo_usd"] > args.teto:
         raise SystemExit(f"O pior caso (US$ {e['custo_maximo_usd']}) excede o teto (US$ {args.teto}): nada foi enviado.")
     if not args.autorizo_envio:
