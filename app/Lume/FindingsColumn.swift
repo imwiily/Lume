@@ -30,12 +30,33 @@ struct FindingsColumn: View {
     }
 
     private func move(_ offset: Int) {
-        guard store.deskSection != .validation else { return }
+        guard store.deskSection != .validation, store.deskSection != .editorialNotes else { return }
         let items = store.filteredFindings
         guard !items.isEmpty else { return }
         let index = items.firstIndex { $0.id == store.selectedID } ?? (offset > 0 ? -1 : items.count)
         let target = min(max(0, index + offset), items.count - 1)
         store.selectedID = items[target].id
+    }
+
+    /// As quatro partes da mesa. O controle segmentado tem largura mínima própria (cerca de 500 pt com quatro partes),
+    /// maior que o máximo da coluna (400 pt): se ele não cabe, a coluna inteira estoura o painel e desloca a lista à
+    /// esquerda. `ViewThatFits` usa as abas quando cabem e, na largura da coluna, um menu que se adapta.
+    @ViewBuilder private var deskOptions: some View {
+        Text("Pendências · \(store.tally.pending)").tag(DeskSection.pendencies)
+        Text("Observações · \(store.tally.observations)").tag(DeskSection.observations)
+        Text("Validação" + (store.validation.map { $0.contested.isEmpty ? "" : " · \($0.contested.count)" } ?? ""))
+            .tag(DeskSection.validation)
+        Text("Editoriais" + (store.editorialNotes.isEmpty ? "" : " · \(store.editorialNotes.count)"))
+            .tag(DeskSection.editorialNotes)
+    }
+
+    private var deskPicker: some View {
+        ViewThatFits(in: .horizontal) {
+            Picker("Parte da mesa", selection: $store.deskSection) { deskOptions }
+                .pickerStyle(.segmented).labelsHidden()
+            Picker("Parte da mesa", selection: $store.deskSection) { deskOptions }
+                .pickerStyle(.menu).labelsHidden().frame(maxWidth: .infinity, alignment: .leading)
+        }
     }
 
     var body: some View {
@@ -50,7 +71,7 @@ struct FindingsColumn: View {
                         .foregroundStyle(LumeTheme.amber)
                         .accessibilityLabel("\(store.filteredFindings.count) alertas nesta seleção")
                 }
-                if store.deskSection != .validation {
+                if store.deskSection != .validation && store.deskSection != .editorialNotes {
                 HStack(spacing: 6) {
                     SearchField(prompt: "Buscar no texto ou capítulo", text: $store.search)
                     Button { showFilters.toggle() } label: {
@@ -67,16 +88,11 @@ struct FindingsColumn: View {
                 }
                 }
                 if store.report != nil {
-                    Picker("Parte da mesa", selection: $store.deskSection) {
-                        Text("Pendências · \(store.tally.pending)").tag(DeskSection.pendencies)
-                        Text("Observações · \(store.tally.observations)").tag(DeskSection.observations)
-                        Text("Validação" + (store.validation.map { $0.contested.isEmpty ? "" : " · \($0.contested.count)" } ?? ""))
-                            .tag(DeskSection.validation)
-                    }.pickerStyle(.segmented).labelsHidden()
-                        .help("Pendências pedem decisão. Observações ficam à disposição e não impedem o encerramento. Validação é a segunda leitura das suas decisões, com IA.")
+                    deskPicker
+                        .help("Pendências pedem decisão. Observações ficam à disposição e não impedem o encerramento. Validação é a segunda leitura das suas decisões, com IA. Editoriais reúne as suas contrapropostas e fundamentações.")
                     if store.deskSection == .pendencies {
                         ClosureStrip()
-                    } else if store.deskSection == .validation {
+                    } else if store.deskSection == .validation || store.deskSection == .editorialNotes {
                         EmptyView()
                     } else {
                         Text("Observações não pedem decisão e não impedem o encerramento. Consulte quando quiser.")
@@ -94,6 +110,8 @@ struct FindingsColumn: View {
             Divider().overlay(LumeTheme.line)
             if store.deskSection == .validation && store.report != nil {
                 ValidationHost()
+            } else if store.deskSection == .editorialNotes && store.report != nil {
+                EditorialNotesPanel()
             } else if store.filteredFindings.isEmpty {
                 VStack(spacing: 10) {
                     Image(systemName: store.report == nil ? "book.closed" : "line.3.horizontal.decrease.circle")

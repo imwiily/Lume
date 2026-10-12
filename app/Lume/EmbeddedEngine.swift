@@ -9,12 +9,15 @@ struct EngineManifest: Decodable {
     let architecture: String
     let platform: String
     let executable: String
+    /// Versão do Coerencia dentro do motor (2.0.0 ou posterior); motores anteriores não informam.
+    var coherence_version: String? = nil
 }
 
 struct EmbeddedEngine {
     let root: URL
     let version: String
     let updated: Bool
+    var coherenceVersion: String? = nil
     var executable: URL { root.appendingPathComponent("runtime/lume-engine") }
 
     static var support: URL {
@@ -37,7 +40,8 @@ struct EmbeddedEngine {
               manifest.executable == "runtime/lume-engine",
               FileManager.default.isExecutableFile(atPath: root.appendingPathComponent(manifest.executable).path)
         else { return nil }
-        return EmbeddedEngine(root: root, version: manifest.engine_version, updated: updated)
+        return EmbeddedEngine(root: root, version: manifest.engine_version, updated: updated,
+                              coherenceVersion: manifest.coherence_version)
     }
     static func resolve() -> (engine: EmbeddedEngine?, warning: String?) {
         guard let base = bundled else { return (nil, nil) }

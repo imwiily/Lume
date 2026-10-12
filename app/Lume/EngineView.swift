@@ -218,6 +218,7 @@ struct KeySheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var keyText = ""
     @State private var openAIKeyText = ""
+    @State private var geminiKeyText = ""
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 14) {
@@ -251,9 +252,35 @@ struct KeySheet: View {
                 }.buttonStyle(LumeButtonStyle(kind: .primary)).keyboardShortcut(.defaultAction).disabled(keyText.isEmpty)
             }
             Divider()
+            geminiSection
+            Divider()
             pilotSection
         }.padding(24).frame(width: 540).background(LumeTheme.canvas)
             .foregroundStyle(LumeTheme.ink).tint(LumeTheme.accent)
+    }
+
+    /// Chave do Google AI (Gemini) para a Coerência, a Auditoria final e a pesquisa de fundamento, em serviço próprio.
+    @ViewBuilder private var geminiSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Kicker(title: "Google AI · Gemini (opcional)")
+            Text("Crie a chave em aistudio.google.com/apikey. Escolhendo o Gemini na Coerência ou na Auditoria final, os trechos confirmados são transmitidos ao Google, sempre depois da sua confirmação e com teto de gasto.")
+                .font(LumeFont.ui(11)).foregroundStyle(LumeTheme.secondary).fixedSize(horizontal: false, vertical: true)
+            SecureField("Chave do Google AI", text: $geminiKeyText).textFieldStyle(.roundedBorder)
+            Text("A chave do Google fica guardada nas Chaves do macOS (serviço lume-gemini), separada da chave da Anthropic, e vai ao motor só pelo ambiente do processo.")
+                .font(LumeFont.ui(11)).foregroundStyle(LumeTheme.secondary).fixedSize(horizontal: false, vertical: true)
+            HStack {
+                Text(store.hasGeminiKey ? "Chave do Google guardada." : "Chave do Google ausente.")
+                    .font(LumeFont.ui(11)).foregroundStyle(LumeTheme.secondary)
+                Spacer()
+                if store.hasGeminiKey {
+                    Button("Remover chave do Google", role: .destructive) { store.removeGeminiKey() }.buttonStyle(LumeButtonStyle())
+                }
+                Button("Guardar chave do Google") {
+                    store.saveGeminiKey(geminiKeyText)
+                    geminiKeyText = ""
+                }.buttonStyle(LumeButtonStyle()).disabled(geminiKeyText.isEmpty)
+            }
+        }
     }
 
     /// Chave da OpenAI do Validador de decisões (V5, GPT‑6.1 Sol), em serviço próprio do Keychain.

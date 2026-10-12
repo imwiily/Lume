@@ -127,7 +127,7 @@ private struct StartView: View {
                     }
                     Label("As análises do FONTE acontecem neste Mac.", systemImage: "lock")
                         .font(LumeFont.ui(12)).foregroundStyle(LumeTheme.ink)
-                    Text("A Coerência e a Auditoria final com IA são opcionais e só enviam trechos à Anthropic depois da sua confirmação.")
+                    Text("A Coerência e a Auditoria final com IA são opcionais e só enviam trechos à Anthropic ou ao Google (conforme o modelo escolhido) depois da sua confirmação.")
                         .font(LumeFont.ui(11)).foregroundStyle(LumeTheme.secondary).multilineTextAlignment(.center)
                         .fixedSize(horizontal: false, vertical: true)
                 }.padding(.top, 4).padding(.bottom, 26)
@@ -255,7 +255,7 @@ private struct PreparationView: View {
                 .frame(width: 30, height: 30).background(Circle().fill(LumeTheme.glow.opacity(0.6)))
             VStack(alignment: .leading, spacing: 1) {
                 Text("Seu texto, no seu Mac.").font(LumeFont.ui(13, weight: .semibold))
-                Text(sendsToAI ? "Só os trechos que você confirmar seguem para a Anthropic."
+                Text(sendsToAI ? "Só os trechos que você confirmar seguem para \(store.aiProviders.map(\.company).joined(separator: " e "))."
                                : "O FONTE lê o manuscrito neste Mac e não o altera.")
                     .font(LumeFont.ui(11.5)).foregroundStyle(LumeTheme.secondary)
             }
@@ -338,18 +338,46 @@ private struct Inset<Content: View>: View {
     }
 }
 
-/// Estado da chave da Anthropic, compartilhada pela Coerência e pela Auditoria.
+/// Provedor e modelo de um recurso com IA: Anthropic (Claude) ou Google AI (Gemini). Trocar de provedor escolhe o
+/// modelo padrão dele; nada é trocado sozinho.
+@MainActor
+private struct ModelChoice: View {
+    @Binding var model: String
+    let claudeDefault: String
+    let claudeOptions: [(label: String, tag: String)]
+    var body: some View {
+        let provider = AIProvider.of(model: model)
+        VStack(alignment: .leading, spacing: 8) {
+            Picker("Provedor", selection: Binding(get: { provider },
+                                                  set: { model = $0 == .google ? AIProvider.geminiModel : claudeDefault })) {
+                ForEach(AIProvider.allCases) { Text($0.title).tag($0) }
+            }.pickerStyle(.segmented).font(LumeFont.ui(12))
+            if provider == .google {
+                Text("Modelo: Gemini 3.8 Flash. Os trechos confirmados são transmitidos ao Google; nenhuma pesquisa na internet é feita nesta análise.")
+                    .font(LumeFont.ui(11.5)).foregroundStyle(LumeTheme.secondary).fixedSize(horizontal: false, vertical: true)
+            } else {
+                Picker("Modelo", selection: $model) {
+                    ForEach(claudeOptions, id: \.tag) { Text($0.label).tag($0.tag) }
+                }.pickerStyle(.segmented).font(LumeFont.ui(12))
+            }
+        }
+    }
+}
+
+/// Estado da chave do provedor escolhido (cada provedor tem a sua, nas Chaves do macOS).
 @MainActor
 private struct KeyStatusRow: View {
     @EnvironmentObject private var store: ReviewStore
     @Binding var showKeySheet: Bool
+    var provider: AIProvider = .anthropic
     var body: some View {
+        let has = store.hasKey(for: provider)
         HStack(spacing: 8) {
-            Label(store.hasAPIKey ? "Chave guardada nas Chaves do macOS" : "Chave ainda não configurada",
-                  systemImage: store.hasAPIKey ? "key" : "exclamationmark.triangle")
-                .font(LumeFont.ui(11.5)).foregroundStyle(store.hasAPIKey ? LumeTheme.secondary : LumeTheme.rose)
+            Label(has ? "Chave \(provider == .google ? "do Google" : "da Anthropic") guardada nas Chaves do macOS" : "Chave \(provider == .google ? "do Google" : "da Anthropic") ainda não configurada",
+                  systemImage: has ? "key" : "exclamationmark.triangle")
+                .font(LumeFont.ui(11.5)).foregroundStyle(has ? LumeTheme.secondary : LumeTheme.rose)
             Spacer()
-            Button(store.hasAPIKey ? "Trocar…" : "Configurar…") { showKeySheet = true }
+            Button(has ? "Trocar…" : "Configurar…") { showKeySheet = true }
                 .buttonStyle(LumeButtonStyle(kind: .soft))
         }
     }
@@ -410,18 +438,25 @@ private struct StoryPanel: View {
                 PanelHeader(title: "A história", symbol: "book", tag: "IA opcional")
                 Inset {
                     VStack(alignment: .leading, spacing: 10) {
-                        OptionRow(title: "Coerência com IA (Claude)",
+                        OptionRow(title: "Coerência com IA",
                                   detail: "Contradições entre cenas. Só capítulos alterados são enviados, com custo mostrado antes.") {
                             Toggle("Coerência com IA", isOn: $store.useCoherenceAI).toggleStyle(.switch).labelsHidden()
                         }.help("Contradições narrativas analisadas pela API do Claude. Só os capítulos alterados são enviados à Anthropic; antes do envio, o Lume mostra o custo estimado e pede confirmação.")
                         if store.useCoherenceAI {
                             Divider().overlay(LumeTheme.line)
-                            Picker("Modelo", selection: $store.coherenceModel) {
-                                Text("Sonnet 5.5 · recomendado").tag("claude-sonnet-5-5")
-                                Text("Opus 5.5 · custa o dobro").tag("claude-opus-5-5")
+                            Picker("Leitura", selection: $store.coherenceVersion) {
+                                Text("Por cenas (1.x)").tag(1)
+                                Text("Global (Coerência 2.0)").tag(2)
                             }.pickerStyle(.segmented).font(LumeFont.ui(12))
+                            Text(store.coherenceVersion == 2
+                                 ? "A obra inteira vai numa só requisição. Experimental: a precisão ainda não foi medida em livros reais; os apontamentos entram como observações."
+                                 : "Só os capítulos alterados são lidos, cena a cena.")
+                                .font(LumeFont.ui(11.5)).foregroundStyle(LumeTheme.secondary).fixedSize(horizontal: false, vertical: true)
+                            ModelChoice(model: $store.coherenceModel, claudeDefault: "claude-sonnet-5-5",
+                                        claudeOptions: [("Sonnet 5.5 · recomendado", "claude-sonnet-5-5"),
+                                                        ("Opus 5.5 · custa o dobro", "claude-opus-5-5")])
                             BudgetField(value: $store.coherenceBudget)
-                            KeyStatusRow(showKeySheet: $showKeySheet)
+                            KeyStatusRow(showKeySheet: $showKeySheet, provider: AIProvider.of(model: store.coherenceModel))
                         }
                     }
                 }
@@ -460,18 +495,18 @@ struct AuditPanel: View {
                 PanelHeader(title: "Auditoria final", symbol: "text.magnifyingglass", tag: "Opcional · custa dinheiro")
                 Inset {
                     VStack(alignment: .leading, spacing: 10) {
-                        OptionRow(title: "Auditoria final com IA (Claude)",
+                        OptionRow(title: "Auditoria final com IA",
                                   detail: "Uma última leitura procura o que as regras deixaram passar. Só trechos novos ou alterados são enviados, com o custo mostrado antes.") {
                             Toggle("Auditoria final com IA", isOn: $store.useAuditAI).toggleStyle(.switch).labelsHidden()
                         }.help("Depois das outras etapas, o Claude relê cada capítulo com os alertas já encontrados e aponta só problemas novos, como suspeitas para você avaliar. Antes do envio, o Lume mostra o custo estimado e pede confirmação.")
                         if store.useAuditAI {
                             Divider().overlay(LumeTheme.line)
-                            Picker("Modelo", selection: $store.auditModel) {
-                                Text("Opus 5.5 · recomendado").tag("claude-opus-5-5")
-                                Text("Sonnet 5.5 · custa a metade").tag("claude-sonnet-5-5")
-                            }.pickerStyle(.segmented).font(LumeFont.ui(12)).frame(maxWidth: 520, alignment: .leading)
+                            ModelChoice(model: $store.auditModel, claudeDefault: "claude-opus-5-5",
+                                        claudeOptions: [("Opus 5.5 · recomendado", "claude-opus-5-5"),
+                                                        ("Sonnet 5.5 · custa a metade", "claude-sonnet-5-5")])
+                                .frame(maxWidth: 520, alignment: .leading)
                             BudgetField(value: $store.auditBudget).frame(maxWidth: 520)
-                            KeyStatusRow(showKeySheet: $showKeySheet)
+                            KeyStatusRow(showKeySheet: $showKeySheet, provider: AIProvider.of(model: store.auditModel))
                             Text("Antes do envio, o Lume mostra o custo estimado e pede sua confirmação.")
                                 .font(LumeFont.ui(11)).italic().foregroundStyle(LumeTheme.secondary)
                         }

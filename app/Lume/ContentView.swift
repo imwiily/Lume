@@ -39,12 +39,21 @@ struct ContentView: View {
         .onChange(of: store.requestKeySheet) { _, wanted in
             if wanted { showKeySheet = true; store.requestKeySheet = false }
         }
-        .alert("Enviar à Anthropic?", isPresented: Binding(get: { store.aiEstimate != nil },
+        .alert("Enviar \(store.aiEstimate.map { $0.providers.map(\.sentTo).joined(separator: " e ") } ?? "à Anthropic")?", isPresented: Binding(get: { store.aiEstimate != nil },
                                                            set: { if !$0 { store.aiEstimate = nil } })) {
             Button("Cancelar", role: .cancel) { store.cancelAI() }
             Button("Enviar e analisar") { store.confirmAI() }
         } message: {
             Text(store.aiEstimate?.summary ?? "")
+        }
+        .alert("Pesquisar no Google?", isPresented: Binding(get: { store.groundingPreview != nil },
+                                                            set: { if !$0 { store.groundingPreview = nil } })) {
+            Button("Cancelar", role: .cancel) { store.cancelGrounding() }
+            Button("Pesquisar") { store.confirmGrounding() }
+        } message: {
+            Text(store.groundingPreview.map {
+                String(format: "Será enviada ao Google, com a ferramenta de pesquisa, só esta pergunta:\n\n“%@”\n\nNenhum trecho do manuscrito é enviado. Custo máximo: US$ %.2f (até %d consultas).", $0.pergunta, $0.custoMaximoUsd, $0.buscasMaximas)
+            } ?? "")
         }
         .alert("Lume", isPresented: Binding(get: { store.errorText != nil && !showSearchSettings && !showKeySheet },
                                             set: { if !$0 { store.errorText = nil } })) {

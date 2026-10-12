@@ -102,6 +102,36 @@ enum OpenAIKey {
     static func environment(for key: String) -> [String: String] { [environmentVariable: key] }
 }
 
+/// Chave do Google AI (Gemini). Serviço `lume-gemini`, separado das chaves da Anthropic e da OpenAI; o motor Python a
+/// lê de `GEMINI_API_KEY` ou do mesmo serviço. Nunca em UserDefaults, arquivos, relatórios, logs ou argumentos.
+enum GeminiKey {
+    static let service = "lume-gemini"
+    static let environmentVariable = "GEMINI_API_KEY"
+    /// Substituível só pelos testes.
+    static var store: SecretStore = KeychainSecretStore(service: service)
+
+    /// Confere só o formato, localmente; nunca repete o valor recebido.
+    static func validate(_ raw: String) -> Result<String, FonteError> {
+        let key = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        if key.isEmpty { return .failure(.message("Cole a chave da API do Google AI.")) }
+        if key.hasPrefix("sk-") { return .failure(.message("Essa é uma chave da Anthropic ou da OpenAI. Aqui vai a chave do Google AI (crie em aistudio.google.com/apikey).")) }
+        if key.count < 20 || key.unicodeScalars.contains(where: { !(CharacterSet.alphanumerics.contains($0) || $0 == "-" || $0 == "_" || $0 == ".") }) {
+            return .failure(.message("Essa não parece uma chave completa do Google AI. Copie-a de novo, sem espaços nem quebras de linha."))
+        }
+        return .success(key)
+    }
+
+    static func exists() -> Bool { store.exists() }
+    static func read() -> String? { store.read() }
+    static func save(_ raw: String) throws {
+        switch validate(raw) {
+        case .success(let key): try store.save(key)
+        case .failure(let error): throw error
+        }
+    }
+    static func delete() { store.delete() }
+}
+
 // MARK: Backend do Validador
 
 /// Qual backend atende “Validar decisões”: V5 (GPT‑6.1 Sol, medium) por padrão; V2 (Claude) como alternativa manual.

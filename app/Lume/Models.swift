@@ -932,6 +932,19 @@ struct SearchSettings: Codable {
     }
 }
 
+/// Provedor de IA de um recurso, deduzido do nome do modelo (`gemini-*` é do Google; o resto, da Anthropic).
+/// Nunca há troca automática: o modelo escolhido manda, e cada provedor usa a sua própria chave.
+enum AIProvider: String, CaseIterable, Identifiable {
+    case anthropic, google
+    static let geminiModel = "gemini-3.8-flash"
+    var id: String { rawValue }
+    static func of(model: String) -> AIProvider { model.hasPrefix("gemini-") ? .google : .anthropic }
+    var title: String { self == .google ? "Google AI (Gemini)" : "Anthropic (Claude)" }
+    var company: String { self == .google ? "Google" : "Anthropic" }
+    var sentTo: String { self == .google ? "ao Google" : "à Anthropic" }
+    var environmentVariable: String { self == .google ? "GEMINI_API_KEY" : "ANTHROPIC_API_KEY" }
+}
+
 struct CoherenceEstimate: Decodable {
     let modelo: String
     let capitulos: Int
@@ -940,20 +953,40 @@ struct CoherenceEstimate: Decodable {
     let caracteres: Int
     let custoEstimadoUsd: Double
     let custoMaximoUsd: Double
+    var provedor: String? = nil
+    /// Coerência 2.0 (leitura global): 2. Ausente na leitura por cenas (1.x) e em motores anteriores.
+    var versao: Int? = nil
+    var doCache: Bool? = nil
+    var cabeEmUmaLeitura: Bool? = nil
+    var motivoSeNaoCabe: String? = nil
+
+    var provider: AIProvider { AIProvider.of(model: modelo) }
 
     enum CodingKeys: String, CodingKey {
-        case modelo, capitulos, caracteres
+        case modelo, capitulos, caracteres, provedor, versao
+        case doCache = "do_cache", cabeEmUmaLeitura = "cabe_em_uma_leitura", motivoSeNaoCabe = "motivo_se_nao_cabe"
         case aEnviar = "a_enviar", titulosAEnviar = "titulos_a_enviar"
         case custoEstimadoUsd = "custo_estimado_usd", custoMaximoUsd = "custo_maximo_usd"
     }
 
     var summary: String {
+        if versao == 2 {
+            if cabeEmUmaLeitura == false {
+                return "A obra passa do limite da leitura global da Coerência 2.0: nada será enviado. \(motivoSeNaoCabe ?? "")"
+            }
+            guard aEnviar > 0 else {
+                return "Esta obra já foi lida com este modelo na Coerência 2.0: nada será enviado e não há custo. Os apontamentos já encontrados voltam ao relatório."
+            }
+            return String(format: "A obra inteira será enviada \(provider.sentTo) numa só requisição (Coerência 2.0, leitura global; %d caracteres).\nCusto estimado: US$ %.2f (até US$ %.2f; a estimativa ainda não foi calibrada).\nOs apontamentos entram como observações, nunca como erros confirmados.",
+                          caracteres, custoEstimadoUsd, custoMaximoUsd)
+        }
         guard aEnviar > 0 else {
             return "Nenhum capítulo mudou desde a última análise: nada será enviado e não há custo. As contradições já encontradas voltam ao relatório."
         }
         let lista = titulosAEnviar.prefix(6).joined(separator: ", ") + (titulosAEnviar.count > 6 ? "…" : "")
-        return String(format: "%d de %d capítulos serão enviados à Anthropic (%@).\nCusto estimado: US$ %.2f (até US$ %.2f).\nOs demais capítulos não são enviados.",
+        return String(format: "%d de %d capítulos serão enviados \(provider.sentTo) (%@).\nCusto estimado: US$ %.2f (até US$ %.2f).\nOs demais capítulos não são enviados.",
                       aEnviar, capitulos, lista, custoEstimadoUsd, custoMaximoUsd)
+            + (provider == .google ? "\nEstimativa pela tabela do Google; o raciocínio do Gemini ainda não foi medido neste uso." : "")
     }
 }
 
@@ -964,9 +997,12 @@ struct AuditEstimate: Decodable {
     let titulosAEnviar: [String]
     let custoEstimadoUsd: Double
     let custoMaximoUsd: Double
+    var provedor: String? = nil
+
+    var provider: AIProvider { AIProvider.of(model: modelo) }
 
     enum CodingKeys: String, CodingKey {
-        case modelo, trechos
+        case modelo, trechos, provedor
         case aEnviar = "a_enviar", titulosAEnviar = "titulos_a_enviar"
         case custoEstimadoUsd = "custo_estimado_usd", custoMaximoUsd = "custo_maximo_usd"
     }
@@ -976,7 +1012,7 @@ struct AuditEstimate: Decodable {
             return "Nada mudou desde a última auditoria: nada será enviado e não há custo. Os achados já encontrados voltam ao relatório."
         }
         let lista = titulosAEnviar.prefix(6).joined(separator: ", ") + (titulosAEnviar.count > 6 ? "…" : "")
-        return String(format: "%d de %d trechos serão enviados à Anthropic (%@).\nCusto estimado: US$ %.2f (até US$ %.2f; estimativa ainda aproximada).",
+        return String(format: "%d de %d trechos serão enviados \(provider.sentTo) (%@).\nCusto estimado: US$ %.2f (até US$ %.2f; estimativa ainda aproximada).",
                       aEnviar, trechos, lista, custoEstimadoUsd, custoMaximoUsd)
     }
 }
@@ -988,6 +1024,14 @@ struct AIEstimate {
     let coherenceBudget: Double
     let auditBudget: Double
 
+    /// Quem receberá o texto, para o título e o aviso da confirmação.
+    var providers: [AIProvider] {
+        var found: [AIProvider] = []
+        for provider in [coherence?.provider, audit?.provider].compactMap({ $0 }) where !found.contains(provider) { found.append(provider) }
+        return found
+    }
+    var destination: String { providers.map(\.company).joined(separator: " e ") }
+
     var summary: String {
         var parts: [String] = []
         if let coherence {
@@ -996,7 +1040,41 @@ struct AIEstimate {
         if let audit {
             parts.append("Auditoria final com IA\n" + audit.summary + String(format: "\nTeto: US$ %.2f.", auditBudget))
         }
+        if providers.contains(.google) {
+            parts.append("O conteúdo dos trechos acima será transmitido ao Google (Gemini API).")
+        }
         return parts.joined(separator: "\n\n")
+    }
+}
+
+/// Pesquisa Google de um apontamento: a pergunta (abstrata, sem trechos do manuscrito) e o pior custo,
+/// calculados localmente antes de qualquer envio.
+struct GroundingPreview: Decodable {
+    var findingID = ""
+    let pergunta: String
+    let custoMaximoUsd: Double
+    let buscasMaximas: Int
+    enum CodingKeys: String, CodingKey {
+        case pergunta, custoMaximoUsd = "custo_maximo_usd", buscasMaximas = "buscas_maximas"
+    }
+}
+
+struct GroundingSource: Decodable, Hashable {
+    let titulo: String
+    let url: String
+}
+
+/// Resposta da pesquisa: só consultas e fontes que a API informou.
+struct GroundingResult: Decodable {
+    let pergunta: String
+    let resposta: String
+    let consultas: [String]
+    let fontes: [GroundingSource]
+    let buscas: Int
+    let custoUsd: Double
+    let modelo: String
+    enum CodingKeys: String, CodingKey {
+        case pergunta, resposta, consultas, fontes, buscas, modelo, custoUsd = "custo_usd"
     }
 }
 

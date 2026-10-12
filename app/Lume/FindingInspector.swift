@@ -37,6 +37,8 @@ struct FindingInspector: View {
             manuscriptActions
             if let conflict = store.decisionConflicts[finding.id] { conflictNote(conflict) }
             AssessmentSection(finding: finding)
+            GroundingSection(finding: finding)
+            EditorialNoteSection(finding: finding)
             decisionSection
             details
             Text("Lume encontra. Lume explica. **O editor decide.**")
@@ -330,5 +332,45 @@ struct DecisionChip: View {
         }.buttonStyle(.plain).keyboardShortcut(decision.shortcut, modifiers: .command)
             .help(decision.explanation + " (⌘" + String(decision.shortcut.character) + ")")
             .accessibilityLabel(decision.rawValue + (selected ? ", selecionado" : "") + ". " + decision.explanation)
+    }
+}
+
+
+/// Pesquisa Google (Gemini) de um fundamento linguístico: desligada por padrão, uma pergunta abstrata por vez e só
+/// por escolha do editor neste apontamento. Mostra apenas as consultas e as fontes que a API informou.
+@MainActor
+private struct GroundingSection: View {
+    @EnvironmentObject private var store: ReviewStore
+    let finding: Finding
+
+    var body: some View {
+        let result = store.groundingResults[finding.id]
+        if store.hasGeminiKey || result != nil {
+            VStack(alignment: .leading, spacing: 8) {
+                Kicker(title: "Pesquisar fundamentos linguísticos na internet")
+                if let result {
+                    Text(result.resposta).font(LumeFont.ui(12.5)).lineSpacing(2)
+                        .textSelection(.enabled).fixedSize(horizontal: false, vertical: true)
+                    Text(result.consultas.isEmpty ? "A API não informou as consultas executadas."
+                         : "Consultas executadas: " + result.consultas.joined(separator: " · "))
+                        .font(LumeFont.ui(11)).foregroundStyle(LumeTheme.secondary).fixedSize(horizontal: false, vertical: true)
+                    if result.fontes.isEmpty {
+                        Text("A API não devolveu fontes citáveis; não há referência a conferir.")
+                            .font(LumeFont.ui(11)).foregroundStyle(LumeTheme.secondary)
+                    }
+                    ForEach(result.fontes, id: \.url) { source in
+                        if let url = URL(string: source.url) { Link(source.titulo, destination: url).font(LumeFont.ui(11.5)) }
+                    }
+                    Text(String(format: "Google AI (%@) · %d consulta(s) · US$ %.4f. Apoio à sua decisão: confira as fontes.",
+                                result.modelo, result.buscas, result.custoUsd))
+                        .font(LumeFont.ui(10.5)).foregroundStyle(LumeTheme.tertiary)
+                } else {
+                    Text("Desligada por padrão. Ao pesquisar, só uma pergunta geral sobre esta classe de erro vai ao Google, depois da sua confirmação; nenhum trecho do manuscrito é enviado.")
+                        .font(LumeFont.ui(11)).foregroundStyle(LumeTheme.secondary).fixedSize(horizontal: false, vertical: true)
+                }
+                Button(result == nil ? "Pesquisar no Google…" : "Pesquisar de novo…") { store.requestGrounding(for: finding) }
+                    .buttonStyle(LumeButtonStyle(kind: .soft)).disabled(store.isBusy)
+            }
+        }
     }
 }

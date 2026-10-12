@@ -33,6 +33,8 @@ final class ReviewStore: ObservableObject {
     @Published var severityFilter = "Todas"
     @Published private(set) var analysisStages: [AnalysisStage] = []
     @Published var report: EditorialReport?
+    /// Contrapropostas e fundamentações do livro aberto (arquivo próprio, fora do cache do Validador).
+    @Published var editorialNotes: [EditorialNote] = []
     @Published var reportURL: URL?
     /// Último `falsos-positivos.json` gravado para o relatório aberto.
     @Published private(set) var falsePositivesURL: URL?
@@ -51,6 +53,10 @@ final class ReviewStore: ObservableObject {
     @Published var useCoherenceAI = UserDefaults.standard.bool(forKey: "coherenceAI") {
         didSet { UserDefaults.standard.set(useCoherenceAI, forKey: "coherenceAI") }
     }
+    /// 1: leitura por cenas, incremental (padrão); 2: Coerência 2.0, leitura global da obra numa só requisição.
+    @Published var coherenceVersion = UserDefaults.standard.integer(forKey: "coherenceVersion") == 2 ? 2 : 1 {
+        didSet { UserDefaults.standard.set(coherenceVersion == 2 ? 2 : 1, forKey: "coherenceVersion") }
+    }
     @Published var coherenceModel = UserDefaults.standard.string(forKey: "coherenceModel") ?? "claude-sonnet-5-5" {
         didSet { UserDefaults.standard.set(coherenceModel, forKey: "coherenceModel") }
     }
@@ -68,6 +74,12 @@ final class ReviewStore: ObservableObject {
         didSet { UserDefaults.standard.set(max(0.05, auditBudget), forKey: "auditBudget") }
     }
     @Published private(set) var hasAPIKey = AnthropicKey.exists()
+    /// Chave do Google AI (Gemini), em serviço próprio do Keychain; nunca reaproveita a da Anthropic.
+    @Published private(set) var hasGeminiKey = GeminiKey.exists()
+    /// Pesquisa Google de um apontamento: só existe depois de o editor escolher o apontamento; a pergunta e o custo
+    /// máximo aparecem numa confirmação, e os resultados ficam à parte, na memória desta sessão.
+    @Published var groundingPreview: GroundingPreview?
+    @Published private(set) var groundingResults: [String: GroundingResult] = [:]
     /// Validador de decisões: V5 (GPT‑6.1 Sol) por padrão, V2 (Claude) como alternativa manual. A chave da OpenAI
     /// e os resultados da IA ficam à parte das decisões humanas.
     @Published private(set) var hasOpenAIKey = OpenAIKey.exists()
@@ -233,6 +245,7 @@ final class ReviewStore: ObservableObject {
         restoreSearchSettings()
         screen = .preparation; analysisFailed = false
         report = nil; reportURL = nil; falsePositivesURL = nil; selectedID = nil; decisions = [:]; editLog = nil
+        editorialNotes = []
         carriedDecisions = nil
         category = "Todas"; decisionFilter = "Todas"; search = ""; layerFilter = "Todas"; moduleFilter = "Todas"; severityFilter = "Todas"
         status = "Manuscrito selecionado. O arquivo original será preservado."
@@ -325,7 +338,7 @@ final class ReviewStore: ObservableObject {
         return base.appendingPathComponent("FONTE", isDirectory: true)
     }
 
-    private func supportDirectory(_ component: String) throws -> URL {
+    func supportDirectory(_ component: String) throws -> URL {
         let url = try supportRoot().appendingPathComponent(component, isDirectory: true)
         try manager.createDirectory(at: url, withIntermediateDirectories: true)
         return url
@@ -402,6 +415,7 @@ final class ReviewStore: ObservableObject {
         analysisStages = loaded.metadata.stages ?? []
         screen = .review; analysisFailed = false
         closure = readClosure(for: loaded)
+        reloadEditorialNotes()
         deskSection = .pendencies
         selectedID = carry?.selectedID.flatMap { id in loaded.findings.contains { $0.id == id && $0.destination == .pendencia } ? id : nil }
             ?? loaded.findings.first { $0.destination == .pendencia }?.id
@@ -646,8 +660,8 @@ final class ReviewStore: ObservableObject {
 
     func analyze() {
         guard coherenceActive || auditActive, !aiConfirmed else { return start(.analyze) }
-        guard hasAPIKey else {
-            errorText = "Configure a chave da API da Anthropic para usar a Coerência ou a Auditoria final com IA, ou desligue essas opções."
+        if let missing = aiProviders.first(where: { !hasKey(for: $0) }) {
+            errorText = "Configure a chave da API \(missing == .google ? "do Google AI" : "da Anthropic") para usar a Coerência ou a Auditoria final com IA, ou desligue essas opções."
             return
         }
         estimateAI()
@@ -679,7 +693,8 @@ final class ReviewStore: ObservableObject {
             if coherenceActive, let project = coherenceProject {
                 steps.append((false, "Calculando o custo da Coerência com IA…",
                               engineArguments + ["coerencia-estimar", input.path, "--coerencia-projeto", project.path,
-                                                 "--coerencia-modelo", coherenceModel, "--config", config.path]))
+                                                 "--coerencia-modelo", coherenceModel, "--coerencia-versao", String(coherenceVersion),
+                                                 "--config", config.path]))
             }
             if auditActive, let project = auditProject {
                 steps.append((true, "Calculando o custo da Auditoria final…",
@@ -938,16 +953,18 @@ final class ReviewStore: ObservableObject {
                 if includeItalics { arguments.append("--incluir-italico") }
                 if useLanguageTool && analysisMode != "editorial" { arguments.append("--languagetool") }
                 if (coherenceActive || auditActive) && aiConfirmed {
-                    guard let key = AnthropicKey.read() else {
-                        aiConfirmed = false
-                        throw FonteError.message("Não foi possível ler a chave da API nas Chaves do macOS. Configure-a novamente.")
+                    // A chave de cada provedor em uso vai só no ambiente do processo, nunca nos argumentos.
+                    for provider in aiProviders {
+                        guard let key = readKey(for: provider) else {
+                            aiConfirmed = false
+                            throw FonteError.message("Não foi possível ler a chave da API nas Chaves do macOS. Configure-a novamente.")
+                        }
+                        environment[provider.environmentVariable] = key
                     }
-                    // A chave vai só no ambiente do processo, nunca nos argumentos.
-                    environment["ANTHROPIC_API_KEY"] = key
                     let money = { (value: Double) in String(format: "%.2f", locale: Locale(identifier: "en_US_POSIX"), value) }
                     if coherenceActive, let project = coherenceProject {
                         arguments += ["--coerencia-ia", "--coerencia-projeto", project.path, "--coerencia-modelo", coherenceModel,
-                                      "--coerencia-teto", money(coherenceBudget)]
+                                      "--coerencia-versao", String(coherenceVersion), "--coerencia-teto", money(coherenceBudget)]
                     }
                     if auditActive, let project = auditProject {
                         arguments += ["--auditoria-ia", "--auditoria-projeto", project.path, "--auditoria-modelo", auditModel,
@@ -1606,5 +1623,100 @@ enum DeskSection: String, CaseIterable, Identifiable {
     case observations = "Observações"
     /// Validar decisões (segunda leitura com IA), na própria mesa em vez de uma janela.
     case validation = "Validação"
+    /// Contrapropostas e fundamentações do autor, para consultar, editar e exportar.
+    case editorialNotes = "Pendências Editoriais"
     var id: String { rawValue }
+}
+
+
+// MARK: Provedores de IA (Anthropic e Google) e pesquisa Google
+
+extension ReviewStore {
+    /// Provedores dos recursos de IA ligados; cada um é decidido pelo modelo escolhido, sem troca automática.
+    var aiProviders: [AIProvider] {
+        var found: [AIProvider] = []
+        let models = [coherenceActive ? coherenceModel : nil, auditActive ? auditModel : nil].compactMap { $0 }
+        for model in models where !found.contains(AIProvider.of(model: model)) { found.append(AIProvider.of(model: model)) }
+        return found
+    }
+
+    func hasKey(for provider: AIProvider) -> Bool { provider == .google ? hasGeminiKey : hasAPIKey }
+
+    func readKey(for provider: AIProvider) -> String? { provider == .google ? GeminiKey.read() : AnthropicKey.read() }
+
+    func saveGeminiKey(_ raw: String) {
+        do {
+            try GeminiKey.save(raw)
+            hasGeminiKey = true
+            status = "Chave do Google AI guardada nas Chaves do macOS."
+        } catch { errorText = SecretRedactor.redact(error.localizedDescription) }
+    }
+
+    func removeGeminiKey() {
+        GeminiKey.delete()
+        hasGeminiKey = false
+        status = "Chave do Google AI removida das Chaves do macOS."
+    }
+
+    /// A pergunta nasce só da classe do apontamento (por exemplo, “Crase”), nunca do trecho do manuscrito.
+    static func groundingQuestion(for finding: Finding) -> String {
+        "Segundo a norma culta do português do Brasil, quando o caso de «\(finding.category.lowercased())» está correto ou errado? "
+        + "Explique a regra geral e as exceções, citando fontes normativas (gramáticas, VOLP, Acordo Ortográfico)."
+    }
+
+    /// Passo 1, local e sem rede: mostra a pergunta e o pior custo. Nada vai ao Google antes da confirmação.
+    func requestGrounding(for finding: Finding) {
+        guard !isBusy, hasGeminiKey, groundingPreview == nil, let python = pythonURL, let directory = engineDirectory else { return }
+        isBusy = true; canCancel = false; errorText = nil
+        Task {
+            defer { isBusy = false; jobLabel = "" }
+            do {
+                let log = try supportDirectory("Registros").appendingPathComponent(UUID().uuidString + "-pesquisa-estimar.txt")
+                let result = try await runner.run(
+                    executable: python, arguments: engineArguments + ["pesquisar-fundamento", "--estimar", "--pergunta", Self.groundingQuestion(for: finding)],
+                    directory: directory, logURL: log, extraEnvironment: [:])
+                let prefix = "LUME_PESQUISA_ESTIMATIVA "
+                guard result.exitCode == 0, let line = PythonRunner.tail(log).split(separator: "\n").last(where: { $0.hasPrefix(prefix) }) else {
+                    throw FonteError.message("Não foi possível preparar a pesquisa. Se o motor for anterior a esta versão do Lume, use Motor de análise → Restaurar embutido.")
+                }
+                var preview = try JSONDecoder().decode(GroundingPreview.self, from: Data(line.dropFirst(prefix.count).utf8))
+                preview.findingID = finding.id
+                groundingPreview = preview
+            } catch { errorText = SecretRedactor.redact(error.localizedDescription) }
+        }
+    }
+
+    func cancelGrounding() {
+        groundingPreview = nil
+        status = "Pesquisa cancelada antes de enviar qualquer pergunta."
+    }
+
+    /// Passo 2: uma única chamada, com a pergunta confirmada. A chave vai só no ambiente do processo.
+    func confirmGrounding() {
+        guard let preview = groundingPreview, !isBusy, let python = pythonURL, let directory = engineDirectory else { return }
+        groundingPreview = nil
+        guard let key = GeminiKey.read() else {
+            errorText = "Não foi possível ler a chave do Google AI nas Chaves do macOS. Configure-a novamente."
+            return
+        }
+        isBusy = true; canCancel = true; errorText = nil
+        jobLabel = "Pesquisando fundamento no Google…"
+        Task {
+            defer { isBusy = false; canCancel = false; jobLabel = "" }
+            do {
+                let log = try supportDirectory("Registros").appendingPathComponent(UUID().uuidString + "-pesquisa.txt")
+                logURL = log
+                let teto = String(format: "%.2f", locale: Locale(identifier: "en_US_POSIX"), max(0.05, preview.custoMaximoUsd + 0.01))
+                let result = try await runner.run(
+                    executable: python, arguments: engineArguments + ["pesquisar-fundamento", "--pergunta", preview.pergunta, "--teto", teto],
+                    directory: directory, logURL: log, extraEnvironment: [GeminiKey.environmentVariable: key])
+                let prefix = "LUME_PESQUISA "
+                guard result.exitCode == 0, let line = PythonRunner.tail(log).split(separator: "\n").last(where: { $0.hasPrefix(prefix) }) else {
+                    throw FonteError.message("A pesquisa não foi concluída.\n\n" + SecretRedactor.redact(String(PythonRunner.tail(log).suffix(600))))
+                }
+                groundingResults[preview.findingID] = try JSONDecoder().decode(GroundingResult.self, from: Data(line.dropFirst(prefix.count).utf8))
+                status = "Pesquisa concluída. A resposta é apoio à sua decisão; nada foi alterado."
+            } catch { errorText = SecretRedactor.redact(error.localizedDescription) }
+        }
+    }
 }

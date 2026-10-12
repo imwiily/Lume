@@ -82,7 +82,10 @@ struct SobreView: View {
             Text("Lume").font(LumeFont.display(36, weight: .semibold)).foregroundStyle(LumeTheme.linen)
             VStack(alignment: .leading, spacing: 4) {
                 Text(appVersion)
-                if let engine = store.embeddedEngine { Text("Motor FONTE \(engine.version)") }
+                if let engine = store.embeddedEngine {
+                    Text("Motor FONTE \(engine.version)")
+                    if let coherence = engine.coherenceVersion { Text("Coerência \(coherence)") }
+                }
             }.font(LumeFont.ui(12)).foregroundStyle(LumeTheme.linen.opacity(0.75))
             Text("Uma luz acesa ao lado de quem escreve.")
                 .font(LumeFont.display(16)).italic().foregroundStyle(LumeTheme.candle)

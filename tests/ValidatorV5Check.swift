@@ -120,6 +120,31 @@ struct ValidatorV5Check {
         let sentinel = "sk-teste-NAO-PODE-APARECER-0123456789012345678901"
         require(!(runArgs + estimateArgs).contains { $0.contains("sk-") || $0.contains(sentinel) }, "nenhuma chave nos argumentos")
 
+        // 5b. Gemini: chave em serviço próprio, provedor pelo nome do modelo, estimativas antigas e novas.
+        let geminiMemory = MemoryStore()
+        GeminiKey.store = geminiMemory
+        OpenAIKey.store = MemoryStore()   // nunca o Keychain real
+        require(GeminiKey.service == "lume-gemini" && GeminiKey.service != OpenAIKey.service, "serviço próprio do Google")
+        require(!GeminiKey.exists() && GeminiKey.read() == nil, "sem chave do Google: o app segue normal")
+        for bad in ["", "  \n", "sk-ant-api03-" + String(repeating: "x", count: 60), "curta", "AIza" + String(repeating: "a", count: 30) + " b"] {
+            if case .success = GeminiKey.validate(bad) { require(false, "chave inválida do Google aceita") }
+            do { try GeminiKey.save(bad); require(false, "chave inválida guardada") } catch {}
+        }
+        require(!GeminiKey.exists(), "nada guardado com entrada inválida")
+        try GeminiKey.save("  AIza" + String(repeating: "b", count: 35) + "\n")
+        require(GeminiKey.read() == "AIza" + String(repeating: "b", count: 35), "chave do Google guardada sem espaços")
+        require(!OpenAIKey.exists(), "a chave do Google não toca a da OpenAI")
+        GeminiKey.delete()
+        require(!GeminiKey.exists(), "chave do Google removida")
+        require(AIProvider.of(model: "gemini-3.8-flash") == .google && AIProvider.of(model: "claude-opus-5-5") == .anthropic, "provedor pelo modelo")
+        require(AIProvider.google.environmentVariable == "GEMINI_API_KEY" && AIProvider.anthropic.environmentVariable == "ANTHROPIC_API_KEY", "variáveis separadas")
+        let oldAudit = try JSONDecoder().decode(AuditEstimate.self, from: Data(#"{"modelo":"claude-opus-5-5","trechos":3,"a_enviar":2,"titulos_a_enviar":["A"],"custo_estimado_usd":0.5,"custo_maximo_usd":1.0}"#.utf8))
+        require(oldAudit.provider == .anthropic && oldAudit.summary.contains("à Anthropic"), "estimativa antiga continua legível")
+        let newAudit = try JSONDecoder().decode(AuditEstimate.self, from: Data(#"{"modelo":"gemini-3.8-flash","provedor":"google","trechos":3,"a_enviar":2,"titulos_a_enviar":["A"],"custo_estimado_usd":0.5,"custo_maximo_usd":1.0}"#.utf8))
+        let both = AIEstimate(coherence: nil, audit: newAudit, coherenceBudget: 1, auditBudget: 1)
+        require(both.destination == "Google" && both.summary.contains("transmitido ao Google") && both.summary.contains("ao Google"), "confirmação diz que o conteúdo vai ao Google")
+        require(!AIEstimate(coherence: nil, audit: oldAudit, coherenceBudget: 1, auditBudget: 1).summary.contains("Google"), "Claude: nenhuma menção ao Google")
+
         // 5. Chave: ausente, válida e inválida, sem API e sem Keychain real.
         let memory = MemoryStore()
         OpenAIKey.store = memory
