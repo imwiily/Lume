@@ -2,6 +2,108 @@
 
 As seções antigas descrevem a cobertura e os resultados de cada entrega, não o estado atual. Nas seções anteriores à 1.0, caminhos citados são da antiga pasta `LumeMac/`; a correspondência com a estrutura atual está em [README.md](README.md#estrutura).
 
+## Lume 1.9 · FONTE 1.5.0 · Coerencia 1.2.0 — 11/10/2026
+
+**Validador de decisões com segunda opinião da IA.** Inclui a correção da 1.8.1, que não foi
+publicada separadamente (encerramento inesperado ao gravar uma correção no Pages; ver abaixo). O FONTE e
+o Coerencia **mantêm 1.5.0 e 1.2.0**; regras editoriais, detectores e contratos JSON do relatório não
+mudaram. O motor embutido ganha os módulos e subcomandos do Validador, por isso não é idêntico ao da
+tag `fonte-v1.5.0`.
+
+**O que há de novo**
+
+- **GPT‑6.1 Sol (reasoning medium, API Responses da OpenAI) é o Validador padrão (V5).** O Claude Sonnet
+  (V2) continua disponível como alternativa manual, escolhida na própria aba. Não há troca automática de
+  provedor: sem a chave do escolhido, o Lume avisa e não envia nada.
+- **Aba Validação na Mesa**, ao lado de Pendências e Observações, sem janelas sobrepostas: visão geral,
+  contagem por categoria, estimativa, confirmação e resultados.
+- **Seis categorias de avaliação**, derivadas do diagnóstico completo (resultado, existência do problema,
+  natureza, certeza, adequação da decisão e evidências verificadas): decisão provavelmente correta,
+  possível erro na decisão, revisão editorial recomendada, análise inconclusiva, ainda não analisada e
+  análise desatualizada. Em dúvida ou contradição, o resultado é inconclusivo. São pareceres da IA e
+  podem estar equivocados; não afirmam que o autor “acertou” ou “errou”.
+- **Filtros por avaliação** e selo discreto em cada alerta decidido; no inspetor, a avaliação aparece acima
+  da decisão, com justificativa, evidências verificadas, grau de certeza, recomendação e modelo.
+- **Validação em lotes de até 40 decisões**, sobre o filtro atual, cada lote com estimativa de custo,
+  teto (padrão US$ 1,00; máximo US$ 5,00) e confirmação explícita; o texto exato do pedido pode ser
+  visto antes do envio. Resultados válidos são reaproveitados sem nova cobrança; resultados desatualizados
+  podem ser reavaliados; um manuscrito editado depois da análise é aceito quando o parágrafo e o contexto
+  registrado continuam iguais (opção ligada por padrão).
+- **Chave da OpenAI no Keychain** (serviço `lume-openai`), separada da chave da Anthropic, passada ao motor
+  só pelo ambiente do processo.
+- **Resultados e cache vinculados ao modelo que os produziu**: `validacoes-v5.json` (V5) e
+  `validacao-decisoes.json` (V2), em `Validador/<livro>`.
+- **Preservação**: o Validador nunca altera decisões humanas, relatório ou manuscrito.
+
+**Limitações conhecidas**
+
+- A V5 foi avaliada em amostra pequena (20 apontamentos de dois manuscritos e 6 substitutos) e **não está
+  homologada editorialmente**; um parecer da IA não equivale a confirmação humana.
+- A segunda rodada de contexto adicional está desativada; o pedido do modelo só é registrado.
+- Itens cujo parágrafo ou contexto vizinho mudou depois da análise ficam fora do envio, com o motivo.
+- Os testes automatizados usam respostas simuladas; a integração com a API real foi exercitada apenas em
+  execuções manuais.
+- Assinatura local (ad hoc), sem notarização.
+
+**Detalhes técnicos** (módulos, protocolo, testes e a evolução V2 → V5): `docs/arquitetura.md` e
+`.agent/plans/validador-*.md`.
+
+### Evolução do Validador (V2 → V5)
+
+Segunda leitura crítica, manual, das decisões que o autor já tomou (erro confirmado, estilo do autor,
+falso positivo, intencional, aceito editorialmente). **Não altera decisão, relatório nem manuscrito**.
+
+- `fonte/fonte/validador_decisoes.py` (V2); subcomandos `validar-decisoes-estimar` e `validar-decisoes`.
+- Haiku 5.5 faz a triagem; o Lume encaminha ao Sonnet 5.5 os casos `contestar`, `incerto`,
+  `precisa_contexto` e uma amostra dos aprovados. `--modo sonnet_direto` permite comparar.
+- Reutiliza `coerencia.modelo` (cliente, tarifas, `Orcamento`): teto por execução, pior caso antes de
+  cada chamada, reserva para o Sonnet, execução parcial dita com contagem.
+- V5 (`validador_v5.py` e `validador_v5_integracao.py`): contrato da V4.1 avaliado pelo GPT‑6.1 Sol;
+  subcomandos `validar-decisoes-v5-estimar`, `validar-decisoes-v5`, `validar-decisoes-v5-resultados` e
+  `validar-decisoes-v5-previa`.
+- Testes: `fonte/tests/test_validador_*.py` (sem API) e `tests/ValidatorV5Check.swift`,
+  `tests/ValidatorV5EngineCheck.swift`.
+- Os módulos V3, V4, V4.1 e V5.1 são experimentais, isolados e não são usados pelo aplicativo.
+
+### Validador V5.1 (experimental, não homologado)
+Consistência contextual sobre a V5 (GPT‑6.1 Sol): relações contextuais determinísticas (mesma frase, mesmo parágrafo,
+mesma construção), agrupamento que mantém alertas relacionados no mesmo pedido dentro de limites de itens, contexto e
+orçamento, relações declaradas pelo modelo e verificadas estruturalmente, e uma camada local derivada que compara
+resultados sem alterar decisão, diagnóstico nem prioridade. Estado e trava próprios; V2–V5 intactas. Ver
+`.agent/plans/validador-v5-1.md`.
+
+### Validador V5 (experimental, não homologado)
+Mesmo contrato editorial da V4.1 avaliado por GPT-6.1 Sol (API Responses da OpenAI), módulo e estado isolados,
+orçamento preventivo obrigatório e registro separado de tokens de raciocínio, cache e custo. Ver
+`.agent/plans/validador-v5.md`.
+
+### Validador V4.1 (experimental, não homologado)
+Dois julgamentos separados (problema técnico × adequação da decisão), razão literária sem prova de ausência,
+prioridade categórica da revisão recomendada, antecedentes narrativos por relevância e vínculo explícito das
+evidências com questões descartadas. Módulo e estado próprios; V4 intacta. Ver `.agent/plans/validador-v4-1.md`.
+
+### Validador V4 (experimental, não homologado)
+Sonnet 5.5 como único avaliador; fiscalização determinística de evidências (existência, localização,
+ocorrência, integridade, contrato, consistência); trava persistente por apontamento com reutilização sem
+custo e invalidação seletiva; contrato de estados para a Mesa (não ligado). Ver `.agent/plans/validador-v4.md`.
+
+### Precisão editorial do Validador (prompt v2)
+Correção da causa estrutural dos falsos positivos do primeiro experimento (10/10/2026): o apontamento do
+detector era apresentado como fato e sua lista de exceções virava critério fechado.
+
+- Apontamento apresentado como **hipótese**; o tempo predominante não é regra de uniformidade (anterioridade,
+  simultaneidade, posterioridade e recursos narrativos são legítimos); exceções do detector não são exaustivas.
+- Significado de cada decisão da Mesa (`SEMANTICA_DECISOES`, conferido contra `LumeTheme.swift`).
+- Alvo inequívoco: ocorrência “n de N”, posições e marca inline com sinais que não ocorrem no texto; os
+  delimitadores também são escolhidos sem colisão. O texto do manuscrito nunca é substituído.
+- Esquema estruturado do juiz (`procede`, `justificativa_detector`, `decisao_coerente`,
+  `evidencia_suficiente`, `ocorrencia`); A/B/C/D são derivados em código. O significado da categoria decide
+  `decisao_coerente` onde o determina (`Erro confirmado`, `Falso positivo`, `Aceito editorialmente`).
+- Evidência da contestação precisa cobrir a ocorrência apontada; ocorrência divergente, evidência de outra
+  ocorrência ou ausente rebaixam para inconclusivo. Contradições entre itens do mesmo trecho não são publicadas.
+- Estimativa de saída recalibrada com o consumo medido (Haiku ~250 tokens por item).
+- Pendência registrada, sem alterar o motor: `.agent/plans/anterioridade-perfeito-aspectual.md`.
+
 ## Lume 1.8.1 · FONTE 1.5.0 · Coerencia 1.2.0 — 10/10/2026
 
 Correção de um encerramento inesperado ao gravar uma correção em documento do Pages. FONTE e
