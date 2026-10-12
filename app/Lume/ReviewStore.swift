@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 import AppKit
 import UniformTypeIdentifiers
 import Security
@@ -35,7 +36,7 @@ final class ReviewStore: ObservableObject {
     @Published var reportURL: URL?
     /// Último `falsos-positivos.json` gravado para o relatório aberto.
     @Published private(set) var falsePositivesURL: URL?
-    @Published var decisions: [String: ReviewDecision] = [:]
+    @Published var decisions: [String: ReviewDecision] = [:] { didSet { recomputeAssessments() } }
     /// ID do alerta → decisões anteriores divergentes do mesmo fenômeno (identidades que o motor juntou).
     /// Mostradas no inspetor; ficam registradas mesmo depois da decisão do editor.
     @Published private(set) var decisionConflicts: [String: [String]] = [:]
@@ -67,6 +68,45 @@ final class ReviewStore: ObservableObject {
         didSet { UserDefaults.standard.set(max(0.05, auditBudget), forKey: "auditBudget") }
     }
     @Published private(set) var hasAPIKey = AnthropicKey.exists()
+    /// Validador de decisões: V5 (GPT‑6.1 Sol) por padrão, V2 (Claude) como alternativa manual. A chave da OpenAI
+    /// e os resultados da IA ficam à parte das decisões humanas.
+    @Published private(set) var hasOpenAIKey = OpenAIKey.exists()
+    @Published var validatorBackend = ValidatorBackend.current() {
+        didSet { UserDefaults.standard.set(validatorBackend.rawValue, forKey: ValidatorBackend.defaultsKey) }
+    }
+    @Published var secondOpinionBudget = ValidatorV5Arguments.defaultBudget
+    /// Aceita o manuscrito editado depois da análise: cada item só vale se o parágrafo e o contexto registrado no
+    /// relatório continuam no texto. Ligado por padrão, porque corrigir pelo Lume já muda o arquivo.
+    @Published var acceptEditedManuscript = UserDefaults.standard.object(forKey: "validatorAcceptEdited") as? Bool ?? true {
+        didSet { UserDefaults.standard.set(acceptEditedManuscript, forKey: "validatorAcceptEdited") }
+    }
+    /// Avaliação da IA de cada decisão elegível (A–F), recalculada quando decisões ou resultados mudam.
+    @Published private(set) var assessments: [String: DecisionAssessment] = [:]
+    @Published var assessmentFilter: DecisionAssessment?
+    /// Pedido de abrir a janela da chave (a mesa não tem esse botão próprio).
+    @Published var requestKeySheet = false
+    /// Texto exato do pedido (calculado localmente pelo backend), ou o motivo de não estar disponível.
+    @Published private(set) var secondOpinionExactPreview: ValidatorV5ExactPreview?
+    @Published private(set) var secondOpinionPreviewLoading = false
+    @Published private(set) var secondOpinionPreviewFailed = false
+    var secondOpinionObservation: AnyCancellable?
+    private(set) lazy var secondOpinion: ValidatorV5Coordinator = {
+        let coordinator = ValidatorV5Coordinator(backend: makeSecondOpinionBackend(),
+                                                 secrets: { [OpenAIKey.read()].compactMap { $0 } })
+        secondOpinionObservation = coordinator.objectWillChange.sink { [weak self] _ in
+            self?.objectWillChange.send()
+            DispatchQueue.main.async { self?.recomputeAssessments() }   // depois de o resultado novo valer
+        }
+        return coordinator
+    }()
+    /// Validador de decisões: estimativa mostrada antes do envio, teto da execução e último resultado.
+    @Published var validatorEstimate: ValidatorEstimate?
+    @Published var validation: DecisionValidation?
+    @Published var validatorBudget = UserDefaults.standard.object(forKey: "validatorBudget") as? Double ?? 1.0 {
+        didSet { UserDefaults.standard.set(max(0.05, validatorBudget), forKey: "validatorBudget") }
+    }
+    /// Argumentos comuns da estimativa confirmada (manuscrito, relatório, decisões, projeto).
+    private var validatorArguments: [String]?
     /// Estimativa de envio dos recursos com IA ligados, mostrada antes de qualquer envio.
     @Published var aiEstimate: AIEstimate?
     private var aiConfirmed = false
@@ -125,17 +165,20 @@ final class ReviewStore: ObservableObject {
     /// Pendências, impeditivos e observações; relatórios antigos contam tudo como pendência.
     var tally: ReviewTally { ReviewTally(findings: report?.findings ?? [], decision: decision(for:)) }
     var pendingCount: Int { tally.pendingOpen }
+    /// Filtros comuns da mesa (sem separar pendências de observações).
+    private func passesFilters(_ finding: Finding) -> Bool {
+        (layerFilter == "Todas" || (finding.layer ?? "linguistica") == layerFilter)
+            && (moduleFilter == "Todas" || finding.module == moduleFilter)
+            && (severityFilter == "Todas" || finding.severity == severityFilter)
+            && (category == "Todas" || finding.category == category)
+            && (decisionFilter == "Todas" || decision(for: finding).rawValue == decisionFilter)
+            && (assessmentFilter == nil || assessments[finding.id] == assessmentFilter)
+            && (search.isEmpty || (finding.text + " " + finding.chapter).localizedCaseInsensitiveContains(search))
+    }
+
     var filteredFindings: [Finding] {
-        let section: FindingDestination = deskSection == .pendencies ? .pendencia : .informacao
-        let items = (report?.findings ?? []).filter { finding in
-            finding.destination == section
-            && (layerFilter == "Todas" || (finding.layer ?? "linguistica") == layerFilter)
-                && (moduleFilter == "Todas" || finding.module == moduleFilter)
-                && (severityFilter == "Todas" || finding.severity == severityFilter)
-                && (category == "Todas" || finding.category == category)
-                && (decisionFilter == "Todas" || decision(for: finding).rawValue == decisionFilter)
-                && (search.isEmpty || (finding.text + " " + finding.chapter).localizedCaseInsensitiveContains(search))
-        }
+        let section: FindingDestination = deskSection == .observations ? .informacao : .pendencia
+        let items = (report?.findings ?? []).filter { $0.destination == section && passesFilters($0) }
         // Impeditivos primeiro; a ordem do texto continua dentro de cada grupo.
         return items.filter(\.isBlocking) + items.filter { !$0.isBlocking }
     }
@@ -377,6 +420,8 @@ final class ReviewStore: ObservableObject {
         if !decisionConflicts.isEmpty {
             status += " \(decisionConflicts.count) alerta(s) com decisões anteriores divergentes: veja no inspetor."
         }
+        recomputeAssessments()
+        refreshSecondOpinion()
     }
 
     private func bookURL(_ document: String) throws -> URL {
@@ -677,6 +722,143 @@ final class ReviewStore: ObservableObject {
                 }
             }
         } catch { errorText = error.localizedDescription }
+    }
+
+    // MARK: Validador de decisões
+
+    /// Decisões que o Validador pode reavaliar. `Pendente` e `Corrigido` ficam de fora.
+    private static let validatable: Set<ReviewDecision> = [.error, .style, .falsePositive, .intentional, .accepted]
+
+    var canValidateDecisions: Bool {
+        report != nil && documentURL != nil && !isBusy && decisions.values.contains { Self.validatable.contains($0) }
+    }
+
+    private var validatorProject: URL? { projectFolder("Validador") }
+
+    /// Estima localmente (sem API) o que a validação enviaria e custaria; nada é enviado antes da confirmação.
+    func requestValidation() {
+        guard canValidateDecisions, let report, let reportURL, let input = documentURL, let python = pythonURL,
+              let directory = engineDirectory, let project = validatorProject else { return }
+        deskSection = .validation
+        guard hasAPIKey else {
+            errorText = "Configure a chave da API da Anthropic para validar decisões."
+            return
+        }
+        guard input.lastPathComponent == report.document else {
+            errorText = "O manuscrito aberto (\(input.lastPathComponent)) não é o do relatório (\(report.document)). Abra o mesmo manuscrito para validar as decisões."
+            return
+        }
+        do {
+            let jobID = UUID().uuidString
+            saveSearchSettings()
+            let config = try supportDirectory("Configuracoes").appendingPathComponent(jobID + ".json")
+            try searchSettings.encoded().write(to: config, options: .atomic)
+            let decisionsFile = try supportDirectory("Configuracoes").appendingPathComponent(jobID + "-decisoes.json")
+            try payload().write(to: decisionsFile, options: .atomic)
+            let common = [input.path, "--relatorio", reportURL.path, "--decisoes", decisionsFile.path,
+                          "--projeto", project.path, "--config", config.path]
+            let log = try supportDirectory("Registros").appendingPathComponent(jobID + "-validador.txt")
+            isBusy = true; canCancel = false; errorText = nil; logURL = log
+            jobLabel = "Calculando o custo da validação…"
+            Task {
+                defer { isBusy = false; jobLabel = "" }
+                do {
+                    let result = try await runner.run(executable: python,
+                                                      arguments: engineArguments + ["validar-decisoes-estimar"] + common,
+                                                      directory: directory, logURL: log, extraEnvironment: [:])
+                    guard result.exitCode == 0 else {
+                        throw FonteError.message("Não foi possível estimar a validação. Se o motor selecionado for anterior a esta versão do Lume, use Motor de análise → Restaurar embutido.\n\n"
+                                                 + String(PythonRunner.tail(log).suffix(1800)))
+                    }
+                    let prefix = "LUME_ESTIMATIVA_VALIDADOR "
+                    guard let line = PythonRunner.tail(log).split(separator: "\n").last(where: { $0.hasPrefix(prefix) }) else {
+                        throw FonteError.message("O motor não devolveu a estimativa da validação.")
+                    }
+                    validatorEstimate = try JSONDecoder().decode(ValidatorEstimate.self, from: Data(line.dropFirst(prefix.count).utf8))
+                    validatorArguments = common
+                    status = "Confira o envio e o custo estimado antes de continuar."
+                } catch {
+                    errorText = error.localizedDescription
+                    status = "A estimativa não foi concluída. Nada foi enviado."
+                }
+            }
+        } catch { errorText = error.localizedDescription }
+    }
+
+    func cancelValidation() {
+        guard validatorArguments != nil else { return }   // a confirmação já seguiu: nada a cancelar
+        validatorEstimate = nil
+        validatorArguments = nil
+        status = "Validação cancelada antes de enviar qualquer texto."
+    }
+
+    /// Roda a validação depois da confirmação. Só lê o manuscrito e as decisões; grava apenas na pasta do
+    /// projeto do Validador. A chave vai no ambiente do processo, nunca nos argumentos.
+    func confirmValidation() {
+        guard let common = validatorArguments, let report, let python = pythonURL, let directory = engineDirectory else { return }
+        validatorEstimate = nil
+        validatorArguments = nil
+        guard let key = AnthropicKey.read() else {
+            errorText = "Não foi possível ler a chave da API nas Chaves do macOS. Configure-a novamente."
+            return
+        }
+        do {
+            let log = try supportDirectory("Registros").appendingPathComponent(UUID().uuidString + "-validador.txt")
+            let teto = String(format: "%.2f", locale: Locale(identifier: "en_US_POSIX"), validatorBudget)
+            isBusy = true; canCancel = true; errorText = nil; logURL = log
+            jobLabel = "Validando decisões…"
+            Task {
+                let progressTask = Task { @MainActor in
+                    let prefix = "LUME_VALIDADOR_PROGRESSO "
+                    while !Task.isCancelled {
+                        if let line = PythonRunner.tail(log).split(separator: "\n").last(where: { $0.hasPrefix(prefix) }),
+                           let object = try? JSONSerialization.jsonObject(with: Data(line.dropFirst(prefix.count).utf8)) as? [String: Any],
+                           let stage = object["etapa"] as? String, let done = object["feitos"] as? Int,
+                           let total = object["total"] as? Int, canCancel {
+                            jobLabel = "Validando decisões · \(stage == "triagem" ? "triagem" : "reavaliação") \(done) de \(total)…"
+                        }
+                        do { try await Task.sleep(nanoseconds: 500_000_000) } catch { break }
+                    }
+                }
+                defer { progressTask.cancel(); isBusy = false; canCancel = false; jobLabel = "" }
+                do {
+                    let result = try await runner.run(
+                        executable: python, arguments: engineArguments + ["validar-decisoes"] + common + ["--teto", teto],
+                        directory: directory, logURL: log, extraEnvironment: ["ANTHROPIC_API_KEY": key])
+                    if result.cancelled {
+                        status = "Validação interrompida. O que já foi avaliado ficou guardado e não é cobrado de novo."
+                        return
+                    }
+                    guard result.exitCode == 0 else {
+                        throw FonteError.message("A validação não foi concluída (código \(result.exitCode)).\n\n"
+                                                 + String(PythonRunner.tail(log).suffix(1800)))
+                    }
+                    let prefix = "LUME_VALIDACAO "
+                    guard let line = PythonRunner.tail(log).split(separator: "\n").last(where: { $0.hasPrefix(prefix) }) else {
+                        throw FonteError.message("O motor não devolveu o resultado da validação.")
+                    }
+                    let loaded = try DecisionValidation.load(line: Data(line.dropFirst(prefix.count).utf8),
+                                                             report: report, decisions: decisions)
+                    validation = loaded
+                    deskSection = .validation
+                    if let summary = loaded.summary {
+                        status = "Validação: \(summary.avaliadas) de \(summary.elegiveis) decisões avaliadas, \(loaded.contested.count) para reconsiderar. Nenhuma decisão foi alterada."
+                    }
+                } catch {
+                    errorText = error.localizedDescription
+                    status = "A validação não foi concluída. Confira o registro para mais detalhes."
+                }
+            }
+        } catch { errorText = error.localizedDescription }
+    }
+
+    /// Leva o autor ao alerta, com os filtros que o esconderiam desligados. Não muda decisões.
+    func goToFinding(_ id: String) {
+        guard let finding = report?.findings.first(where: { $0.id == id }) else { return }
+        layerFilter = "Todas"; moduleFilter = "Todas"; severityFilter = "Todas"
+        category = "Todas"; decisionFilter = "Todas"; search = ""
+        deskSection = finding.destination == .pendencia ? .pendencies : .observations
+        selectedID = id
     }
 
     func saveAPIKey(_ key: String) {
@@ -1146,6 +1328,259 @@ enum AnthropicKey {
     }
 }
 
+// MARK: Validador de decisões — V5 (padrão) e V2 (alternativa manual)
+
+extension ReviewStore {
+    /// Decisões que a validação aceita (as mesmas do Validador V2).
+    var secondOpinionEligible: [Finding] {
+        guard let report else { return [] }
+        return report.findings.filter { Self.validatable.contains(decision(for: $0)) }
+    }
+
+    var secondOpinionAvailable: Bool { report != nil && documentURL != nil && !secondOpinionEligible.isEmpty }
+
+    /// Resultado da IA para um alerta, se houver (válido ou desatualizado: quem mostra decide como).
+    func secondOpinionItem(for id: String) -> ValidatorV5Item? {
+        secondOpinion.results?.items.first { $0.id == id }
+    }
+
+    /// Avaliação (A–F) de uma decisão elegível; `nil` para alertas sem decisão elegível.
+    func assessment(for finding: Finding) -> DecisionAssessment? { assessments[finding.id] }
+
+    func recomputeAssessments() {
+        guard report != nil else { if !assessments.isEmpty { assessments = [:] }; return }
+        let byID = Dictionary((secondOpinion.results?.items ?? []).map { ($0.id, $0) }, uniquingKeysWith: { $1 })
+        var next: [String: DecisionAssessment] = [:]
+        for finding in secondOpinionEligible {
+            next[finding.id] = ValidatorV5Assessment.classify(byID[finding.id], liveDecision: decisions[finding.id])
+        }
+        if next != assessments { assessments = next }
+    }
+
+    /// Contagem por categoria, sobre todas as decisões elegíveis.
+    var assessmentCounts: [DecisionAssessment: Int] {
+        Dictionary(grouping: assessments.values, by: { $0 }).mapValues(\.count)
+    }
+
+    /// Decisões elegíveis do filtro atual (qualquer parte da mesa); o texto da busca e os filtros valem.
+    var validationScope: [Finding] {
+        secondOpinionEligible.filter { passesFiltersIgnoringAssessment($0) }
+    }
+
+    private func passesFiltersIgnoringAssessment(_ finding: Finding) -> Bool {
+        (layerFilter == "Todas" || (finding.layer ?? "linguistica") == layerFilter)
+            && (moduleFilter == "Todas" || finding.module == moduleFilter)
+            && (severityFilter == "Todas" || finding.severity == severityFilter)
+            && (category == "Todas" || finding.category == category)
+            && (decisionFilter == "Todas" || decision(for: finding).rawValue == decisionFilter)
+            && (search.isEmpty || (finding.text + " " + finding.chapter).localizedCaseInsensitiveContains(search))
+    }
+
+    /// O que ainda precisa de execução: não analisadas ou desatualizadas, dentro do filtro. Resultados válidos
+    /// ficam de fora (o backend também os reaproveitaria sem custo).
+    var validationPending: [Finding] {
+        validationScope.filter { assessments[$0.id]?.needsRun ?? false }
+    }
+
+    /// “Validar decisões”: abre a parte Validação. Com o V2 (alternativa manual) já calcula a estimativa dele.
+    func openValidation() {
+        deskSection = .validation
+        if validatorBackend == .v2 { requestValidation() }
+    }
+
+    func saveOpenAIKey(_ raw: String) {
+        do {
+            try OpenAIKey.save(raw)
+            hasOpenAIKey = true
+            status = "Chave da OpenAI guardada nas Chaves do macOS."
+        } catch { errorText = SecretRedactor.redact(error.localizedDescription) }
+    }
+
+    func removeOpenAIKey() {
+        OpenAIKey.delete()
+        hasOpenAIKey = false
+        status = "Chave da OpenAI removida das Chaves do macOS."
+    }
+
+    /// Calcula localmente (sem rede) o que seria enviado e custaria para até 40 decisões; confirmar é outro passo.
+    func requestSecondOpinion(ids: [String]) {
+        guard validatorBackend == .v5, secondOpinionAvailable, !isBusy else { return }
+        guard hasOpenAIKey else {
+            errorText = "Configure a chave da API da OpenAI para validar com o GPT‑6.1 Sol. O Lume não troca de provedor sozinho."
+            requestKeySheet = true
+            return
+        }
+        deskSection = .validation
+        let batch = ValidatorV5Batching.plan(ids).next
+        Task {
+            secondOpinionExactPreview = nil; secondOpinionPreviewFailed = false
+            await secondOpinion.requestEstimate(ids: batch, eligible: Set(secondOpinionEligible.map(\.id)),
+                                                budget: secondOpinionBudget)
+            if let failure = secondOpinion.failure { errorText = failure; status = "A estimativa não foi concluída. Nada foi enviado." }
+            else { status = "Confira o envio e o custo estimado antes de continuar. Nada foi enviado." }
+        }
+    }
+
+    /// Pede ao backend o texto exato que seria enviado para os itens da estimativa mostrada. Sem rede.
+    func loadSecondOpinionPreview() {
+        guard let estimate = secondOpinion.estimate, estimate.hasWork, !secondOpinionPreviewLoading else { return }
+        let ids = estimate.toSend.map(\.id)
+        secondOpinionPreviewLoading = true; secondOpinionPreviewFailed = false; secondOpinionExactPreview = nil
+        Task {
+            defer { secondOpinionPreviewLoading = false }
+            do {
+                let (common, python, directory) = try v5Context()
+                let log = try supportDirectory("Registros").appendingPathComponent(UUID().uuidString + "-segunda-opiniao-previa.txt")
+                let result = try await runner.run(
+                    executable: python,
+                    arguments: engineArguments + (try ValidatorV5Arguments.preview(
+                        common: common, ids: ids, budget: secondOpinionBudget, revalidate: v5Options(for: ids).revalidate,
+                        partialContext: v5Options(for: ids).partial)),
+                    directory: directory, logURL: log, extraEnvironment: [:])
+                guard result.exitCode == 0,
+                      let preview = try ValidatorV5Protocol.decode(ValidatorV5ExactPreview.self, .preview, in: PythonRunner.text(log))
+                else { secondOpinionPreviewFailed = true; return }
+                secondOpinionExactPreview = preview
+            } catch { secondOpinionPreviewFailed = true }
+        }
+    }
+
+    /// Só com a autorização marcada nesta execução. O coordenador recalcula antes de enviar.
+    func confirmSecondOpinion(authorized: Bool) {
+        guard authorized, !isBusy else { return }
+        isBusy = true; canCancel = true; errorText = nil
+        jobLabel = "Consultando o GPT‑6.1 Sol…"
+        Task {
+            defer { isBusy = false; canCancel = false; jobLabel = "" }
+            await secondOpinion.confirm(authorized: true) { [weak self] value in
+                self?.jobLabel = "Validando decisões · \(value.done) de \(value.total)…"
+            }
+            recomputeAssessments()
+            switch secondOpinion.phase {
+            case .finished:
+                let left = validationPending.count
+                status = left > 0 ? "Lote concluído. Nenhuma decisão foi alterada. Faltam \(left) decisões do filtro atual: confira e confirme o próximo lote."
+                                  : "Validação concluída. Nenhuma decisão foi alterada."
+            case .cancelled:
+                status = secondOpinion.notice ?? "Validação interrompida."
+            case .failed:
+                errorText = secondOpinion.failure
+                status = "A validação não foi concluída. O que já foi avaliado ficou guardado."
+            case .awaitingAuthorization:
+                status = secondOpinion.notice ?? "Confira a estimativa e confirme de novo."
+            default: break
+            }
+        }
+    }
+
+    func cancelSecondOpinion() {
+        secondOpinionExactPreview = nil; secondOpinionPreviewFailed = false
+        switch secondOpinion.phase {
+        case .awaitingAuthorization:
+            secondOpinion.cancelBeforeSend()
+            status = secondOpinion.notice ?? status
+        case .running: cancel()
+        default: break
+        }
+    }
+
+    /// Relê os resultados gravados (sem rede): ao abrir a validação ou depois de mudanças no manuscrito.
+    func refreshSecondOpinion() {
+        guard report != nil, documentURL != nil, !isBusy, validatorBackend == .v5 else { return }
+        Task {
+            await secondOpinion.refresh()
+            recomputeAssessments()
+        }
+    }
+
+    // Processo do motor: três subcomandos, chave só no ambiente, nada de decisões gravadas.
+    private func v5Context() throws -> (common: [String], python: URL, directory: URL) {
+        guard let reportURL, let input = documentURL, let python = pythonURL, let directory = engineDirectory,
+              let project = validatorProject else { throw FonteError.message("Abra um relatório e o manuscrito para usar a segunda opinião.") }
+        let jobID = UUID().uuidString
+        saveSearchSettings()
+        let config = try supportDirectory("Configuracoes").appendingPathComponent(jobID + ".json")
+        try searchSettings.encoded().write(to: config, options: .atomic)
+        let decisionsFile = try supportDirectory("Configuracoes").appendingPathComponent(jobID + "-decisoes.json")
+        try payload().write(to: decisionsFile, options: .atomic)           // instantâneo; o Validador nunca grava decisões
+        return (ValidatorV5Arguments.common(document: input, report: reportURL, decisions: decisionsFile,
+                                            project: project, config: config), python, directory)
+    }
+
+    /// Resultados desatualizados entre os ids seguem para nova análise; o resto, só se for novo.
+    fileprivate func v5Options(for ids: [String]) -> (revalidate: [String], partial: Bool) {
+        (ids.filter { assessments[$0] == .outdated }, acceptEditedManuscript)
+    }
+
+    fileprivate func makeSecondOpinionBackend() -> ValidatorV5Coordinator.Backend {
+        func newLog(_ name: String) throws -> URL {
+            try supportDirectory("Registros").appendingPathComponent(UUID().uuidString + "-" + name + ".txt")
+        }
+        return ValidatorV5Coordinator.Backend(
+            estimate: { [unowned self] ids, budget in
+                let (common, python, directory) = try v5Context()
+                let log = try newLog("segunda-opiniao-estimativa")
+                self.logURL = log
+                let result = try await runner.run(
+                    executable: python,
+                    arguments: engineArguments + (try ValidatorV5Arguments.estimate(
+                        common: common, ids: ids, budget: budget, revalidate: v5Options(for: ids).revalidate,
+                        partialContext: v5Options(for: ids).partial)),
+                    directory: directory, logURL: log, extraEnvironment: [:])
+                let text = PythonRunner.text(log)
+                if let failure = ValidatorV5Protocol.failure(in: text) { throw FonteError.message(failure.message) }
+                guard result.exitCode == 0, let found = try ValidatorV5Protocol.decode(ValidatorV5Estimate.self, .estimate, in: text) else {
+                    throw FonteError.message("Não foi possível estimar a segunda opinião. Se o motor selecionado for anterior a esta versão do Lume, use Motor de análise → Restaurar embutido.\n\n"
+                                             + String(PythonRunner.safeTail(log).suffix(1800)))
+                }
+                return found
+            },
+            run: { [unowned self] ids, budget, progress in
+                guard let key = OpenAIKey.read() else {
+                    throw FonteError.message("Não foi possível ler a chave da OpenAI nas Chaves do macOS. Configure-a novamente.")
+                }
+                let (common, python, directory) = try v5Context()
+                let log = try newLog("segunda-opiniao")
+                self.logURL = log
+                let poll = Task { @MainActor in
+                    while !Task.isCancelled {
+                        if let value = try? ValidatorV5Protocol.decode(ValidatorV5Progress.self, .progress, in: PythonRunner.text(log)) {
+                            progress(value)
+                        }
+                        do { try await Task.sleep(nanoseconds: 500_000_000) } catch { break }
+                    }
+                }
+                defer { poll.cancel() }
+                let result = try await runner.run(
+                    executable: python,
+                    arguments: engineArguments + (try ValidatorV5Arguments.run(
+                        common: common, ids: ids, budget: budget, revalidate: v5Options(for: ids).revalidate,
+                        partialContext: v5Options(for: ids).partial)),
+                    directory: directory, logURL: log, extraEnvironment: OpenAIKey.environment(for: key))
+                if result.cancelled { return .cancelled }
+                let text = PythonRunner.text(log)
+                if let failure = ValidatorV5Protocol.failure(in: text) { return .failed(failure) }
+                guard result.exitCode == 0, try ValidatorV5Protocol.decode(ValidatorV5Run.self, .finished, in: text) != nil else {
+                    throw FonteError.message("A segunda opinião não foi concluída (código \(result.exitCode)).\n\n"
+                                             + String(PythonRunner.safeTail(log, secrets: [key]).suffix(1800)))
+                }
+                return .finished
+            },
+            results: { [unowned self] ids in
+                let (common, python, directory) = try v5Context()
+                let log = try newLog("segunda-opiniao-resultados")
+                let result = try await runner.run(executable: python, arguments: engineArguments + ValidatorV5Arguments.results(common: common, ids: ids),
+                                                  directory: directory, logURL: log, extraEnvironment: [:])
+                guard result.exitCode == 0,
+                      let loaded = try ValidatorV5Protocol.decode(ValidatorV5Results.self, .results, in: PythonRunner.text(log)) else {
+                    throw FonteError.message("Não foi possível ler os resultados da segunda opinião.")
+                }
+                return loaded
+            },
+            cancel: { [unowned self] in runner.cancel() })
+    }
+}
+
 #if DEBUG
 // Apenas para inspeção visual (LUME_SNAPSHOT): coloca a interface em estados fixos.
 extension ReviewStore {
@@ -1154,6 +1589,7 @@ extension ReviewStore {
         analysisStages = stages; isAnalyzing = true; screen = .review
     }
     func debugReset() { isAnalyzing = false; screen = .preparation }
+    func debugSetOpenAIKeyPresent(_ present: Bool) { hasOpenAIKey = present }
     func debugUseEngine(_ root: URL) {
         // Versão do manifesto, para as capturas mostrarem o motor como no app montado.
         let manifest = (try? Data(contentsOf: root.appendingPathComponent("manifest.json")))
@@ -1168,5 +1604,7 @@ extension ReviewStore {
 enum DeskSection: String, CaseIterable, Identifiable {
     case pendencies = "Pendências"
     case observations = "Observações"
+    /// Validar decisões (segunda leitura com IA), na própria mesa em vez de uma janela.
+    case validation = "Validação"
     var id: String { rawValue }
 }

@@ -36,6 +36,7 @@ struct FindingInspector: View {
             }
             manuscriptActions
             if let conflict = store.decisionConflicts[finding.id] { conflictNote(conflict) }
+            AssessmentSection(finding: finding)
             decisionSection
             details
             Text("Lume encontra. Lume explica. **O editor decide.**")

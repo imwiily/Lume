@@ -36,6 +36,9 @@ struct ContentView: View {
         .sheet(isPresented: $showSearchSettings) { SearchSettingsView().environmentObject(store) }
         .sheet(isPresented: $showCoverage) { CoverageSheet().environmentObject(store) }
         .sheet(isPresented: $showKeySheet) { KeySheet().environmentObject(store) }
+        .onChange(of: store.requestKeySheet) { _, wanted in
+            if wanted { showKeySheet = true; store.requestKeySheet = false }
+        }
         .alert("Enviar à Anthropic?", isPresented: Binding(get: { store.aiEstimate != nil },
                                                            set: { if !$0 { store.aiEstimate = nil } })) {
             Button("Cancelar", role: .cancel) { store.cancelAI() }

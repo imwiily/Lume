@@ -100,6 +100,9 @@ struct StatusLine: View {
             Spacer(minLength: 12)
             if store.logURL != nil { Button("Ver registro") { store.openLog() }.buttonStyle(.borderless) }
             if store.report != nil {
+                Button("Validar decisões") { store.openValidation() }.buttonStyle(.borderless)
+                    .disabled(!store.canValidateDecisions)
+                    .help("Avaliação da IA sobre as suas decisões. Só sugere reconsiderar; nada é alterado nem enviado sem confirmação")
                 Button("Extrair falsos positivos") { store.exportFalsePositives() }.buttonStyle(.borderless)
                     .disabled(store.isBusy || store.falsePositiveCount == 0)
                     .help("Salva em JSON, ao lado do relatório, os alertas marcados como falso positivo, para analisar e corrigir as regras")

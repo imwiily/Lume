@@ -217,6 +217,7 @@ struct KeySheet: View {
     @EnvironmentObject private var store: ReviewStore
     @Environment(\.dismiss) private var dismiss
     @State private var keyText = ""
+    @State private var openAIKeyText = ""
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 14) {
@@ -249,8 +250,34 @@ struct KeySheet: View {
                     if store.hasAPIKey && store.errorText == nil { dismiss() }
                 }.buttonStyle(LumeButtonStyle(kind: .primary)).keyboardShortcut(.defaultAction).disabled(keyText.isEmpty)
             }
+            Divider()
+            pilotSection
         }.padding(24).frame(width: 540).background(LumeTheme.canvas)
             .foregroundStyle(LumeTheme.ink).tint(LumeTheme.accent)
+    }
+
+    /// Chave da OpenAI do Validador de decisões (V5, GPT‑6.1 Sol), em serviço próprio do Keychain.
+    @ViewBuilder private var pilotSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Kicker(title: "Validador de decisões · OpenAI")
+            Text("O Validador de decisões usa o GPT‑6.1 Sol (V5) por padrão, sempre depois de uma confirmação sua e com teto de gasto. A resposta da IA não altera nenhuma decisão.")
+                .font(LumeFont.ui(11)).foregroundStyle(LumeTheme.secondary).fixedSize(horizontal: false, vertical: true)
+            SecureField("sk-…", text: $openAIKeyText).textFieldStyle(.roundedBorder)
+            Text("A chave da OpenAI fica guardada nas Chaves do macOS (serviço lume-openai), separada da chave da Anthropic, e vai ao motor só pelo ambiente do processo.")
+                .font(LumeFont.ui(11)).foregroundStyle(LumeTheme.secondary).fixedSize(horizontal: false, vertical: true)
+            HStack {
+                Text(store.hasOpenAIKey ? "Chave da OpenAI guardada." : "Chave da OpenAI ausente.")
+                    .font(LumeFont.ui(11)).foregroundStyle(LumeTheme.secondary)
+                Spacer()
+                if store.hasOpenAIKey {
+                    Button("Remover chave da OpenAI", role: .destructive) { store.removeOpenAIKey() }.buttonStyle(LumeButtonStyle())
+                }
+                Button("Guardar chave da OpenAI") {
+                    store.saveOpenAIKey(openAIKeyText)
+                    openAIKeyText = ""
+                }.buttonStyle(LumeButtonStyle()).disabled(openAIKeyText.isEmpty)
+            }
+        }
     }
 }
 

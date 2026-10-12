@@ -209,6 +209,49 @@ terminar ([visão](visao.md#ocorrência-pendência-e-encerramento)).
   `pendencias_abertas`, `observacoes_abertas`, `impeditivos_abertos`). O registro vale para o mesmo
   texto e a mesma política. A decisão **Corrigido** é gravada pela correção no Pages.
 
+## Validador de decisões
+
+Recurso com IA opcional e manual, na Mesa de Revisão (**Validar decisões**). Python decide e
+Swift confirma, executa e exibe. Entradas: manuscrito atual, `relatorio.json` e o arquivo de decisões
+do app. Elegíveis: `Erro confirmado`, `Estilo do autor`, `Falso positivo`, `Intencional` e `Aceito
+editorialmente`; `Pendente` e `Corrigido` nunca entram.
+
+- **Integridade**: o alerta só é avaliado se o parágrafo atual for idêntico ao do relatório (no mesmo
+  número ou em um único parágrafo idêntico); senão fica `nao_avaliada`, sem aproximação e sem envio.
+- **Contexto**: triagem com ±1 parágrafo; o juiz com ±3 mais trechos do capítulo recuperados
+  localmente por termos que a triagem pediu, com teto de caracteres. O manuscrito nunca é enviado inteiro.
+- **Fluxo**: Haiku (triagem) → Sonnet (reavaliação, com a evidência original) coordenados pelo
+  Lume. O apontamento do detector entra como hipótese, com o significado de cada decisão da Mesa e o
+  alvo marcado (ocorrência “n de N”, posições e sinais sem colisão). O juiz responde perguntas
+  separadas (`procede`, `justificativa_detector`, `decisao_coerente`, `evidencia_suficiente`); A
+  (contestada), B (apontamento inadequado), C (defensável) e D (inconclusivo) são derivados em código.
+  Só A com evidência que cubra a ocorrência apontada vira contestação; julgamentos contraditórios sobre
+  o mesmo trecho não são publicados.
+- **Custo**: `validar-decisoes-estimar` não chama a API; o teto é por execução (`Orcamento`), com
+  reserva para o juiz; teto mínimo informado porque o `Orcamento` reserva o pior caso de cada chamada.
+- **Persistência**: `validacao-decisoes.json` na pasta de projeto `Validador/<livro>`, por ID do alerta e
+  chave de conteúdo. A interface só mostra avaliações cuja decisão ainda é a avaliada.
+- **Fora**: orçamento global entre execuções (só existe na branch experimental `experiment/haiku-5.5`).
+
+### Validador padrão: V5 (GPT‑6.1 Sol, medium)
+
+Desde a 1.9, o backend padrão de **Validar decisões** é a V5; a V2 (Claude) é a alternativa manual,
+escolhida na aba **Validação**. O Lume nunca troca de provedor sozinho.
+
+- **Backend**: `validador_v5.py` (cliente da API Responses, `store=false`, orçamento preventivo, contrato
+  da V4.1) e `validador_v5_integracao.py` (seleção explícita de IDs, versão do manuscrito, estimativa,
+  prévia do texto exato, resultados). Subcomandos `validar-decisoes-v5-{estimar,previa,resultados}` e
+  `validar-decisoes-v5`; a segunda rodada de contexto fica desligada.
+- **Estado**: `Validador/<livro>/validacoes-v5.json` (V5) e `validacoes-v5-integracao.json`; o da V2 é
+  `validacao-decisoes.json`. Cada resultado guarda o modelo e vale só para o mesmo texto, contexto,
+  decisão e configuração; mudou algo, aparece como “Análise desatualizada”.
+- **Apresentação** (`ValidatorV5.swift`): seis categorias derivadas do diagnóstico completo — provavelmente
+  correta, possível erro, revisão recomendada, inconclusiva, ainda não analisada e desatualizada. É
+  apresentação; não muda diagnóstico, decisão nem prioridade.
+- **Lotes**: até 40 decisões por execução, cada uma com estimativa, teto (US$ 1,00 padrão, US$ 5,00 máximo)
+  e confirmação.
+- **Chave**: Keychain, serviço `lume-openai`; chega ao motor só pela variável de ambiente do processo.
+
 ## CLI e configuração
 
 ```sh

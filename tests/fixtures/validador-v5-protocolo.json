@@ -1,0 +1,345 @@
+{
+ "estimate": {
+  "integracao": 1,
+  "provedor": "openai",
+  "modelo": "gpt-6.1-sol",
+  "esforco": "medium",
+  "armazenamento_pelo_provedor": "store=false (a resposta não é retida para consulta)",
+  "selecionadas": 5,
+  "aceitas": 5,
+  "excluidos": [],
+  "versao_manuscrito": "confere",
+  "verificacao": {
+   "versao_confere": 5
+  },
+  "a_enviar": [
+   {
+    "id": "e4462c576e57fda2",
+    "paragrafo": 8,
+    "categoria": "Regência"
+   },
+   {
+    "id": "44eb90cfb16c9fb8",
+    "paragrafo": 10,
+    "categoria": "Regência"
+   },
+   {
+    "id": "015c8784a2bb1595",
+    "paragrafo": 42,
+    "categoria": "Regência"
+   },
+   {
+    "id": "840b1e2a68baedfd",
+    "paragrafo": 50,
+    "categoria": "Regência"
+   },
+   {
+    "id": "baa968cd352b5c26",
+    "paragrafo": 56,
+    "categoria": "Regência"
+   }
+  ],
+  "capitulos_a_enviar": [
+   "Capítulo 1"
+  ],
+  "reutilizadas_sem_custo": 0,
+  "nao_localizadas": 0,
+  "pedidos_primeira_rodada": 2,
+  "custo_esperado_usd": 0.0489,
+  "custo_maximo_usd": 0.4218,
+  "pior_pedido_usd": 0.2313,
+  "teto_minimo_usd": 0.24,
+  "teto_usd": 1.0,
+  "teto_padrao_usd": 1.0,
+  "teto_maximo_usd": 5.0,
+  "cabe_no_teto": true,
+  "segunda_rodada": {
+   "autorizada": false,
+   "custo_maximo_adicional_usd": 0.4218
+  },
+  "fonte_dos_precos": "developers.openai.com (consulta de 11/10/2026)",
+  "aviso": "Estimativa por caracteres; o raciocínio do modelo não é previsível e o custo real pode diferir. Nada é enviado antes da confirmação."
+ },
+ "progress": {
+  "etapa": "avaliacao",
+  "feitos": 3,
+  "total": 5
+ },
+ "finished": {
+  "integracao": 1,
+  "excluidos": [],
+  "versao_manuscrito": "confere",
+  "verificacao": {
+   "versao_confere": 5
+  },
+  "decisoes_alteradas": false,
+  "segunda_rodada_autorizada": false,
+  "pendencias_de_contexto": 1,
+  "reanalisados": [],
+  "analisadas_agora": 5,
+  "avisos": [
+   "Validador V5 (gpt-6.1-sol): 5 analisada(s), 0 reutilizada(s) sem custo, 1 contestação(ões); custo US$ 0.0247. Resultado armazenado não é prova de correção; nenhuma decisão foi alterada."
+  ],
+  "v5": {
+   "versao": "5",
+   "provedor": "openai",
+   "modelo": "gpt-6.1-sol",
+   "esforco": "medium",
+   "elegiveis": 5,
+   "analisadas_agora": 5,
+   "reutilizadas_sem_custo": 0,
+   "desatualizadas": 0,
+   "nao_localizadas": 0,
+   "sem_resposta": 0,
+   "interrompida": false,
+   "motivo_interrupcao": "",
+   "resultados": {
+    "mantida": 1,
+    "contestada": 1,
+    "revisao_recomendada": 1,
+    "apontamento_inadequado": 1,
+    "inconclusiva": 1
+   },
+   "pediram_mais_contexto": 0,
+   "contexto_alterou_conclusao": 0,
+   "conflitos": [],
+   "descartes": {
+    "intencao_nao_determinada": 1
+   },
+   "falhas": {},
+   "pedidos": 2,
+   "tokens_entrada": 6000,
+   "tokens_cache": 2000,
+   "tokens_cache_escrita": 1000,
+   "tokens_saida": 1600,
+   "tokens_raciocinio": 600,
+   "custo_usd": 0.0247,
+   "modelos_servidos": [
+    "gpt-6.1-sol"
+   ],
+   "teto_usd": 1.0
+  },
+  "arquivo": "/tmp/validador/validacoes-v5.json"
+ },
+ "results": {
+  "integracao": 1,
+  "aviso_de_leitura": null,
+  "itens": [
+   {
+    "id": "e4462c576e57fda2",
+    "paragrafo": 8,
+    "categoria": "Regência",
+    "trecho": "neutro",
+    "situacao": "valida",
+    "vale_para_o_texto_e_decisao_atuais": true,
+    "decisao_humana_anterior": "Aceito editorialmente",
+    "decisao_humana_atual": "Aceito editorialmente",
+    "existencia_segundo_a_ia": {
+     "existe": "sim",
+     "natureza": "objetivo",
+     "certeza": "clara",
+     "gravidade": "media",
+     "rotulo": "Problema técnico identificado pelo modelo, com certeza clara (diagnóstico da IA; não é confirmação humana)"
+    },
+    "adequacao_da_decisao_segundo_a_ia": "adequada",
+    "resultado": "mantida",
+    "rotulo_do_resultado": "A IA não encontrou motivo para reconsiderar a decisão",
+    "significado_da_discordancia": null,
+    "prioridade_da_revisao": null,
+    "explicacao_da_ia": "Desvio objetivo.",
+    "evidencias_verificadas": [
+     {
+      "papel": "problema_tecnico",
+      "paragrafo": 8,
+      "trecho": "Parágrafo neutro número 8"
+     }
+    ],
+    "evidencias_descartadas": [],
+    "incertezas_e_limitacoes": [],
+    "questao_independente": null,
+    "sugestao_da_ia": null,
+    "sugestao_aplicada_ao_manuscrito": false,
+    "verificacao_da_versao": "versao_confere",
+    "pendencia_de_contexto": null,
+    "modelo": "gpt-6.1-sol",
+    "aviso": "Diagnóstico da IA: não é confirmação humana nem altera a sua decisão."
+   },
+   {
+    "id": "44eb90cfb16c9fb8",
+    "paragrafo": 10,
+    "categoria": "Regência",
+    "trecho": "neutro",
+    "situacao": "valida",
+    "vale_para_o_texto_e_decisao_atuais": true,
+    "decisao_humana_anterior": "Falso positivo",
+    "decisao_humana_atual": "Falso positivo",
+    "existencia_segundo_a_ia": {
+     "existe": "sim",
+     "natureza": "objetivo",
+     "certeza": "clara",
+     "gravidade": "media",
+     "rotulo": "Problema técnico identificado pelo modelo, com certeza clara (diagnóstico da IA; não é confirmação humana)"
+    },
+    "adequacao_da_decisao_segundo_a_ia": "inadequada",
+    "resultado": "contestada",
+    "rotulo_do_resultado": "A IA discorda da decisão registrada",
+    "significado_da_discordancia": "A IA considera que existe um problema onde você marcou falso positivo.",
+    "prioridade_da_revisao": "alta",
+    "explicacao_da_ia": "Desvio objetivo.",
+    "evidencias_verificadas": [
+     {
+      "papel": "contestacao",
+      "paragrafo": 10,
+      "trecho": "Parágrafo neutro número 10"
+     }
+    ],
+    "evidencias_descartadas": [],
+    "incertezas_e_limitacoes": [],
+    "questao_independente": null,
+    "sugestao_da_ia": null,
+    "sugestao_aplicada_ao_manuscrito": false,
+    "verificacao_da_versao": "versao_confere",
+    "pendencia_de_contexto": null,
+    "modelo": "gpt-6.1-sol",
+    "aviso": "Diagnóstico da IA: não é confirmação humana nem altera a sua decisão."
+   },
+   {
+    "id": "015c8784a2bb1595",
+    "paragrafo": 42,
+    "categoria": "Regência",
+    "trecho": "neutro",
+    "situacao": "valida",
+    "vale_para_o_texto_e_decisao_atuais": true,
+    "decisao_humana_anterior": "Estilo do autor",
+    "decisao_humana_atual": "Estilo do autor",
+    "existencia_segundo_a_ia": {
+     "existe": "sim",
+     "natureza": "interpretativo",
+     "certeza": "discutivel",
+     "gravidade": "baixa",
+     "rotulo": "Desvio reconhecido pelo modelo, mas discutível (diagnóstico da IA; não é erro confirmado)"
+    },
+    "adequacao_da_decisao_segundo_a_ia": "indeterminada",
+    "resultado": "revisao_recomendada",
+    "rotulo_do_resultado": "A IA reconhece o desvio; a escolha editorial continua sendo sua",
+    "significado_da_discordancia": null,
+    "prioridade_da_revisao": "baixa",
+    "explicacao_da_ia": "Oscilação discutível.",
+    "evidencias_verificadas": [
+     {
+      "papel": "problema_tecnico",
+      "paragrafo": 42,
+      "trecho": "Parágrafo neutro número 42"
+     }
+    ],
+    "evidencias_descartadas": [],
+    "incertezas_e_limitacoes": [
+     "Certeza discutível: o modelo admite outra leitura razoável."
+    ],
+    "questao_independente": null,
+    "sugestao_da_ia": null,
+    "sugestao_aplicada_ao_manuscrito": false,
+    "verificacao_da_versao": "versao_confere",
+    "pendencia_de_contexto": null,
+    "modelo": "gpt-6.1-sol",
+    "aviso": "Diagnóstico da IA: não é confirmação humana nem altera a sua decisão."
+   },
+   {
+    "id": "840b1e2a68baedfd",
+    "paragrafo": 50,
+    "categoria": "Regência",
+    "trecho": "neutro",
+    "situacao": "valida",
+    "vale_para_o_texto_e_decisao_atuais": true,
+    "decisao_humana_anterior": "Falso positivo",
+    "decisao_humana_atual": "Falso positivo",
+    "existencia_segundo_a_ia": {
+     "existe": "nao",
+     "natureza": "nenhuma",
+     "certeza": "nao_se_aplica",
+     "gravidade": "nenhuma",
+     "rotulo": "Problema técnico não identificado pelo modelo"
+    },
+    "adequacao_da_decisao_segundo_a_ia": "adequada",
+    "resultado": "apontamento_inadequado",
+    "rotulo_do_resultado": "A IA considera que o apontamento do detector não se sustenta",
+    "significado_da_discordancia": null,
+    "prioridade_da_revisao": null,
+    "explicacao_da_ia": "A forma está correta.",
+    "evidencias_verificadas": [
+     {
+      "papel": "problema_tecnico",
+      "paragrafo": 50,
+      "trecho": "Parágrafo neutro número 50"
+     }
+    ],
+    "evidencias_descartadas": [],
+    "incertezas_e_limitacoes": [],
+    "questao_independente": null,
+    "sugestao_da_ia": null,
+    "sugestao_aplicada_ao_manuscrito": false,
+    "verificacao_da_versao": "versao_confere",
+    "pendencia_de_contexto": null,
+    "modelo": "gpt-6.1-sol",
+    "aviso": "Diagnóstico da IA: não é confirmação humana nem altera a sua decisão."
+   },
+   {
+    "id": "baa968cd352b5c26",
+    "paragrafo": 56,
+    "categoria": "Regência",
+    "trecho": "neutro",
+    "situacao": "valida",
+    "vale_para_o_texto_e_decisao_atuais": true,
+    "decisao_humana_anterior": "Estilo do autor",
+    "decisao_humana_atual": "Estilo do autor",
+    "existencia_segundo_a_ia": {
+     "existe": "incerto",
+     "natureza": "interpretativo",
+     "certeza": "discutivel",
+     "gravidade": "baixa",
+     "rotulo": "Problema técnico não estabelecido pelo modelo (resultado incerto)"
+    },
+    "adequacao_da_decisao_segundo_a_ia": "indeterminada",
+    "resultado": "inconclusiva",
+    "rotulo_do_resultado": "Sem conclusão segura da IA",
+    "significado_da_discordancia": null,
+    "prioridade_da_revisao": null,
+    "explicacao_da_ia": "Não decide.",
+    "evidencias_verificadas": [],
+    "evidencias_descartadas": [],
+    "incertezas_e_limitacoes": [
+     "O modelo não conseguiu estabelecer se há desvio (existe = incerto).",
+     "O modelo declarou que o texto enviado não bastava para concluir.",
+     "Nenhuma evidência verificada foi registrada para este resultado.",
+     "O modelo pediu mais contexto; a segunda rodada não foi autorizada (pendente)."
+    ],
+    "questao_independente": null,
+    "sugestao_da_ia": null,
+    "sugestao_aplicada_ao_manuscrito": false,
+    "verificacao_da_versao": "versao_confere",
+    "pendencia_de_contexto": {
+     "paragrafos": [
+      9
+     ],
+     "termos": [
+      "chuva"
+     ]
+    },
+    "modelo": "gpt-6.1-sol",
+    "aviso": "Diagnóstico da IA: não é confirmação humana nem altera a sua decisão."
+   }
+  ],
+  "contagem": {
+   "mantida": 1,
+   "contestada": 1,
+   "revisao_recomendada": 1,
+   "apontamento_inadequado": 1,
+   "inconclusiva": 1
+  },
+  "desatualizadas": 0
+ },
+ "failure": {
+  "codigo": "teto_insuficiente",
+  "mensagem": "O teto de US$ 0.01 não cobre o pior caso de um pedido (US$ 0.15). Nada foi enviado."
+ }
+}

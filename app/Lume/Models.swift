@@ -999,3 +999,131 @@ struct AIEstimate {
         return parts.joined(separator: "\n\n")
     }
 }
+
+// MARK: Validador de decisões
+
+/// Segunda leitura das decisões do autor (Haiku → Sonnet). Só sugere reconsiderar: nenhuma decisão,
+/// relatório ou manuscrito é alterado por ela.
+struct ValidatorEstimate: Decodable {
+    let triagem: String
+    let juiz: String
+    let elegiveis: Int
+    let aAvaliar: Int
+    let reaproveitadas: Int
+    let naoLocalizadas: Int
+    let titulosAEnviar: [String]
+    let custoEstimadoUsd: Double
+    let custoMaximoUsd: Double
+    /// Menor teto que deixa o Orcamento enviar uma chamada (pior caso dela); abaixo disso nada é enviado.
+    let tetoMinimoUsd: Double
+    /// Pedidos à API (a triagem; ao Sonnet, o esperado e o máximo). Ausentes em motores anteriores.
+    var pedidosTriagem: Int? = nil
+    var pedidosJuizEstimados: Int? = nil
+    var pedidosJuizMaximo: Int? = nil
+
+    enum CodingKeys: String, CodingKey {
+        case triagem, juiz, elegiveis
+        case tetoMinimoUsd = "teto_minimo_usd"
+        case pedidosTriagem = "pedidos_triagem", pedidosJuizEstimados = "pedidos_juiz_estimados"
+        case pedidosJuizMaximo = "pedidos_juiz_maximo"
+        case aAvaliar = "a_avaliar", reaproveitadas, naoLocalizadas = "nao_localizadas"
+        case titulosAEnviar = "titulos_a_enviar"
+        case custoEstimadoUsd = "custo_estimado_usd", custoMaximoUsd = "custo_maximo_usd"
+    }
+
+    func summary(budget: Double) -> String { lines(budget: budget).joined(separator: "\n") }
+
+    /// Um parágrafo por item; o último é o aviso de teto baixo, quando houver.
+    func lines(budget: Double) -> [String] {
+        var lines = ["\(elegiveis) decisões elegíveis (erro confirmado, estilo, falso positivo, intencional ou aceito)."]
+        if reaproveitadas > 0 { lines.append("\(reaproveitadas) já foram avaliadas com o mesmo texto e contexto: sem custo.") }
+        if naoLocalizadas > 0 {
+            lines.append("\(naoLocalizadas) não serão avaliadas: o trecho mudou ou não foi localizado com segurança no manuscrito atual.")
+        }
+        guard aAvaliar > 0 else {
+            return lines + ["Nada será enviado e não há custo."]
+        }
+        let lista = titulosAEnviar.prefix(6).joined(separator: ", ") + (titulosAEnviar.count > 6 ? "…" : "")
+        lines.append("\(aAvaliar) serão enviadas à Anthropic (\(lista)), com os parágrafos vizinhos, para \(triagem) (triagem) e, se preciso, \(juiz).")
+        if let triage = pedidosTriagem, let expected = pedidosJuizEstimados, let maximum = pedidosJuizMaximo {
+            lines.append("Pedidos à API: \(triage) de triagem e, ao Sonnet, cerca de \(expected) (até \(maximum)).")
+        }
+        lines.append(String(format: "Custo estimado: US$ %.2f (no pior caso, US$ %.2f). Teto desta execução: US$ %.2f; se ele não bastar, a validação para e informa quantas decisões ficaram sem avaliação.",
+                            custoEstimadoUsd, custoMaximoUsd, budget))
+        if budget < tetoMinimoUsd {
+            lines.append(String(format: "Atenção: com este teto, a primeira chamada pode ser barrada antes do envio (reserva conservadora do pior caso: US$ %.2f).", tetoMinimoUsd))
+        }
+        return lines
+    }
+
+    /// O aviso de teto baixo é a última linha, só quando o teto não cobre o pior caso de uma chamada.
+    func warns(budget: Double) -> Bool { aAvaliar > 0 && budget < tetoMinimoUsd }
+}
+
+struct ValidatorIssue: Decodable {
+    let trecho: String
+    let explicacao: String
+}
+
+struct ValidatedDecision: Decodable, Identifiable {
+    let id: String
+    let decisao: String
+    /// contestada, mantida, inconclusiva, apontamento_inadequado, triada ou nao_avaliada.
+    let estado: String
+    var classe: String? = nil
+    var modeloFinal: String? = nil
+    var explicacao: String? = nil
+    var evidencias: [String]? = nil
+    var recomendacao: String? = nil
+    var questaoIndependente: ValidatorIssue? = nil
+    var motivo: String? = nil
+
+    enum CodingKeys: String, CodingKey {
+        case id, decisao, estado, classe, explicacao, evidencias, recomendacao, motivo
+        case modeloFinal = "modelo_final", questaoIndependente = "questao_independente"
+    }
+}
+
+struct ValidatorSummary: Decodable {
+    let elegiveis: Int
+    let avaliadas: Int
+    let naoAvaliadas: Int
+    let contestadas: Int
+    let reaproveitadas: Int
+    let interrompida: Bool
+    let custoUsd: Double
+
+    enum CodingKeys: String, CodingKey {
+        case elegiveis, avaliadas, contestadas, reaproveitadas, interrompida
+        case naoAvaliadas = "nao_avaliadas", custoUsd = "custo_usd"
+    }
+}
+
+private struct ValidatorFile: Decodable { let itens: [String: ValidatedDecision] }
+private struct ValidatorLine: Decodable { let arquivo: String; let resumo: ValidatorSummary }
+
+/// Resultado de uma validação, já filtrado para o relatório e as decisões atuais.
+struct DecisionValidation {
+    let summary: ValidatorSummary?
+    /// Decisões que merecem reconsideração, na ordem do manuscrito.
+    let contested: [ValidatedDecision]
+    /// Problemas independentes do alerta original, de avaliações que não contestam a decisão.
+    let independent: [ValidatedDecision]
+    let unevaluated: Int
+
+    /// Lê a linha `LUME_VALIDACAO` e o registro do projeto. Uma avaliação só vale se o alerta continua
+    /// no relatório e a decisão atual é a que foi avaliada.
+    static func load(line: Data, report: EditorialReport, decisions: [String: ReviewDecision]) throws -> DecisionValidation {
+        let parsed = try JSONDecoder().decode(ValidatorLine.self, from: line)
+        let file = try JSONDecoder().decode(ValidatorFile.self, from: Data(contentsOf: URL(fileURLWithPath: parsed.arquivo)))
+        let order = Dictionary(uniqueKeysWithValues: report.findings.enumerated().map { ($1.id, $0) })
+        let valid = file.itens.values.filter { item in
+            order[item.id] != nil && decisions[item.id]?.rawValue == item.decisao
+        }.sorted { (order[$0.id] ?? 0) < (order[$1.id] ?? 0) }
+        return DecisionValidation(
+            summary: parsed.resumo,
+            contested: valid.filter { $0.estado == "contestada" },
+            independent: valid.filter { $0.estado != "contestada" && $0.questaoIndependente != nil },
+            unevaluated: parsed.resumo.naoAvaliadas)
+    }
+}
