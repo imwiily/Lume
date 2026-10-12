@@ -23,14 +23,16 @@ def load_model():
 
 def coherence_options(command):
     command.add_argument("--coerencia-projeto", type=Path, help="Pasta de projeto da Coerência com IA deste manuscrito")
+    command.add_argument("--coerencia-versao", type=int, choices=[1, 2], default=1,
+                         help="1: leitura incremental por cena (padrão); 2: leitura global da obra em uma só requisição")
     command.add_argument("--coerencia-modelo", default="claude-sonnet-5-5",
-                         help="Modelo do Claude (claude-sonnet-5-5, claude-opus-5-5, claude-haiku-4-5)")
+                         help="Modelo (claude-sonnet-5-5, claude-opus-5-5, claude-haiku-4-5 ou gemini-3.8-flash)")
 
 
 def audit_options(command):
     command.add_argument("--auditoria-projeto", type=Path, help="Pasta de projeto da Auditoria final com IA deste manuscrito")
     command.add_argument("--auditoria-modelo", default="claude-opus-5-5",
-                         help="Modelo do Claude (claude-opus-5-5, claude-sonnet-5-5, claude-haiku-4-5)")
+                         help="Modelo (claude-opus-5-5, claude-sonnet-5-5, claude-haiku-4-5 ou gemini-3.8-flash)")
     command.add_argument("--auditoria-esforco", default="medium", choices=["low", "medium", "high", "xhigh", "max"])
 
 
@@ -53,13 +55,13 @@ def parser():
     review.add_argument("--porta-lt", type=int,
                         help="Porta de um servidor LanguageTool já ativo (ignora o embutido; padrão 8081 quando não há embutido)")
     review.add_argument("--coerencia-ia", action="store_true",
-                        help="Contradições narrativas com a API do Claude (envia os capítulos alterados à Anthropic)")
+                        help="Contradições narrativas com IA (envia os capítulos alterados à Anthropic ou ao Google, conforme o modelo)")
     coherence_options(review)
     review.add_argument("--coerencia-teto", type=float, default=1.0, help="Gasto máximo em US$ nesta análise")
     review.add_argument("--coerencia-esforco", default="medium", choices=["low", "medium", "high", "xhigh", "max"])
     review.add_argument("--auditoria-ia", action="store_true",
-                        help="Auditoria final com a API do Claude: procura o que as etapas anteriores deixaram passar "
-                             "(envia à Anthropic os capítulos ainda não auditados)")
+                        help="Auditoria final com IA: procura o que as etapas anteriores deixaram passar "
+                             "(envia à Anthropic ou ao Google, conforme o modelo, os capítulos ainda não auditados)")
     audit_options(review)
     review.add_argument("--auditoria-teto", type=float, default=1.0, help="Gasto máximo em US$ da auditoria nesta análise")
     audit_estimate = commands.add_parser("auditoria-estimar",
@@ -73,6 +75,12 @@ def parser():
     coherence_options(estimate)
     estimate.add_argument("arquivo", type=Path)
     estimate.add_argument("--config", type=Path)
+    search = commands.add_parser("pesquisar-fundamento",
+                                 help="Pesquisa Google (Gemini) de uma dúvida normativa abstrata; só sob pedido, sem manuscrito")
+    search.add_argument("--pergunta", required=True, help="Pergunta linguística sem trechos do manuscrito")
+    search.add_argument("--modelo", default="gemini-3.8-flash")
+    search.add_argument("--teto", type=float, default=0.25, help="Gasto máximo em US$ desta pesquisa")
+    search.add_argument("--estimar", action="store_true", help="Só calcula o pior caso; não chama a API")
     check = commands.add_parser("conferir-edicao",
                                 help="Conferir que uma correção alterou só o parágrafo indicado; não grava nada")
     check.add_argument("antes", type=Path, help="Cópia do manuscrito antes da correção")
@@ -122,6 +130,7 @@ def estimate_coherence(args):
     """Uma linha JSON para o app: capítulos a enviar e custo estimado. Não chama a API."""
     from .settings import load as load_settings, validate as validate_settings
     from .coerencia_ia import estimar
+    from .coerencia2_ia import estimar as estimar_global
     path = args.arquivo.expanduser().resolve()
     if not path.is_file():
         raise ValueError("Arquivo não encontrado.")
@@ -129,7 +138,8 @@ def estimate_coherence(args):
         raise ValueError("Informe a pasta de projeto (--coerencia-projeto).")
     settings = load_settings(args.config) if args.config else validate_settings({})
     blocks, _ = read_manuscript(path, settings)
-    result = estimar(blocks, args.coerencia_projeto.expanduser().resolve(), args.coerencia_modelo)
+    project = args.coerencia_projeto.expanduser().resolve()
+    result = (estimar_global if args.coerencia_versao == 2 else estimar)(blocks, project, args.coerencia_modelo)
     print("LUME_ESTIMATIVA " + json.dumps(result, ensure_ascii=False), flush=True)
     return 0
 
@@ -148,6 +158,18 @@ def estimate_audit(args):
     result = estimar(blocks, args.auditoria_projeto.expanduser().resolve(), tempo=args.tempo,
                      modelo=args.auditoria_modelo, esforco=args.auditoria_esforco)
     print("LUME_ESTIMATIVA_AUDITORIA " + json.dumps(result, ensure_ascii=False), flush=True)
+    return 0
+
+
+def search_ground(args):
+    """Uma linha JSON para o app. Uma única chamada, só com `--pergunta`; `--estimar` não chama a API."""
+    from . import pesquisa_gemini as pesquisa
+    if args.estimar:
+        print("LUME_PESQUISA_ESTIMATIVA " + json.dumps(pesquisa.estimar(args.pergunta, args.modelo), ensure_ascii=False), flush=True)
+        return 0
+    if not 0 < args.teto < float("inf"):
+        raise ValueError("O teto da pesquisa precisa ser maior que zero.")
+    print("LUME_PESQUISA " + json.dumps(pesquisa.pesquisar(args.pergunta, args.modelo, args.teto), ensure_ascii=False), flush=True)
     return 0
 
 
@@ -281,6 +303,8 @@ def main(argv=None):
             return estimate_coherence(args)
         if args.command == "auditoria-estimar":
             return estimate_audit(args)
+        if args.command == "pesquisar-fundamento":
+            return search_ground(args)
         if args.command == "conferir-edicao":
             return check_edit(args)
         if args.command in ("validar-decisoes-v5", "validar-decisoes-v5-estimar", "validar-decisoes-v5-resultados",
@@ -346,7 +370,8 @@ def main(argv=None):
                 original=original_blocks, languagetool=args.languagetool, port=port, languagetool_falha=falha,
                 progress=progress, coerencia=dict(
                     pasta=args.coerencia_projeto.expanduser().resolve(), documento=path.name,
-                    modelo=args.coerencia_modelo, teto=args.coerencia_teto, esforco=args.coerencia_esforco)
+                    modelo=args.coerencia_modelo, teto=args.coerencia_teto, esforco=args.coerencia_esforco,
+                    versao=args.coerencia_versao)
                 if args.coerencia_ia else None,
                 auditoria=dict(pasta=args.auditoria_projeto.expanduser().resolve(), modelo=args.auditoria_modelo,
                                teto=args.auditoria_teto, esforco=args.auditoria_esforco)

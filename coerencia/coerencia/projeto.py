@@ -32,6 +32,7 @@ ESTADOS = ("aberta", "corrigida", "intencional", "resolvida_por_edicao")
 # (79.984 caracteres, 29 cenas, US$ 0,77) e um texto de 2 cenas (US$ 0,013).
 CUSTO_POR_CARACTERE = 7.45e-6
 CUSTO_POR_CENA = 0.006
+# Gemini fica no fator 1,0 (a calibração do Sonnet): o raciocínio dele não foi medido, então não se promete menos.
 FATOR_MODELO = {"claude-sonnet-5-5": 1.0, "claude-opus-5-5": 2.0, "claude-haiku-4-5": 0.5}
 
 

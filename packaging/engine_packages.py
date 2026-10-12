@@ -112,7 +112,8 @@ def probe(root, manifest):
         output = log.read(1_000_000).decode('utf-8', errors='replace')
     # A última linha é o contrato; avisos de dependências podem precedê-la.
     data = json.loads(output.strip().splitlines()[-1])
-    if any(data.get(k) != API for k in ('api_version', 'report_schema', 'decision_schema')) or data.get('engine_version') != manifest['engine_version'] or not data.get('healthy'):
+    if any(data.get(k) != API for k in ('api_version', 'report_schema', 'decision_schema')) or data.get('engine_version') != manifest['engine_version'] or not data.get('healthy') \
+            or data.get('coherence_version') != manifest.get('coherence_version', data.get('coherence_version')):
         raise ValueError('O motor não passou no teste de funcionamento.')
     return data
 

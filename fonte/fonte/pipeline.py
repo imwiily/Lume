@@ -154,9 +154,13 @@ def run(blocks, model_loader, *, settings=None, tense="auto", mode="ambas",
             ["variacao_nome"]))
         warnings.extend(extra_warnings)
         if coerencia:
-            from .coerencia_ia import analisar as coerencia_ia
+            opcoes_ia = dict(coerencia)
+            if opcoes_ia.pop("versao", 1) == 2:
+                from .coerencia2_ia import analisar as coerencia_ia
+            else:
+                from .coerencia_ia import analisar as coerencia_ia
             extra, extra_warnings, rodada = coerencia_ia(blocks, registrar=lambda *_: None,
-                                                         avancar=lambda f, t: avancar(f, t, "cenas"), **coerencia)
+                                                         avancar=lambda f, t: avancar(f, t, "cenas"), **opcoes_ia)
             out.extend(extra); warnings.extend(extra_warnings)
             meta["coerencia_ia"] = rodada
         return out

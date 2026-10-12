@@ -10,7 +10,7 @@ JSON terminar (`stop_reason=max_tokens`, sem resposta aproveitável).
 import json
 
 import coerencia.modelo as modelo_compartilhado
-from coerencia.modelo import MAX_TOKENS, Claude, ErroModelo, tarifa
+from coerencia.modelo import MAX_TOKENS, Claude, ErroModelo, Gemini, tarifa
 from coerencia2.auditoria import CARACTERES_POR_TOKEN
 
 
@@ -60,3 +60,36 @@ class UmaRequisicao(Claude):
                 self.erro_original = f"{type(erro).__name__}"
                 raise
         return super()._enviar(uma, pedido, extra, etapa)
+
+
+class UmaRequisicaoGemini(Gemini):
+    """Mesma garantia da `UmaRequisicao` para o Gemini: no máximo UM envio (sem repetir 429 nem queda de rede), sem
+    verificação prévia e com `max_tokens` por execução (o raciocínio conta nesse limite). Teto e registro de custo e
+    tokens são os do `Gemini` compartilhado."""
+    requisicoes = 0
+
+    def __init__(self, *args, max_tokens=MAX_TOKENS, **kwargs):
+        if not isinstance(max_tokens, int) or isinstance(max_tokens, bool) or not 1000 <= max_tokens <= 64000:
+            raise ValueError("max_tokens precisa ser um inteiro entre 1000 e 64000.")
+        super().__init__(*args, **kwargs)
+        self.max_tokens, self.tentativas = max_tokens, 1
+        self.caracteres_por_token = min(self.caracteres_por_token, CARACTERES_POR_TOKEN)
+
+    def verificar(self):
+        """Não faz nada: a credencial é conferida pela própria requisição."""
+
+    def _enviar(self, corpo, extra, etapa):
+        if self.requisicoes:
+            raise ErroModelo("Uma única requisição foi autorizada: nova tentativa bloqueada.")
+        self.requisicoes += 1
+        return super()._enviar(corpo, extra, etapa)
+
+
+def criar_uma_requisicao(modelo, esforco, max_tokens, orcamento=None, so_tarifa=False):
+    """Cliente de uma só requisição pelo provedor do modelo (`gemini-*` é do Google). `so_tarifa`: sem credencial
+    nem rede, só para calcular o pior caso."""
+    if modelo.startswith("gemini-"):
+        return UmaRequisicaoGemini(modelo, esforco=esforco, orcamento=orcamento, max_tokens=max_tokens,
+                                   transporte=object() if so_tarifa else None)
+    return UmaRequisicao(modelo, esforco=esforco, orcamento=orcamento, max_tokens=max_tokens,
+                         cliente=object() if so_tarifa else None)

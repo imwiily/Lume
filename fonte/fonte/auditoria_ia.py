@@ -1,4 +1,4 @@
-"""Auditoria final com IA: depois das quatro etapas, o Claude relê cada capítulo com os
+"""Auditoria final com IA: depois das quatro etapas, o Claude (ou o Gemini, se escolhido) relê cada capítulo com os
 alertas já emitidos e procura só problemas novos.
 
 Opcional e desligada por padrão, porque custa dinheiro. Nada é enviado sem confirmação. Os
@@ -23,6 +23,7 @@ from .settings import validate
 
 REGRA = "auditoria_ia"
 FONTE = "Auditoria · IA (Claude)"
+FONTE_GEMINI = "Auditoria · IA (Gemini)"
 VERSAO_PROMPT = 4
 MODELO_PADRAO = "claude-opus-5-5"
 LIMITE = 40000      # caracteres revisados por pedido; capítulos maiores viram janelas
@@ -35,6 +36,7 @@ ESTADO = "auditoria.json"
 ENTRADA_FIXA = 1440
 CARACTERES_POR_TOKEN = 2.0
 SAIDA_FIXA = 400
+SAIDA_FIXA_GEMINI = 2000
 SAIDA_PROPORCIONAL = .15
 
 # categoria: (título no app, regra da busca que a desliga, camada, severidade)
@@ -203,10 +205,13 @@ def gravar_estado(pasta, trechos):
 
 def estimar(blocks, pasta, tempo="passado", modelo=MODELO_PADRAO, esforco="medium", limite=LIMITE):
     """Quanto a próxima auditoria enviaria, sem chamar a API nem criar o cliente."""
-    from coerencia.modelo import PRECOS
-    if modelo not in PRECOS:
+    from coerencia.modelo import PRECOS, PRECOS_GEMINI
+    tabela = PRECOS_GEMINI if modelo.startswith("gemini-") else PRECOS
+    if modelo not in tabela:
         raise ValueError(f"Auditoria final com IA: modelo sem preço conhecido ({modelo}).")
-    entrada, saida, cache = PRECOS[modelo]
+    entrada, saida, cache = tabela[modelo]
+    # Gemini: o raciocínio é cobrado como saída e não foi medido aqui; reserva fixa maior, sem escrita de cache.
+    saida_fixa = SAIDA_FIXA_GEMINI if modelo.startswith("gemini-") else SAIDA_FIXA
     guardados, _ = ler_estado(pasta) if pasta else ({}, None)
     todos = plano(blocks, limite)
     pendentes = [(t, c, p) for t, c, p in todos if chave(modelo, esforco, tempo, t, c, p) not in guardados]
@@ -216,12 +221,14 @@ def estimar(blocks, pasta, tempo="passado", modelo=MODELO_PADRAO, esforco="mediu
         tokens = len(pedido(titulo, tempo, contexto, proprios, [])) / CARACTERES_POR_TOKEN
         caracteres += sum(len(b.text) for b in proprios)
         fixo = ENTRADA_FIXA * (entrada if n == 0 else cache)
-        custo += (fixo + tokens * entrada + (SAIDA_FIXA + SAIDA_PROPORCIONAL * tokens) * saida) / 1e6
+        custo += (fixo + tokens * entrada + (saida_fixa + SAIDA_PROPORCIONAL * tokens) * saida) / 1e6
     return {"modelo": modelo, "esforco": esforco, "trechos": total, "a_enviar": len(pendentes),
             "reaproveitados": total - len(pendentes),
             "titulos_a_enviar": list(dict.fromkeys(t for t, _, _ in pendentes)), "caracteres": caracteres,
             "custo_estimado_usd": round(custo, 4), "custo_minimo_usd": round(custo * .5, 4),
-            "custo_maximo_usd": round(custo * 2, 4), "calibracao": "uma medição (05/10/2026)"}
+            "custo_maximo_usd": round(custo * 2, 4), "provedor": "google" if modelo.startswith("gemini-") else "anthropic",
+            "calibracao": "sem medição com o Gemini; estimativa conservadora" if modelo.startswith("gemini-")
+            else "uma medição (05/10/2026)"}
 
 
 def pedido(titulo, tempo, contexto, proprios, anteriores):
@@ -255,6 +262,7 @@ def auditar(blocks, anteriores, avancar=None, *, tempo="passado", configuracao=N
     ErroModelo, Recusa, RespostaCortada, TetoAtingido = _erros()
     opcoes = validate(configuracao or {})
     nome = getattr(cliente, "modelo", modelo) if cliente else modelo
+    google = nome.startswith("gemini-")
     nivel = getattr(cliente, "esforco", esforco) if cliente else esforco
     papeis = {b.number: r for b, r in zip(blocks, classify(blocks, opcoes))}
     regras, escopo_tempo = opcoes["rules"], set(opcoes["tense_scopes"])
@@ -314,7 +322,7 @@ def auditar(blocks, anteriores, avancar=None, *, tempo="passado", configuracao=N
             if repetido_no_paragrafo:
                 explicacao += f" (Trecho “{block.text[inicio:fim]}”: vale a primeira ocorrência no parágrafo.)"
             termo = str(bruto.get("termo", "")).strip().rstrip(".") or titulo.casefold()
-            item = asdict(finding(block, titulo, "Verificar", inicio, fim, explicar(explicacao, termo), FONTE))
+            item = asdict(finding(block, titulo, "Verificar", inicio, fim, explicar(explicacao, termo), FONTE_GEMINI if google else FONTE))
             confianca, nota = CONFIANCA.get(bruto.get("confianca"), ("baixa", .4))
             sugestao = str(bruto.get("sugestao", "")).strip()
             item.update(rule=REGRA, category_code=f"audit_{categoria}", layer=camada, severity=severidade,
@@ -390,8 +398,8 @@ def auditar(blocks, anteriores, avancar=None, *, tempo="passado", configuracao=N
     if interrompida:
         avisos.append("Auditoria final com IA: teto de gasto atingido; os trechos restantes ficam para a próxima "
                       f"análise, e o que já foi auditado está guardado. {motivo_teto}")
-    avisos.append(f"Auditoria final com IA ({nome}): {len(pedidos)} trecho(s), {len(chamadas)} pedido(s) à "
-                  f"Anthropic e {reaproveitados} reaproveitado(s) da análise anterior sem custo; custo estimado "
+    avisos.append(f"Auditoria final com IA ({nome}): {len(pedidos)} trecho(s), {len(chamadas)} pedido(s) "
+                  f"{'ao Google' if google else 'à Anthropic'} e {reaproveitados} reaproveitado(s) da análise anterior sem custo; custo estimado "
                   f"US$ {custo:.4f}; {len(novos)} achado(s) novo(s), {sum(descartes.values())} descartado(s). "
                   "Os achados são suspeitas para avaliação humana, não erros confirmados.")
     return novos, avisos, resumo

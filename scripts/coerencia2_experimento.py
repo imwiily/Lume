@@ -43,7 +43,7 @@ def planejar(args):
 
 def executar(args):
     from coerencia.modelo import Orcamento
-    from coerencia2.uma_requisicao import UmaRequisicao
+    from coerencia2.uma_requisicao import criar_uma_requisicao
     paragrafos, sha, nome = _ler(args)
     if not sha.startswith(args.sha_esperado):
         raise SystemExit(f"Manuscrito {sha[:12]} não é o esperado ({args.sha_esperado}). Nada foi enviado.")
@@ -56,7 +56,7 @@ def executar(args):
     if not args.autorizo_envio:
         raise SystemExit("Faltou --autorizo-envio: o texto do manuscrito só vai ao provedor com autorização explícita.")
     # Uma única requisição: sem repetição, sem verificação prévia e sem retomada no servidor.
-    cliente = UmaRequisicao(args.modelo, esforco=args.esforco, orcamento=Orcamento(args.teto), max_tokens=args.max_tokens)
+    cliente = criar_uma_requisicao(args.modelo, args.esforco, args.max_tokens, Orcamento(args.teto))
     pasta = Path(args.saida)
     pasta.mkdir(parents=True, exist_ok=True)
     resultado = aud.auditar(paragrafos, cliente, nome, args.inacabada, args.limite, pasta)

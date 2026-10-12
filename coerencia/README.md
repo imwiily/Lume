@@ -11,6 +11,15 @@ clima, horário) usando a **API do Claude**. O manuscrito é somente lido.
 
 O mesmo motor também está **dentro do Lume.app** (opção *Coerência com IA* na etapa Coerência global).
 
+## Coerência 2.0 (leitura global, experimental)
+
+A versão **2.0.0** acrescenta o pacote `coerencia2`: o modelo lê a obra inteira **numa só requisição** (até 300 000
+caracteres) e aponta contradições e lacunas de continuidade; o Python numera os parágrafos, controla o teto e o cache e
+confere cada citação no texto. No Lume, escolha *Global (Coerência 2.0)* ao ligar a Coerência com IA; os apontamentos
+entram como **observações**, nunca como pendências nem impeditivos. A leitura por cenas (1.x) continua disponível e é a
+padrão. Funciona com `claude-*` e `gemini-*`. A precisão da 2.0 **ainda não foi medida em livros reais**
+(`.agent/plans/coerencia-2-ia.md`). Script de experimento: `scripts/coerencia2_experimento.py`.
+
 ## Preparar
 
 ```sh

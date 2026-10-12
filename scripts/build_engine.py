@@ -82,7 +82,7 @@ def freeze_command(work):
                # Coerência com IA: fonte única em coerencia/, embutida no motor.
                '--paths', str(ROOT / 'coerencia')]
     for module in ('fonte', 'spacy', 'thinc', 'pt_core_news_sm', 'srsly', 'cymem', 'preshed', 'murmurhash', 'blis',
-                   'coerencia', 'anthropic'):
+                   'coerencia', 'coerencia2', 'anthropic'):
         command += ['--collect-all', module]
     command += ['--collect-data', 'docx', '--recursive-copy-metadata', 'spacy',
                 '--copy-metadata', 'pt-core-news-sm', '--copy-metadata', 'fonte-revisor', '--copy-metadata', 'anthropic']
@@ -212,7 +212,8 @@ def main():
         raise SystemExit('O motor leva arquivos privados: ' + ', '.join(leaked[:5]))
     manifest = {'package_schema': 1, 'api_version': 1, 'report_schema': 1, 'decision_schema': 1,
                 'engine_version': health['engine_version'], 'platform': 'darwin', 'architecture': 'arm64',
-                'minimum_os': minimum_os(package), 'executable': 'runtime/lume-engine', 'files': inventory(package)}
+                'minimum_os': minimum_os(package), 'executable': 'runtime/lume-engine', 'files': inventory(package),
+                'coherence_version': health['coherence_version']}
     (package / 'manifest.json').write_text(json.dumps(manifest, indent=2, sort_keys=True))
     validate(package); probe(package, manifest)
     # Contrato real da CLI após congelamento e relocação; não usa Python externo.

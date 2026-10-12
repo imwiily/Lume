@@ -56,6 +56,10 @@ def medicao(ocorrencia):
 
 
 def destino(ocorrencia):
+    # Coerência 2.0: classe nova, sem medição em livros reais. O próprio apontamento traz o destino (informação ou
+    # diagnóstico) e nada o promove a pendência (ver `.agent/plans/coerencia-2-ia.md`).
+    if ocorrencia.get("rule") == "coerencia2_ia":
+        return ocorrencia.get("destino") if ocorrencia.get("destino") in ("diagnostico", "informacao") else "diagnostico"
     regras = politica()["limiares"]
     auditoria = ocorrencia.get("rule") == "auditoria_ia"
     # Auditoria = controle de qualidade: confiança baixa nunca chega à mesa.

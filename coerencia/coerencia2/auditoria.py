@@ -493,12 +493,13 @@ def estimar(paragrafos, modelo=MODELO_PADRAO, esforco=ESFORCO_PADRAO, titulo="ma
     """Cobertura e custo da chamada, sem rede. `custo_maximo_usd` é a reserva do cliente experimental de uma só
     requisição (um envio, sem fallback nem repetição): entrada + `max_tokens` de saída; é o que o teto precisa cobrir.
     `custo_maximo_com_retomada_usd` é a do cliente compartilhado, só para referência."""
-    from coerencia2.uma_requisicao import UmaRequisicao
+    from coerencia2.uma_requisicao import criar_uma_requisicao
     caracteres = sum(len(p.texto) for p in paragrafos)
     texto = pedido(paragrafos, titulo, inacabada)
     cabe, motivo, tokens = cobertura_possivel(paragrafos, titulo, inacabada, limite_caracteres, janela_tokens, max_tokens)
-    unico = UmaRequisicao(modelo, esforco=esforco, cliente=object(), max_tokens=max_tokens)    # só tarifa; nada é enviado
-    padrao = Claude(modelo, esforco=esforco, cliente=object())
+    unico = criar_uma_requisicao(modelo, esforco, max_tokens, so_tarifa=True)    # só tarifa; nada é enviado
+    # O Gemini não tem retomada automática em outro modelo: a referência é o próprio pior caso.
+    padrao = unico if modelo.startswith("gemini-") else Claude(modelo, esforco=esforco, cliente=object())
     padrao.caracteres_por_token = CARACTERES_POR_TOKEN
     _, escrita, _, saida = tarifa(modelo)
     return {"modelo": modelo, "esforco": esforco, "max_tokens": max_tokens, "paragrafos": len(paragrafos),
@@ -507,6 +508,7 @@ def estimar(paragrafos, modelo=MODELO_PADRAO, esforco=ESFORCO_PADRAO, titulo="ma
             "custo_esperado_usd": round((tokens * escrita + SAIDA_ESPERADA_TOKENS * saida) / 1e6, 4) if cabe else None,
             "custo_maximo_usd": round(unico.custo_maximo(SISTEMA, texto, ESQUEMA, max_tokens), 4) if cabe else None,
             "custo_maximo_com_retomada_usd": round(padrao.custo_maximo(SISTEMA, texto, ESQUEMA, max_tokens), 4) if cabe else None,
+            "provedor": "google" if modelo.startswith("gemini-") else "anthropic",
             "premissa": f"Esperado: entrada + {SAIDA_ESPERADA_TOKENS} tokens de saída (suposição não calibrada; esforço "
                         f"alto pode usar bem mais, incluindo o raciocínio). Máximo reservado: entrada + {max_tokens} tokens "
                         "de saída em uma única requisição, tudo cobrado à tarifa do modelo; é o que o teto precisa cobrir, "
@@ -667,7 +669,7 @@ def _uso(chamadas):
         "custo_usd": round(sum(c.get("custo_usd") or 0 for c in chamadas), 6),
         "modelos": sorted({c["modelo_usado"] for c in chamadas if c.get("modelo_usado")}),
         "chamadas": [{k: c.get(k) for k in ("etapa", "modelo_usado", "tokens_entrada", "tokens_cache", "tokens_cache_criacao",
-                                           "tokens_saida", "custo_usd", "segundos", "pedido", "presumido")} for c in chamadas],
+                                           "tokens_saida", "tokens_raciocinio", "custo_usd", "segundos", "pedido", "presumido")} for c in chamadas],
     }
 
 

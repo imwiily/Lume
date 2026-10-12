@@ -16,6 +16,7 @@ from .analysis import explicar, finding
 REGRA = "coerencia_ia"
 CATEGORIA = "Contradição narrativa"
 FONTE = "Coerencia · IA (Claude)"
+FONTE_GEMINI = "Coerencia · IA (Gemini)"
 
 
 def _coerencia():
@@ -37,7 +38,8 @@ def paragrafos(blocks):
 
 def estimar(blocks, pasta, modelo="claude-sonnet-5-5"):
     _, Projeto, *_ = _coerencia()
-    return Projeto(pasta).estimar(paragrafos(blocks), modelo)
+    return dict(Projeto(pasta).estimar(paragrafos(blocks), modelo),
+                provedor="google" if modelo.startswith("gemini-") else "anthropic")
 
 
 def _intervalo(texto, trecho):
@@ -82,7 +84,8 @@ def analisar(blocks, pasta, documento="manuscrito", modelo="claude-sonnet-5-5", 
         if pendencia.get("relacionadas"):
             explicacao += f" (Também apontado em {len(pendencia['relacionadas'])} outro(s) trecho(s) próximo(s).)"
         item = asdict(finding(bloco_b, CATEGORIA, "Verificar", ib, fb,
-                              explicar(explicacao, "contradição de continuidade"), FONTE))
+                              explicar(explicacao, "contradição de continuidade"),
+                              FONTE_GEMINI if modelo.startswith("gemini-") else FONTE))
         alta = pendencia.get("confianca") == "alta"
         item.update(rule=REGRA, category_code="narrative_contradiction_ai", layer="editorial",
                     severity="possible_inconsistency", confidence="alta" if alta else "média",
@@ -96,7 +99,7 @@ def analisar(blocks, pasta, documento="manuscrito", modelo="claude-sonnet-5-5", 
         faltam = rodada["a_enviar"] - rodada["enviados"]
         avisos.append(f"Coerência com IA: teto de gasto atingido. {faltam} capítulo(s) e parte dos julgamentos ficaram "
                       f"para a próxima análise; o que foi lido está salvo. {rodada['interrompida']}")
-    avisos.append(f"Coerência com IA ({modelo}): {rodada['enviados']} de {rodada['capitulos']} capítulos enviados à "
-                  f"Anthropic; custo estimado US$ {rodada['custo_usd']:.4f}. Contradições são suspeitas para avaliação "
+    avisos.append(f"Coerência com IA ({modelo}): {rodada['enviados']} de {rodada['capitulos']} capítulos enviados "
+                  f"{'ao Google' if modelo.startswith('gemini-') else 'à Anthropic'}; custo estimado US$ {rodada['custo_usd']:.4f}. Contradições são suspeitas para avaliação "
                   "humana, não erros confirmados.")
     return ocorrencias, avisos, rodada

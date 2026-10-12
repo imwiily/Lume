@@ -2,6 +2,11 @@
 
 Branch: `experimento/coerencia-2-ia` (worktree em `build/coerencia-2-worktree`, a partir de `main` 244ff7a).
 Estado: protótipo tecnicamente concluído com respostas simuladas. **Não homologado editorialmente.**
+**Integração (Lume 1.9.1):** `coerencia` 2.0.0 empacota `coerencia2`; `fonte/fonte/coerencia2_ia.py` adapta a leitura global às
+ocorrências v1 (`rule=coerencia2_ia`, sempre `informacao` ou `diagnostico`, nunca impeditivas: `politica.destino`);
+`--coerencia-versao 2` em `revisar` e `coerencia-estimar`; cliente de uma só requisição para Claude e Gemini
+(`coerencia2/uma_requisicao.py`); seletor *Por cenas (1.x) / Global (2.0)* no app, padrão 1.x; cache e resultado em
+`<projeto>/global2/`; a sonda do motor confere a versão 2.0.0 e o manifesto a registra. As seções abaixo são do protótipo.
 
 ## Objetivo e escopo
 O Coerência 1.2.0 extrai fatos por cena e compara pares com a mesma entidade e aspecto. Isso não cobre causalidade,

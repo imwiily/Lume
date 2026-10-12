@@ -51,9 +51,17 @@ def health():
         estimativa = estimar([Block(1, 'Capítulo 1', 'Capítulo 1', heading=True), Block(2, 'Lia tinha olhos verdes.', 'Capítulo 1')],
                              Path(temporary) / 'coerencia')
         assert estimativa['a_enviar'] == 1 and estimativa['custo_estimado_usd'] > 0, 'Coerência com IA ausente'
+        from fonte.coerencia2_ia import estimar as estimar_global
+        from coerencia import __version__ as coherence_version
+        import coerencia2
+        assert coherence_version == coerencia2.VERSAO == '2.0.0', 'Coerência 2.0 ausente ou de outra versão'
+        global_estimate = estimar_global([Block(1, 'Capítulo 1', 'Capítulo 1', heading=True), Block(2, 'Lia tinha olhos verdes.', 'Capítulo 1')],
+                                         Path(temporary) / 'coerencia')
+        assert global_estimate['a_enviar'] == 1 and global_estimate['versao'] == 2, 'Leitura global da Coerência 2.0 ausente'
     from fonte.languagetool import available
     return {'api_version': 1, 'report_schema': 1, 'decision_schema': 1,
-            'engine_version': __version__, 'healthy': True, 'grammar_checker': available(), 'coherence_ai': True}
+            'engine_version': __version__, 'healthy': True, 'grammar_checker': available(), 'coherence_ai': True,
+            'coherence_version': coherence_version, 'coherence_global': True}
 
 
 def main():
