@@ -284,8 +284,8 @@ class Infraestrutura(unittest.TestCase):
 
     def test_reserva_maxima_nao_e_o_gasto_esperado(self):
         e = aud.estimar(ler_paragrafos(CASO_1_CONTRADICAO))
-        self.assertLess(e["custo_esperado_usd"], e["custo_maximo_sem_retomada_usd"])
-        self.assertLess(e["custo_maximo_sem_retomada_usd"], e["custo_maximo_usd"])
+        self.assertLess(e["custo_esperado_usd"], e["custo_maximo_usd"])
+        self.assertLess(e["custo_maximo_usd"], e["custo_maximo_com_retomada_usd"])
 
     def test_estimativa_sem_rede(self):
         e = aud.estimar(ler_paragrafos(CASO_1_CONTRADICAO))
@@ -350,6 +350,103 @@ class ClienteClaude(unittest.TestCase):
         r = rodar(CASO_1_CONTRADICAO, Claude("claude-sonnet-5-5", cliente=api, orcamento=Orcamento(0.0001)))
         self.assertEqual((pedidos, r["cobertura"]["tipo"]), ([], "nao_realizada"))
         self.assertIn("TetoAtingido", r["cobertura"]["motivo"])
+
+
+class LimiteDeSaida(unittest.TestCase):
+    """`max_tokens` configurável por execução, só no cliente experimental."""
+
+    @staticmethod
+    def api(texto='{"apontamentos": [], "fenomenos_descartados": []}', motivo="end_turn", saida=500):
+        uso = SimpleNamespace(input_tokens=1000, cache_read_input_tokens=0, cache_creation_input_tokens=0, output_tokens=saida)
+        r = SimpleNamespace(content=[SimpleNamespace(type="text", text=texto)], usage=uso, stop_reason=motivo,
+                            model="claude-sonnet-5-5", _request_id="req_t")
+        pedidos = []
+        criar = lambda **p: (pedidos.append(p), r)[1]
+        return SimpleNamespace(messages=SimpleNamespace(create=criar),
+                               beta=SimpleNamespace(messages=SimpleNamespace(create=criar))), pedidos
+
+    def test_padrao_16000_e_alternativos_vao_na_requisicao_e_no_resultado(self):
+        import coerencia.modelo as compartilhado
+        from coerencia2.uma_requisicao import UmaRequisicao
+        for valor in (None, 24000, 32000):
+            with self.subTest(max_tokens=valor):
+                api, pedidos = self.api()
+                opcoes = {} if valor is None else {"max_tokens": valor}
+                r = rodar(CASO_1_CONTRADICAO, UmaRequisicao("claude-sonnet-5-5", cliente=api, orcamento=Orcamento(5.0), **opcoes))
+                esperado = valor or 16000
+                self.assertEqual((pedidos[0]["max_tokens"], r["max_tokens"]), (esperado, esperado))
+                self.assertEqual(compartilhado.MAX_TOKENS, 16000)            # o módulo compartilhado não fica alterado
+
+    def test_valor_invalido_e_recusado(self):
+        from coerencia2.uma_requisicao import UmaRequisicao
+        for ruim in (0, 999, 64001, "24000", True):
+            with self.subTest(ruim=ruim), self.assertRaises(ValueError):
+                UmaRequisicao("claude-sonnet-5-5", cliente=object(), max_tokens=ruim)
+
+    def test_reserva_cresce_com_o_limite_e_o_orcamento_bloqueia_antes_do_envio(self):
+        from coerencia2.uma_requisicao import UmaRequisicao
+        ps = ler_paragrafos(CASO_1_CONTRADICAO)
+        reservas = {m: aud.estimar(ps, max_tokens=m)["custo_maximo_usd"] for m in (16000, 24000, 32000)}
+        self.assertLess(reservas[16000], reservas[24000])
+        self.assertLess(reservas[24000], reservas[32000])
+        self.assertAlmostEqual(reservas[32000] - reservas[16000], 16000 * 10 / 1e6, places=3)   # Sonnet: US$ 10 por milhão
+        # a estimativa e o cliente usam a mesma conta
+        api, pedidos = self.api()
+        cliente = UmaRequisicao("claude-sonnet-5-5", cliente=api, orcamento=Orcamento(reservas[32000] - 0.01), max_tokens=32000)
+        r = rodar(CASO_1_CONTRADICAO, cliente)
+        self.assertEqual((pedidos, r["cobertura"]["tipo"]), ([], "nao_realizada"))
+        self.assertIn("TetoAtingido", r["cobertura"]["motivo"])
+        api, pedidos = self.api()
+        ok = UmaRequisicao("claude-sonnet-5-5", cliente=api, orcamento=Orcamento(reservas[32000] + 0.01), max_tokens=32000)
+        self.assertEqual(rodar(CASO_1_CONTRADICAO, ok)["cobertura"]["tipo"], "global")
+
+    def test_janela_considera_o_limite_configurado(self):
+        ps = ler_paragrafos(CASO_1_CONTRADICAO)
+        e = aud.estimar(ps, janela_tokens=20000, max_tokens=24000)
+        self.assertEqual((e["cabe_em_uma_leitura"], e["custo_maximo_usd"]), (False, None))
+        self.assertIn("24000", e["motivo_se_nao_cabe"])
+        self.assertTrue(aud.estimar(ps, janela_tokens=40000, max_tokens=24000)["cabe_em_uma_leitura"])
+
+    def test_cache_invalida_com_outro_limite_e_preserva_o_padrao(self):
+        ps = ler_paragrafos(CASO_1_CONTRADICAO)
+        chave = lambda *a: aud._chave_cache(ps, "claude-sonnet-5-5", "high", "t", False, *a)
+        self.assertEqual(chave(), chave(16000))                  # caches anteriores continuam valendo
+        self.assertNotEqual(chave(16000), chave(24000))
+        self.assertNotEqual(chave(24000), chave(32000))
+
+    def test_resposta_truncada_nao_e_analise_global_e_nao_repete(self):
+        from coerencia2.uma_requisicao import UmaRequisicao
+        api, pedidos = self.api(texto='{"apontamentos": [{"categoria"', motivo="max_tokens", saida=24000)
+        with tempfile.TemporaryDirectory() as pasta:
+            r = rodar(CASO_1_CONTRADICAO, UmaRequisicao("claude-sonnet-5-5", esforco="high", cliente=api,
+                                                        orcamento=Orcamento(5.0), max_tokens=24000), pasta=pasta)
+            self.assertEqual(len(pedidos), 1)
+            self.assertEqual((r["cobertura"]["tipo"], r["apontamentos"], r["max_tokens"]), ("incompleta", [], 24000))
+            self.assertNotIn("paragrafos_enviados", r["cobertura"])
+            self.assertEqual((r["uso"]["tokens_saida"], r["esforco"]), (24000, "high"))
+            self.assertFalse((Path(pasta) / "cache-global.json").exists())     # nada aproveitável a guardar
+
+    def test_resultado_anterior_sem_max_tokens_e_desconhecido(self):
+        self.assertIsNone(aud.max_tokens_do_resultado({"custo_usd": 0.1}))
+        self.assertEqual(aud.max_tokens_do_resultado({"max_tokens": 24000}), 24000)
+
+    def test_sdk_aceita_limite_alto_sem_streaming_com_a_configuracao_do_cliente(self):
+        import anthropic
+        import httpx2 as httpx
+        corpo = {"id": "m", "type": "message", "role": "assistant", "model": "claude-sonnet-5-5", "stop_reason": "end_turn",
+                 "content": [{"type": "text", "text": '{"apontamentos": [], "fenomenos_descartados": []}'}],
+                 "usage": {"input_tokens": 10, "output_tokens": 5}}
+        vistos = []
+
+        def responder(req):
+            import json as _json
+            vistos.append(_json.loads(req.content)["max_tokens"])
+            return httpx.Response(200, json=corpo)
+        sdk = anthropic.Anthropic(api_key="chave-de-teste", timeout=600, max_retries=0,       # como o `Claude` o constrói
+                                  http_client=httpx.Client(transport=httpx.MockTransport(responder)))
+        from coerencia2.uma_requisicao import UmaRequisicao
+        r = rodar(CASO_1_CONTRADICAO, UmaRequisicao("claude-sonnet-5-5", cliente=sdk, orcamento=Orcamento(5.0), max_tokens=32000))
+        self.assertEqual((vistos, r["cobertura"]["tipo"]), ([32000], "global"))
 
 
 class UmaRequisicaoTests(unittest.TestCase):

@@ -13,8 +13,7 @@ import re
 import unicodedata
 
 from coerencia.analise import normalizar
-from coerencia.modelo import (CARACTERES_POR_TOKEN, MAX_TOKENS, Claude, ErroModelo, Recusa, RespostaCortada,
-                              TetoAtingido, tarifa)
+from coerencia.modelo import MAX_TOKENS, Claude, ErroModelo, Recusa, RespostaCortada, TetoAtingido, tarifa
 
 VERSAO_PROMPT = "2.0-exp.2"
 VERSAO_RESULTADO = "coerencia2-experimental-1"
@@ -27,6 +26,9 @@ LIMITE_CARACTERES = 300_000
 JANELA_TOKENS = 200_000
 MAX_APONTAMENTOS = 20
 MINIMO_PALAVRAS = 2
+# Medido: os 80 mil caracteres do pedido do Kokoro (instruções, esquema e texto) foram cobrados como 35 672 tokens
+# de entrada (≈ 2,25 por token); o 2,5 do cliente compartilhado subestimava a entrada em 11%.
+CARACTERES_POR_TOKEN = 2.2
 SAIDA_ESPERADA_TOKENS = 6000  # suposição não calibrada (inclui o raciocínio, cobrado como saída)
 
 CATEGORIAS = {
@@ -487,27 +489,32 @@ def pedido(paragrafos, titulo, inacabada):
 
 
 def estimar(paragrafos, modelo=MODELO_PADRAO, esforco=ESFORCO_PADRAO, titulo="manuscrito", inacabada=False,
-            limite_caracteres=LIMITE_CARACTERES, janela_tokens=JANELA_TOKENS):
-    """Cobertura e custo da chamada, sem rede. `custo_maximo_usd` é a reserva que o teto precisa cobrir."""
+            limite_caracteres=LIMITE_CARACTERES, janela_tokens=JANELA_TOKENS, max_tokens=MAX_TOKENS):
+    """Cobertura e custo da chamada, sem rede. `custo_maximo_usd` é a reserva do cliente experimental de uma só
+    requisição (um envio, sem fallback nem repetição): entrada + `max_tokens` de saída; é o que o teto precisa cobrir.
+    `custo_maximo_com_retomada_usd` é a do cliente compartilhado, só para referência."""
+    from coerencia2.uma_requisicao import UmaRequisicao
     caracteres = sum(len(p.texto) for p in paragrafos)
     texto = pedido(paragrafos, titulo, inacabada)
-    cabe, motivo, tokens = cobertura_possivel(paragrafos, titulo, inacabada, limite_caracteres, janela_tokens)
-    cliente = Claude(modelo, esforco=esforco, cliente=object())          # só tarifa; nada é enviado
+    cabe, motivo, tokens = cobertura_possivel(paragrafos, titulo, inacabada, limite_caracteres, janela_tokens, max_tokens)
+    unico = UmaRequisicao(modelo, esforco=esforco, cliente=object(), max_tokens=max_tokens)    # só tarifa; nada é enviado
+    padrao = Claude(modelo, esforco=esforco, cliente=object())
+    padrao.caracteres_por_token = CARACTERES_POR_TOKEN
     _, escrita, _, saida = tarifa(modelo)
-    sem_retomada = (tokens * escrita + MAX_TOKENS * saida) / 1e6
-    return {"modelo": modelo, "esforco": esforco, "paragrafos": len(paragrafos), "caracteres": caracteres,
-            "limite_caracteres": limite_caracteres, "janela_tokens": janela_tokens, "cabe_em_uma_leitura": cabe,
-            "motivo_se_nao_cabe": motivo, "tokens_entrada_estimados": tokens,
+    return {"modelo": modelo, "esforco": esforco, "max_tokens": max_tokens, "paragrafos": len(paragrafos),
+            "caracteres": caracteres, "limite_caracteres": limite_caracteres, "janela_tokens": janela_tokens,
+            "cabe_em_uma_leitura": cabe, "motivo_se_nao_cabe": motivo, "tokens_entrada_estimados": tokens,
             "custo_esperado_usd": round((tokens * escrita + SAIDA_ESPERADA_TOKENS * saida) / 1e6, 4) if cabe else None,
-            "custo_maximo_sem_retomada_usd": round(sem_retomada, 4) if cabe else None,
-            "custo_maximo_usd": round(cliente.custo_maximo(SISTEMA, texto, ESQUEMA, MAX_TOKENS), 4) if cabe else None,
-            "premissa": f"Esperado: entrada + {SAIDA_ESPERADA_TOKENS} tokens de saída (suposição não calibrada, inclui "
-                        f"raciocínio). Máximo reservado: entrada + {MAX_TOKENS} tokens de saída, mais a recusa "
-                        "cobrada e a retomada automática no modelo mais caro; é o que o teto precisa cobrir, não o gasto previsto."}
+            "custo_maximo_usd": round(unico.custo_maximo(SISTEMA, texto, ESQUEMA, max_tokens), 4) if cabe else None,
+            "custo_maximo_com_retomada_usd": round(padrao.custo_maximo(SISTEMA, texto, ESQUEMA, max_tokens), 4) if cabe else None,
+            "premissa": f"Esperado: entrada + {SAIDA_ESPERADA_TOKENS} tokens de saída (suposição não calibrada; esforço "
+                        f"alto pode usar bem mais, incluindo o raciocínio). Máximo reservado: entrada + {max_tokens} tokens "
+                        "de saída em uma única requisição, tudo cobrado à tarifa do modelo; é o que o teto precisa cobrir, "
+                        "não o gasto previsto."}
 
 
 def cobertura_possivel(paragrafos, titulo="manuscrito", inacabada=False, limite_caracteres=LIMITE_CARACTERES,
-                       janela_tokens=JANELA_TOKENS):
+                       janela_tokens=JANELA_TOKENS, max_tokens=MAX_TOKENS):
     """(cabe, motivo, tokens_de_entrada). Conta o pedido inteiro (instruções, esquema e marcadores [§N]) e a saída
     reservada, não só os caracteres dos parágrafos."""
     caracteres = sum(len(p.texto) for p in paragrafos)
@@ -515,8 +522,8 @@ def cobertura_possivel(paragrafos, titulo="manuscrito", inacabada=False, limite_
                  / CARACTERES_POR_TOKEN) + 1
     if caracteres > limite_caracteres:
         return False, f"O manuscrito tem {caracteres} caracteres e o limite desta etapa é {limite_caracteres}.", tokens
-    if tokens + MAX_TOKENS > janela_tokens:
-        return False, (f"O pedido estimado ({tokens} tokens) mais a saída reservada ({MAX_TOKENS}) excede a janela "
+    if tokens + max_tokens > janela_tokens:
+        return False, (f"O pedido estimado ({tokens} tokens) mais a saída reservada ({max_tokens}) excede a janela "
                        f"assumida de {janela_tokens} tokens."), tokens
     return True, None, tokens
 
@@ -664,6 +671,12 @@ def _uso(chamadas):
     }
 
 
+def max_tokens_do_resultado(resultado):
+    """`max_tokens` registrado no resultado; resultados anteriores ao registro dão `None` (desconhecido)."""
+    valor = resultado.get("max_tokens")
+    return valor if isinstance(valor, int) and not isinstance(valor, bool) else None
+
+
 def uso_do_resultado(resultado):
     """Uso de um resultado, inclusive os anteriores ao registro de tokens: o que não foi medido é `None`."""
     if isinstance(resultado.get("uso"), dict):
@@ -676,10 +689,10 @@ def uso_do_resultado(resultado):
 
 # ---- execução -----------------------------------------------------------------------------------------
 
-def _chave_cache(paragrafos, modelo, esforco, titulo, inacabada):
+def _chave_cache(paragrafos, modelo, esforco, titulo, inacabada, max_tokens=MAX_TOKENS):
     # Tudo que muda a resposta bruta: instruções, esquema, versões, modelo, esforço, saída máxima e texto.
     partes = [VERSAO_PROMPT, VERSAO_RESULTADO, hashlib.sha256(SISTEMA.encode("utf-8")).hexdigest(),
-              hashlib.sha256(json.dumps(ESQUEMA, sort_keys=True).encode("utf-8")).hexdigest(), str(MAX_TOKENS),
+              hashlib.sha256(json.dumps(ESQUEMA, sort_keys=True).encode("utf-8")).hexdigest(), str(max_tokens),
               modelo, esforco, titulo, str(inacabada), assinatura(paragrafos)]
     return hashlib.sha256("|".join(partes).encode("utf-8")).hexdigest()
 
@@ -690,12 +703,13 @@ def auditar(paragrafos, cliente, titulo="manuscrito", inacabada=False, limite_ca
     (um `coerencia.modelo.Claude` já com teto). Não altera `paragrafos`. Nunca levanta por falha do modelo:
     a cobertura registra o que de fato aconteceu."""
     modelo, esforco = cliente.modelo, getattr(cliente, "esforco", ESFORCO_PADRAO)
+    max_tokens = getattr(cliente, "max_tokens", MAX_TOKENS)       # o do cliente é o que vai na requisição
     caracteres = sum(len(p.texto) for p in paragrafos)
     resultado = {
         "versao": VERSAO_RESULTADO, "experimental": True, "versao_do_prompt": VERSAO_PROMPT, "titulo": titulo,
         "obra_inacabada": inacabada,
         "manuscrito": {"assinatura_do_texto": assinatura(paragrafos), "paragrafos": len(paragrafos), "caracteres": caracteres},
-        "modelo_solicitado": modelo, "esforco": esforco, "modelos_que_responderam": [],
+        "modelo_solicitado": modelo, "esforco": esforco, "max_tokens": max_tokens, "modelos_que_responderam": [],
         "cobertura": {"tipo": "nao_realizada", "motivo": None, "limite_caracteres": limite_caracteres},
         "custo_usd": 0.0, "chamadas": 0, "do_cache": False, "uso": _uso([]),
         "apontamentos": [], "rejeitados_pela_verificacao": [], "fenomenos_descartados_pelo_modelo": [], "avisos": [],
@@ -703,12 +717,12 @@ def auditar(paragrafos, cliente, titulo="manuscrito", inacabada=False, limite_ca
     if not paragrafos:
         resultado["cobertura"]["motivo"] = "manuscrito sem parágrafos"
         return resultado
-    cabe, motivo, _ = cobertura_possivel(paragrafos, titulo, inacabada, limite_caracteres, janela_tokens)
+    cabe, motivo, _ = cobertura_possivel(paragrafos, titulo, inacabada, limite_caracteres, janela_tokens, max_tokens)
     if not cabe:
         resultado["cobertura"]["motivo"] = (
             motivo + " Nada foi enviado: a leitura global não foi feita e este resultado não cobre a obra.")
         return resultado
-    chave = _chave_cache(paragrafos, modelo, esforco, titulo, inacabada)
+    chave = _chave_cache(paragrafos, modelo, esforco, titulo, inacabada, max_tokens)
     arquivo = Path(pasta) / "cache-global.json" if pasta else None
     resposta = None
     if arquivo and arquivo.exists():

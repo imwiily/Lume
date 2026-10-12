@@ -37,7 +37,7 @@ def _ler(args):
 
 def planejar(args):
     paragrafos, sha, nome = _ler(args)
-    e = aud.estimar(paragrafos, args.modelo, args.esforco, nome, args.inacabada, args.limite)
+    e = aud.estimar(paragrafos, args.modelo, args.esforco, nome, args.inacabada, args.limite, max_tokens=args.max_tokens)
     print(json.dumps({"manuscrito_sha256": sha, "estimativa": e}, ensure_ascii=False, indent=1))
 
 
@@ -47,7 +47,7 @@ def executar(args):
     paragrafos, sha, nome = _ler(args)
     if not sha.startswith(args.sha_esperado):
         raise SystemExit(f"Manuscrito {sha[:12]} não é o esperado ({args.sha_esperado}). Nada foi enviado.")
-    e = aud.estimar(paragrafos, args.modelo, args.esforco, nome, args.inacabada, args.limite)
+    e = aud.estimar(paragrafos, args.modelo, args.esforco, nome, args.inacabada, args.limite, max_tokens=args.max_tokens)
     print(json.dumps({"estimativa": e}, ensure_ascii=False), flush=True)
     if not e["cabe_em_uma_leitura"]:
         raise SystemExit(f"{e['motivo_se_nao_cabe']} Nada foi enviado (leitura global não realizada).")
@@ -56,14 +56,14 @@ def executar(args):
     if not args.autorizo_envio:
         raise SystemExit("Faltou --autorizo-envio: o texto do manuscrito só vai ao provedor com autorização explícita.")
     # Uma única requisição: sem repetição, sem verificação prévia e sem retomada no servidor.
-    cliente = UmaRequisicao(args.modelo, esforco=args.esforco, orcamento=Orcamento(args.teto))
+    cliente = UmaRequisicao(args.modelo, esforco=args.esforco, orcamento=Orcamento(args.teto), max_tokens=args.max_tokens)
     pasta = Path(args.saida)
     pasta.mkdir(parents=True, exist_ok=True)
     resultado = aud.auditar(paragrafos, cliente, nome, args.inacabada, args.limite, pasta)
     resultado["manuscrito"]["sha256_do_arquivo"] = sha
     (pasta / "coerencia2-resultado.json").write_text(json.dumps(resultado, ensure_ascii=False, indent=1), encoding="utf-8")
     print(json.dumps({"cobertura": resultado["cobertura"]["tipo"], "apontamentos": len(resultado["apontamentos"]),
-                      "rejeitados": len(resultado["rejeitados_pela_verificacao"]), "requisicoes": cliente.requisicoes, "custo_usd": resultado["custo_usd"],
+                      "rejeitados": len(resultado["rejeitados_pela_verificacao"]), "requisicoes": cliente.requisicoes, "max_tokens": cliente.max_tokens, "custo_usd": resultado["custo_usd"],
                       "tokens": {k: resultado["uso"][k] for k in ("tokens_entrada_total", "tokens_cache_leitura",
                                                                   "tokens_cache_criacao", "tokens_saida")},
                       "modelos": resultado["modelos_que_responderam"], "saida": str(pasta)}, ensure_ascii=False))
@@ -152,6 +152,8 @@ def main():
         s.add_argument("--esforco", default=aud.ESFORCO_PADRAO)
         s.add_argument("--limite", type=int, default=aud.LIMITE_CARACTERES)
         s.add_argument("--inacabada", action="store_true")
+        s.add_argument("--max-tokens", type=int, default=aud.MAX_TOKENS,
+                       help="limite de saída da requisição, raciocínio incluído (padrão 16000)")
         if nome == "executar":
             s.add_argument("--teto", type=float, required=True)
             s.add_argument("--sha-esperado", required=True)
