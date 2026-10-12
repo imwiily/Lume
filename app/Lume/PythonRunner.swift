@@ -104,4 +104,29 @@ final class PythonRunner: @unchecked Sendable {
             return String(decoding: data, as: UTF8.self)
         } catch { return "" }
     }
+
+    /// Registro inteiro (até `limit` bytes). `tail` só guarda os últimos 32 KB, e linhas de protocolo grandes
+    /// (resultados de dezenas de decisões, texto exato do pedido) passam disso e se perderiam.
+    static func text(_ url: URL, limit: Int = 16_000_000) -> String {
+        guard let handle = try? FileHandle(forReadingFrom: url) else { return "" }
+        defer { try? handle.close() }
+        let data = (try? handle.read(upToCount: limit)) ?? Data()
+        return String(decoding: data, as: UTF8.self)
+    }
+
+    /// `tail` sem chaves de API: para qualquer texto do registro que o app mostre ao usuário.
+    static func safeTail(_ url: URL, secrets: [String] = []) -> String {
+        SecretRedactor.redact(tail(url), secrets: secrets)
+    }
+}
+
+/// Remove chaves de qualquer texto que o app possa exibir (erros, registro do motor).
+enum SecretRedactor {
+    static func redact(_ text: String, secrets: [String] = []) -> String {
+        var result = text
+        for secret in secrets where secret.count >= 8 { result = result.replacingOccurrences(of: secret, with: "[chave oculta]") }
+        guard let pattern = try? NSRegularExpression(pattern: "sk-[A-Za-z0-9_\\-]{8,}") else { return result }
+        return pattern.stringByReplacingMatches(in: result, range: NSRange(result.startIndex..., in: result),
+                                                withTemplate: "[chave oculta]")
+    }
 }

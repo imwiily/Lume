@@ -8,21 +8,29 @@ struct FindingsColumn: View {
     @State private var showFilters = false
 
     private var activeFilters: Int {
-        [store.moduleFilter, store.severityFilter, store.layerFilter, store.category, store.decisionFilter]
-            .filter { $0 != "Todas" }.count
+        ([store.moduleFilter, store.severityFilter, store.layerFilter, store.category, store.decisionFilter]
+            .filter { $0 != "Todas" }.count) + (store.assessmentFilter == nil ? 0 : 1)
     }
 
     private func clearFilters() {
         store.search = ""; store.category = "Todas"; store.decisionFilter = "Todas"
         store.layerFilter = "Todas"; store.moduleFilter = "Todas"; store.severityFilter = "Todas"
+        store.assessmentFilter = nil
     }
 
     private var emptyText: String {
         if activeFilters > 0 || !store.search.isEmpty { return "Nada nesta seleção." }
-        return store.deskSection == .pendencies ? "Nenhuma pendência nesta leitura." : "Nenhuma observação nesta leitura."
+        return store.deskSection == .observations ? "Nenhuma observação nesta leitura." : "Nenhuma pendência nesta leitura."
+    }
+
+    /// Selo da avaliação da IA na linha: só quando já há validação por perto, para não poluir a lista.
+    private func shownAssessment(for finding: Finding) -> DecisionAssessment? {
+        guard let assessment = store.assessment(for: finding) else { return nil }
+        return assessment == .notAnalyzed && store.secondOpinion.results == nil ? nil : assessment
     }
 
     private func move(_ offset: Int) {
+        guard store.deskSection != .validation else { return }
         let items = store.filteredFindings
         guard !items.isEmpty else { return }
         let index = items.firstIndex { $0.id == store.selectedID } ?? (offset > 0 ? -1 : items.count)
@@ -42,6 +50,7 @@ struct FindingsColumn: View {
                         .foregroundStyle(LumeTheme.amber)
                         .accessibilityLabel("\(store.filteredFindings.count) alertas nesta seleção")
                 }
+                if store.deskSection != .validation {
                 HStack(spacing: 6) {
                     SearchField(prompt: "Buscar no texto ou capítulo", text: $store.search)
                     Button { showFilters.toggle() } label: {
@@ -56,14 +65,19 @@ struct FindingsColumn: View {
                     }.buttonStyle(.plain).help("Filtros").accessibilityLabel("Filtros, \(activeFilters) ativos")
                         .popover(isPresented: $showFilters, arrowEdge: .bottom) { filters }
                 }
+                }
                 if store.report != nil {
                     Picker("Parte da mesa", selection: $store.deskSection) {
                         Text("Pendências · \(store.tally.pending)").tag(DeskSection.pendencies)
                         Text("Observações · \(store.tally.observations)").tag(DeskSection.observations)
+                        Text("Validação" + (store.validation.map { $0.contested.isEmpty ? "" : " · \($0.contested.count)" } ?? ""))
+                            .tag(DeskSection.validation)
                     }.pickerStyle(.segmented).labelsHidden()
-                        .help("Pendências pedem decisão. Observações ficam à disposição e não impedem o encerramento.")
+                        .help("Pendências pedem decisão. Observações ficam à disposição e não impedem o encerramento. Validação é a segunda leitura das suas decisões, com IA.")
                     if store.deskSection == .pendencies {
                         ClosureStrip()
+                    } else if store.deskSection == .validation {
+                        EmptyView()
                     } else {
                         Text("Observações não pedem decisão e não impedem o encerramento. Consulte quando quiser.")
                             .font(LumeFont.ui(11)).foregroundStyle(LumeTheme.secondary)
@@ -78,7 +92,9 @@ struct FindingsColumn: View {
                 }
             }.padding(14)
             Divider().overlay(LumeTheme.line)
-            if store.filteredFindings.isEmpty {
+            if store.deskSection == .validation && store.report != nil {
+                ValidationHost()
+            } else if store.filteredFindings.isEmpty {
                 VStack(spacing: 10) {
                     Image(systemName: store.report == nil ? "book.closed" : "line.3.horizontal.decrease.circle")
                         .font(.system(size: 22, weight: .light))
@@ -96,7 +112,8 @@ struct FindingsColumn: View {
                             ForEach(store.filteredFindings) { finding in
                                 Button { store.selectedID = finding.id } label: {
                                     FindingCard(finding: finding, decision: store.decision(for: finding),
-                                                selected: store.selectedID == finding.id)
+                                                selected: store.selectedID == finding.id,
+                                                assessment: shownAssessment(for: finding))
                                         .opacity(finding.destination == .informacao && store.selectedID != finding.id ? 0.78 : 1)
                                 }.buttonStyle(.plain).id(finding.id)
                                 Divider().overlay(LumeTheme.line.opacity(0.6)).padding(.horizontal, 14)
@@ -144,6 +161,10 @@ struct FindingsColumn: View {
                 }
                 Picker("Categoria", selection: $store.category) {
                     ForEach(store.categories, id: \.self) { Text($0).tag($0) }
+                }
+                Picker("Avaliação da IA", selection: $store.assessmentFilter) {
+                    Text("Todas").tag(DecisionAssessment?.none)
+                    ForEach(DecisionAssessment.allCases) { Text($0.title).tag(DecisionAssessment?.some($0)) }
                 }
                 Picker("Avaliação", selection: $store.decisionFilter) {
                     Text("Todas").tag("Todas")
@@ -218,6 +239,7 @@ private struct FindingCard: View {
     let finding: Finding
     let decision: ReviewDecision
     let selected: Bool
+    var assessment: DecisionAssessment? = nil
 
     private var severity: FindingSeverity? { finding.severity.flatMap(FindingSeverity.init(rawValue:)) }
     private var observation: Bool { finding.destination == .informacao }
@@ -253,6 +275,10 @@ private struct FindingCard: View {
                 if finding.module == ReviewModule.audit.rawValue {
                     Text("·")
                     Text("Auditoria final")
+                }
+                if let assessment, decision != .pending {
+                    Text("·")
+                    AssessmentBadge(assessment: assessment)
                 }
             }.font(LumeFont.ui(10.5, weight: .medium)).foregroundStyle(decision == .pending ? LumeTheme.secondary : decision.color)
         }.padding(.horizontal, 14).padding(.vertical, 11).frame(maxWidth: .infinity, alignment: .leading)
