@@ -17,6 +17,8 @@ Os manuscritos são somente lidos. A sequência Linguístico → Morfossintátic
 | `grammar.py` | Crase, homófonos, concordância, regência, vírgula entre sujeito e verbo, correlação de tempos, frase cortada e locuções (etapa Morfossintática) |
 | `languagetool.py` | Corretor gramatical LanguageTool local: filtros, falas e servidor embutido. Cada alerta guarda a regra, a categoria e o tipo originais (`languagetool`). Se o corretor pedido não inicia ou não responde, a análise do FONTE segue e o relatório fica marcado como parcial (ver “Análise parcial”) |
 | `coerencia_ia.py` | Coerência com IA: projeto incremental do Coerencia (`coerencia/`) na etapa Coerência global |
+| `coerencia2_ia.py` | Coerência 2.0: leitura global (`coerencia2/`) em uma só requisição; `--coerencia-versao 2`; ocorrências `rule=coerencia2_ia`, sempre informação ou diagnóstico |
+| `pesquisa_gemini.py` | Pesquisa Google (Gemini) de uma dúvida normativa abstrata, só sob pedido (`pesquisar-fundamento`) |
 | `packaging/` | Entrada portátil, inventário, instalação atômica e reversão |
 | `scripts/build_engine.py` | Motor PyInstaller com teste após relocação |
 | `scripts/package_app.py` | Inclusão do motor, assinatura do app, diagnóstico e ZIP |

@@ -2,6 +2,40 @@
 
 As seções antigas descrevem a cobertura e os resultados de cada entrega, não o estado atual. Nas seções anteriores à 1.0, caminhos citados são da antiga pasta `LumeMac/`; a correspondência com a estrutura atual está em [README.md](README.md#estrutura).
 
+## Lume 1.9.1 · FONTE 1.5.0 · Coerência 2.0 — 12/10/2026
+
+O FONTE **mantém 1.5.0**: as regras editoriais e os contratos JSON do relatório não mudaram. O motor embutido ganha
+os módulos novos abaixo, por isso não é idêntico ao da tag `fonte-v1.5.0` (como já era na 1.9).
+
+**O que há de novo**
+
+- **Coerência 2.0 no app** (`coerencia` 2.0.0, pacote `coerencia2`): ao ligar a Coerência com IA, escolha *Global
+  (Coerência 2.0)* para uma leitura da obra inteira em **uma só requisição**, com a conferência das citações no texto.
+  Os apontamentos entram como **observações** (ou diagnóstico), nunca como pendências nem impeditivos. A leitura por
+  cenas (1.x) segue disponível e continua a padrão. **Limitações:** experimental; a precisão não foi medida em livros
+  reais; obras acima de 300 000 caracteres não são enviadas; o custo esperado usa uma premissa não calibrada.
+  *Sobre o Lume* e o relatório de montagem (`release.json`) informam a versão da Coerência embutida.
+- **Correção da lista de erros deslocada à esquerda.** Causa: o seletor das partes da mesa ganhou a quarta parte
+  (Editoriais) e passou a exigir cerca de 520 pt, mais que o máximo da coluna (400 pt); o conteúdo não cabia e a coluna
+  inteira estourava o painel. Agora o seletor usa as abas quando cabem e, senão, um menu que se adapta à largura.
+- **Google Gemini como provedor opcional** (veja abaixo), com a Coerência 2.0 também nele.
+- **Notas editoriais** (contrapropostas e fundamentações) numa quarta parte da mesa, já presente no trabalho local.
+
+**Google Gemini como provedor opcional**
+
+- **Gemini 3.8 Flash** (`gemini-3.8-flash`, API Interactions do Google, sem SDK novo) selecionável na Coerência
+  com IA e na Auditoria final, ao lado do Claude. O provedor sai do nome do modelo (`gemini-*`); não há troca
+  automática, e os resultados guardados já separam os modelos (a identidade do cache inclui o modelo).
+- **Chave própria:** Chaves do macOS, serviço `lume-gemini`, ou `GEMINI_API_KEY` no motor; nunca a da Anthropic.
+- **Custo:** tabela do Google separada (a vigente a partir de 01/01/2027, não a promocional), raciocínio cobrado
+  como saída, consultas de pesquisa contadas à parte e nunca como zero; mesmo teto e mesma confirmação, que agora
+  diz que o conteúdo vai ao Google. Sem repetição automática de chamada que possa ter sido cobrada.
+- **Pesquisa Google** (`pesquisar-fundamento`, botão no inspetor): operação separada, desligada por padrão, uma
+  pergunta abstrata por apontamento (só a classe do erro, sem trecho do manuscrito), com confirmação e pior custo.
+  Mostra só as consultas e fontes que a API informou. A Coerência e a Auditoria nunca pesquisam.
+- Fora do escopo: o Validador de decisões (V5 é da OpenAI; V2, do Claude) não oferece o Gemini.
+- Plano e limites: `.agent/plans/gemini.md`.
+
 ## Lume 1.9 · FONTE 1.5.0 · Coerencia 1.2.0 — 11/10/2026
 
 **Validador de decisões com segunda opinião da IA.** Inclui a correção da 1.8.1, que não foi
