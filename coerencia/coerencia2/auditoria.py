@@ -278,6 +278,39 @@ def conferir(resposta, paragrafos):
     return mantidos, rejeitados, descartados, avisos
 
 
+def _uso(chamadas):
+    """Uso informado pela API, somado. Valor que o cliente não informou fica `None`; nunca é estimado."""
+    def soma(campo):
+        valores = [c.get(campo) for c in chamadas]
+        return sum(valores) if valores and all(isinstance(v, int) and not isinstance(v, bool) for v in valores) else None
+    if not chamadas:
+        zero = {"tokens_entrada_total": 0, "tokens_cache_leitura": 0, "tokens_cache_criacao": 0,
+                "tokens_entrada_sem_cache": 0, "tokens_saida": 0}
+        return {"fonte": "nenhuma_chamada", **zero, "custo_usd": 0.0, "modelos": [], "chamadas": []}
+    total, leitura, criacao = soma("tokens_entrada"), soma("tokens_cache"), soma("tokens_cache_criacao")
+    conhecido = None not in (total, leitura, criacao)
+    return {
+        "fonte": "api" if total is not None and soma("tokens_saida") is not None else "nao_registrado",
+        "tokens_entrada_total": total, "tokens_cache_leitura": leitura, "tokens_cache_criacao": criacao,
+        "tokens_entrada_sem_cache": total - leitura - criacao if conhecido else None,
+        "tokens_saida": soma("tokens_saida"),
+        "custo_usd": round(sum(c.get("custo_usd") or 0 for c in chamadas), 6),
+        "modelos": sorted({c["modelo_usado"] for c in chamadas if c.get("modelo_usado")}),
+        "chamadas": [{k: c.get(k) for k in ("etapa", "modelo_usado", "tokens_entrada", "tokens_cache", "tokens_cache_criacao",
+                                           "tokens_saida", "custo_usd", "segundos", "pedido", "presumido")} for c in chamadas],
+    }
+
+
+def uso_do_resultado(resultado):
+    """Uso de um resultado, inclusive os anteriores ao registro de tokens: o que não foi medido é `None`."""
+    if isinstance(resultado.get("uso"), dict):
+        return resultado["uso"]
+    desconhecido = {k: None for k in ("tokens_entrada_total", "tokens_cache_leitura", "tokens_cache_criacao",
+                                      "tokens_entrada_sem_cache", "tokens_saida")}
+    return {"fonte": "nao_registrado", **desconhecido, "custo_usd": resultado.get("custo_usd"),
+            "modelos": resultado.get("modelos_que_responderam", []), "chamadas": []}
+
+
 # ---- execução -----------------------------------------------------------------------------------------
 
 def _chave_cache(paragrafos, modelo, esforco, titulo, inacabada):
@@ -301,7 +334,7 @@ def auditar(paragrafos, cliente, titulo="manuscrito", inacabada=False, limite_ca
         "manuscrito": {"assinatura_do_texto": assinatura(paragrafos), "paragrafos": len(paragrafos), "caracteres": caracteres},
         "modelo_solicitado": modelo, "esforco": esforco, "modelos_que_responderam": [],
         "cobertura": {"tipo": "nao_realizada", "motivo": None, "limite_caracteres": limite_caracteres},
-        "custo_usd": 0.0, "chamadas": 0, "do_cache": False,
+        "custo_usd": 0.0, "chamadas": 0, "do_cache": False, "uso": _uso([]),
         "apontamentos": [], "rejeitados_pela_verificacao": [], "fenomenos_descartados_pelo_modelo": [], "avisos": [],
     }
     if not paragrafos:
@@ -321,6 +354,7 @@ def auditar(paragrafos, cliente, titulo="manuscrito", inacabada=False, limite_ca
             if guardado.get("chave") == chave:
                 resposta, resultado["do_cache"] = guardado["resposta"], True
                 resultado["modelos_que_responderam"] = guardado.get("modelos_que_responderam", [])
+                resultado["uso_da_resposta_em_cache"] = guardado.get("uso")      # a chamada original, não esta execução
         except (OSError, ValueError, KeyError):
             resposta = None
     if resposta is None:
@@ -333,10 +367,11 @@ def auditar(paragrafos, cliente, titulo="manuscrito", inacabada=False, limite_ca
         chamadas = list(getattr(cliente, "chamadas", []))
         resultado["chamadas"] = len(chamadas)
         resultado["custo_usd"] = round(sum(c.get("custo_usd", 0) for c in chamadas), 6)
+        resultado["uso"] = _uso(chamadas)
         resultado["modelos_que_responderam"] = sorted({c["modelo_usado"] for c in chamadas if c.get("modelo_usado")})
         if resposta is not None and arquivo:
             arquivo.parent.mkdir(parents=True, exist_ok=True)
-            arquivo.write_text(json.dumps({"chave": chave, "resposta": resposta,
+            arquivo.write_text(json.dumps({"chave": chave, "resposta": resposta, "uso": resultado["uso"],
                                            "modelos_que_responderam": resultado["modelos_que_responderam"]},
                                           ensure_ascii=False), encoding="utf-8")
     if resposta is None:

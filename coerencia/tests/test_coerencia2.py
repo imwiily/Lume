@@ -319,6 +319,32 @@ class ClienteClaude(unittest.TestCase):
         self.assertEqual((r["modelo_solicitado"], r["modelos_que_responderam"]), ("claude-sonnet-5-5", ["claude-opus-5"]))
         self.assertGreater(r["custo_usd"], 0)
 
+    def test_uso_de_tokens_e_registrado_como_medido(self):
+        import json
+        uso = SimpleNamespace(input_tokens=1000, cache_read_input_tokens=500, cache_creation_input_tokens=300, output_tokens=200)
+        resp = SimpleNamespace(content=[SimpleNamespace(type="text", text=json.dumps(resposta()))], usage=uso,
+                               stop_reason="end_turn", model="claude-sonnet-5-5", _request_id="req_x")
+        criar = lambda **p: resp
+        api = SimpleNamespace(messages=SimpleNamespace(create=criar), beta=SimpleNamespace(messages=SimpleNamespace(create=criar)))
+        with tempfile.TemporaryDirectory() as pasta:
+            r = rodar(CASO_1_CONTRADICAO, Claude("claude-sonnet-5-5", cliente=api), pasta=pasta)
+            u = r["uso"]
+            self.assertEqual((u["fonte"], u["tokens_entrada_total"], u["tokens_cache_leitura"], u["tokens_cache_criacao"],
+                              u["tokens_entrada_sem_cache"], u["tokens_saida"]), ("api", 1800, 500, 300, 1000, 200))
+            self.assertEqual((u["modelos"], u["chamadas"][0]["pedido"], u["custo_usd"]), (["claude-sonnet-5-5"], "req_x", r["custo_usd"]))
+            segundo = rodar(CASO_1_CONTRADICAO, ModeloSimulado(resposta()), pasta=pasta)     # cache: nada medido agora
+            self.assertEqual((segundo["uso"]["fonte"], segundo["uso"]["tokens_saida"]), ("nenhuma_chamada", 0))
+            self.assertEqual(segundo["uso_da_resposta_em_cache"]["tokens_saida"], 200)
+
+    def test_uso_nao_informado_fica_desconhecido_e_resultado_antigo_e_compativel(self):
+        r = rodar(CASO_1_CONTRADICAO, ModeloSimulado(resposta()))           # o simulado só informa modelo e custo
+        self.assertEqual((r["uso"]["fonte"], r["uso"]["tokens_saida"], r["uso"]["tokens_entrada_total"]), ("nao_registrado", None, None))
+        antigo = {"custo_usd": 0.11934, "modelos_que_responderam": ["claude-sonnet-5-5"]}   # resultado sem o campo `uso`
+        u = aud.uso_do_resultado(antigo)
+        self.assertEqual((u["fonte"], u["tokens_saida"], u["tokens_cache_leitura"], u["custo_usd"]),
+                         ("nao_registrado", None, None, 0.11934))
+        self.assertEqual(u["modelos"], ["claude-sonnet-5-5"])
+
     def test_teto_baixo_impede_o_envio(self):
         api, pedidos = self.api("{}")
         r = rodar(CASO_1_CONTRADICAO, Claude("claude-sonnet-5-5", cliente=api, orcamento=Orcamento(0.0001)))
