@@ -352,5 +352,37 @@ class ClienteClaude(unittest.TestCase):
         self.assertIn("TetoAtingido", r["cobertura"]["motivo"])
 
 
+class UmaRequisicaoTests(unittest.TestCase):
+    def test_sem_repeticao_sem_verificacao_e_sem_retomada_no_servidor(self):
+        import anthropic
+        import httpx
+        from coerencia2.uma_requisicao import UmaRequisicao
+        chamadas = []
+
+        def criar(**pedido):
+            chamadas.append(pedido)
+            req = httpx.Request("POST", "https://api.exemplo/v1/messages")
+            raise anthropic.RateLimitError("limite", response=httpx.Response(429, request=req), body=None)
+        api = SimpleNamespace(messages=SimpleNamespace(create=criar), beta=SimpleNamespace(messages=SimpleNamespace(create=criar)),
+                              models=SimpleNamespace(retrieve=lambda *a: chamadas.append("verificar")))
+        cliente = UmaRequisicao("claude-sonnet-5-5", esforco="medium", cliente=api, orcamento=Orcamento(5.0))
+        cliente.verificar()
+        r = rodar(CASO_1_CONTRADICAO, cliente)
+        self.assertEqual(len(chamadas), 1)                           # uma requisição; sem `retrieve`; sem 2ª tentativa
+        self.assertEqual(cliente.requisicoes, 1)
+        self.assertNotIn("fallbacks", chamadas[0])
+        self.assertNotIn("betas", chamadas[0])
+        self.assertEqual((chamadas[0]["model"], chamadas[0]["output_config"]["effort"]), ("claude-sonnet-5-5", "medium"))
+        self.assertEqual(r["cobertura"]["tipo"], "nao_realizada")
+        self.assertIn("RateLimitError", r["cobertura"]["motivo"])
+
+    def test_uma_requisicao_bem_sucedida_registra_uso(self):
+        import json
+        from coerencia2.uma_requisicao import UmaRequisicao
+        api, pedidos = ClienteClaude.api(json.dumps(resposta()))
+        r = rodar(CASO_1_CONTRADICAO, UmaRequisicao("claude-sonnet-5-5", cliente=api, orcamento=Orcamento(5.0)))
+        self.assertEqual((len(pedidos), r["cobertura"]["tipo"], r["uso"]["tokens_saida"]), (1, "global", 800))
+
+
 if __name__ == "__main__":
     unittest.main()
