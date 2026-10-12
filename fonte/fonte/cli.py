@@ -79,6 +79,41 @@ def parser():
     check.add_argument("depois", type=Path, help="Manuscrito depois da correção")
     check.add_argument("--paragrafo", type=int, required=True)
     check.add_argument("--esperado", type=Path, required=True, help="Arquivo UTF-8 com o texto esperado do parágrafo")
+    for nome, ajuda in (("validar-decisoes-estimar", "Estimar custo do Validador de decisões, sem chamar a API"),
+                        ("validar-decisoes", "Reavaliar as decisões do autor com a API do Claude; não altera nada")):
+        validar = commands.add_parser(nome, help=ajuda)
+        validar.add_argument("arquivo", type=Path, help="Manuscrito atual (DOCX ou Pages)")
+        validar.add_argument("--relatorio", type=Path, required=True, help="relatorio.json da análise")
+        validar.add_argument("--decisoes", type=Path, required=True, help="JSON de decisões do app")
+        validar.add_argument("--projeto", type=Path, required=True, help="Pasta de projeto do Validador deste manuscrito")
+        validar.add_argument("--config", type=Path)
+        validar.add_argument("--modo", choices=["hibrido", "sonnet_direto"], default="hibrido")
+        validar.add_argument("--triagem-modelo", default="claude-haiku-5-5")
+        validar.add_argument("--juiz-modelo", default="claude-sonnet-5-5")
+        validar.add_argument("--amostra", type=float, default=0.1,
+                             help="Fração das decisões mantidas pela triagem que o Sonnet confere (0 a 1)")
+        validar.add_argument("--teto", type=float, default=1.0, help="Gasto máximo em US$ desta validação")
+    for nome, ajuda in (("validar-decisoes-v5-estimar", "Estimar o envio e o custo da validação V5, sem rede"),
+                        ("validar-decisoes-v5", "Segunda opinião (V5, OpenAI) sobre as decisões escolhidas; não altera nada"),
+                        ("validar-decisoes-v5-resultados", "Resultados V5 já gravados, no estado atual; sem rede"),
+                        ("validar-decisoes-v5-previa", "Texto exato que a V5 enviaria, sem rede")):
+        v5 = commands.add_parser(nome, help=ajuda)
+        v5.add_argument("arquivo", type=Path, help="Manuscrito atual (DOCX ou Pages)")
+        v5.add_argument("--relatorio", type=Path, required=True)
+        v5.add_argument("--decisoes", type=Path, required=True)
+        v5.add_argument("--projeto", type=Path, required=True, help="Pasta de projeto do Validador deste manuscrito")
+        v5.add_argument("--config", type=Path)
+        v5.add_argument("--ids", nargs="*", default=[], help="IDs dos apontamentos (obrigatório para estimar e executar)")
+        v5.add_argument("--ids-arquivo", type=Path, help="JSON com a lista de IDs")
+        v5.add_argument("--max-itens", type=int, default=40, help="Limite de itens da execução (até 60)")
+        v5.add_argument("--teto", type=float, default=1.0, help="Gasto máximo em US$ (padrão 1,00; máximo 5,00)")
+        v5.add_argument("--permitir-contexto-parcial", action="store_true",
+                        help="Aceita manuscrito de outra versão se o contexto registrado no relatório estiver presente")
+        v5.add_argument("--autorizar-contexto-adicional", action="store_true",
+                        help="Autoriza a segunda rodada de contexto pedida pelo modelo (desligada por padrão)")
+        v5.add_argument("--reanalisar", nargs="*", default=[], help="IDs com resultado válido a reanalisar (histórico preservado)")
+        v5.add_argument("--revalidar", nargs="*", default=[], help="IDs com resultado desatualizado a analisar de novo")
+        v5.add_argument("--tentativas", type=int, choices=(1, 2, 3), help="Tentativas por requisição (padrão do cliente: 3)")
     commands.add_parser("diagnostico", help="Conferir Python e modelo instalado")
     return root
 
@@ -116,6 +151,106 @@ def estimate_audit(args):
     return 0
 
 
+def validate_decisions(args, estimate_only):
+    """Segunda leitura das decisões do autor. Só escreve na pasta de projeto; relatório, decisões e
+    manuscrito ficam intactos. Uma linha JSON para o app, com o resumo."""
+    from .settings import load as load_settings, validate as validate_settings
+    from . import validador_decisoes as vd
+    path = args.arquivo.expanduser().resolve()
+    if not path.is_file():
+        raise ValueError("Arquivo não encontrado.")
+    try:
+        findings = json.loads(args.relatorio.expanduser().read_text(encoding="utf-8"))["findings"]
+        raw = json.loads(args.decisoes.expanduser().read_text(encoding="utf-8"))
+        decisions = {str(k): str(v) for k, v in (raw.get("decisions", raw)).items()}
+    except (OSError, ValueError, KeyError, AttributeError) as exc:
+        raise ValueError("Relatório ou decisões ilegíveis.") from exc
+    if not 0 <= args.amostra <= 1 or not 0 <= args.teto < float("inf"):
+        raise ValueError("A amostra precisa estar entre 0 e 1 e o teto não pode ser negativo.")
+    settings = load_settings(args.config) if args.config else validate_settings({})
+    blocks, _ = read_manuscript(path, settings)
+    project = args.projeto.expanduser().resolve()
+    if estimate_only:
+        result = vd.estimar(blocks, findings, decisions, project, args.modo, args.triagem_modelo, args.juiz_modelo,
+                              teto=args.teto, configuracao=settings)
+        print("LUME_ESTIMATIVA_VALIDADOR " + json.dumps(result, ensure_ascii=False), flush=True)
+        return 0
+    progress = lambda etapa, feitos, total: print("LUME_VALIDADOR_PROGRESSO " + json.dumps(
+        {"etapa": etapa, "feitos": feitos, "total": total}), flush=True)
+    meta = {"documento": path.name, "sha256_manuscrito": hashlib.sha256(path.read_bytes()).hexdigest()}
+    _, warnings, summary = vd.validar(blocks, findings, decisions, pasta=project, modo=args.modo, teto=args.teto,
+                                      amostra=args.amostra, triagem=args.triagem_modelo, juiz=args.juiz_modelo,
+                                      avancar=progress, meta=meta, configuracao=settings)
+    for warning in warnings:
+        print(warning, flush=True)
+    print("LUME_VALIDACAO " + json.dumps({"arquivo": str(project / vd.ESTADO), "resumo": summary},
+                                         ensure_ascii=False), flush=True)
+    return 0
+
+
+def validate_decisions_v5(args, mode):
+    """Integração supervisionada da V5. Só escreve na pasta de projeto; relatório, decisões e manuscrito ficam
+    intactos. Cada resposta é uma linha JSON com prefixo próprio; falhas esperadas saem como LUME_VALIDADOR_V5_ERRO."""
+    import signal
+    from .settings import load as load_settings, validate as validate_settings
+    from . import validador_v5_integracao as integracao
+    def fail(codigo, mensagem):
+        print("LUME_VALIDADOR_V5_ERRO " + json.dumps({"codigo": codigo, "mensagem": mensagem}, ensure_ascii=False), flush=True)
+        return 2
+    path = args.arquivo.expanduser().resolve()
+    if not path.is_file():
+        return fail("arquivo_ausente", "Arquivo não encontrado.")
+    try:
+        report = json.loads(args.relatorio.expanduser().read_text(encoding="utf-8"))
+        findings = report["findings"]
+        raw = json.loads(args.decisoes.expanduser().read_text(encoding="utf-8"))
+        decisions = {str(k): str(v) for k, v in (raw.get("decisions", raw)).items()}
+        ids = list(args.ids)
+        if args.ids_arquivo:
+            extra = json.loads(args.ids_arquivo.expanduser().read_text(encoding="utf-8"))
+            ids += [str(i) for i in (extra.get("ids", extra) if isinstance(extra, dict) else extra)]
+    except (OSError, ValueError, KeyError, AttributeError, TypeError):
+        return fail("entrada_ilegivel", "Relatório, decisões ou lista de IDs ilegíveis.")
+    settings = load_settings(args.config) if args.config else validate_settings({})
+    blocks, _ = read_manuscript(path, settings)
+    sha_file = hashlib.sha256(path.read_bytes()).hexdigest()
+    sha_report = report.get("sha256")
+    project = args.projeto.expanduser().resolve()
+    common = dict(maximo=args.max_itens, permitir_parcial=args.permitir_contexto_parcial,
+                  autorizar_contexto=args.autorizar_contexto_adicional, config=settings, revalidar=args.revalidar)
+    try:
+        if mode == "resultados":
+            out = integracao.resultados(blocks, findings, decisions, project, ids=ids or None, config=settings)
+            print("LUME_RESULTADOS_V5 " + json.dumps(out, ensure_ascii=False), flush=True)
+            return 0
+        if mode == "previa":
+            out = integracao.previa(blocks, findings, decisions, ids, sha_file, sha_report, project, maximo=args.max_itens,
+                                    permitir_parcial=args.permitir_contexto_parcial, config=settings,
+                                    revalidar=args.revalidar)
+            print("LUME_PREVIA_VALIDADOR_V5 " + json.dumps(out, ensure_ascii=False), flush=True)
+            return 0
+        if mode == "estimar":
+            out = integracao.estimar(blocks, findings, decisions, ids, sha_file, sha_report, project, teto=args.teto, **common)
+            print("LUME_ESTIMATIVA_VALIDADOR_V5 " + json.dumps(out, ensure_ascii=False), flush=True)
+            return 0
+        def terminate(signum, frame):
+            raise KeyboardInterrupt
+        signal.signal(signal.SIGTERM, terminate)         # cancelar devolve os itens em processamento
+        progress = lambda etapa, feitos, total: print("LUME_VALIDADOR_V5_PROGRESSO " + json.dumps(
+            {"etapa": etapa, "feitos": feitos, "total": total}), flush=True)
+        simulado = os.environ.get("LUME_V5_TRANSPORTE_SIMULADO")     # só testes locais; o app nunca o define
+        out = integracao.executar(blocks, findings, decisions, ids, sha_file, sha_report, project, teto=args.teto,
+                                  reanalisar=args.reanalisar, tentativas=args.tentativas, avancar=progress,
+                                  transporte=integracao.transporte_simulado(simulado) if simulado else None,
+                                  meta={"documento": path.name, "sha256_manuscrito": sha_file}, **common)
+        for warning in out.get("avisos", []):
+            print(warning, flush=True)
+        print("LUME_VALIDACAO_V5 " + json.dumps(out, ensure_ascii=False, default=str), flush=True)
+        return 0
+    except integracao.ErroIntegracao as exc:
+        return fail(exc.codigo, str(exc))
+
+
 def check_edit(args):
     """Uma linha JSON para o app com o hash do manuscrito corrigido. Só lê os dois arquivos."""
     from .reader import verify_edit
@@ -148,6 +283,13 @@ def main(argv=None):
             return estimate_audit(args)
         if args.command == "conferir-edicao":
             return check_edit(args)
+        if args.command in ("validar-decisoes-v5", "validar-decisoes-v5-estimar", "validar-decisoes-v5-resultados",
+                            "validar-decisoes-v5-previa"):
+            return validate_decisions_v5(args, {"validar-decisoes-v5": "executar", "validar-decisoes-v5-estimar": "estimar",
+                                                "validar-decisoes-v5-resultados": "resultados",
+                                                "validar-decisoes-v5-previa": "previa"}[args.command])
+        if args.command in ("validar-decisoes", "validar-decisoes-estimar"):
+            return validate_decisions(args, args.command.endswith("estimar"))
         path = args.arquivo.expanduser().resolve()
         if path.is_dir() and path.suffix.lower() == ".pages":
             raise ValueError("Este documento do Pages está salvo como pacote (pasta). No Pages: Arquivo → Avançado → Alterar Tipo de Arquivo → Arquivo Único.")
